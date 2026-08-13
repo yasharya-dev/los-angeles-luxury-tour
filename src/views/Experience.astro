@@ -86,16 +86,24 @@ const copy = {
         excl: 'Hotel and airfare are not included.',
       },
       charter: {
-        body: `$70 an hour for one or two guests, $100 an hour for three or more ${EM} the same rate if the day runs long. Half and full days welcome, with a shopping assistant included.`,
+        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighbourhoods, whatever the day is for. LAX pickup can be built in.',
         excl: 'Meals, event tickets, and activity fees are not included.',
       },
-      'dodgers-concierge': {
-        body: `Airport, hotel, and stadium transfers for one game ${EM} $1,380 for one or two guests, $2,380 for three to five. Extra games at $320 or $420. Consultation over LINE is included.`,
-        excl: '',
+      'la-day-tour': {
+        body: 'Eight hours, collected from LAX and delivered to your hotel. Restaurants, shopping, and help at check-in, so the first day of the trip is not the hardest one.',
+        excl: 'Meals, event tickets, and activity fees are not included.',
+      },
+      'dodgers-game': {
+        body: 'Eight hours fully chartered around the game, with the ticket arranged for you. Collected from the airport or your hotel, and no waiting in the rideshare line afterwards.',
+        excl: 'Food and merchandise at the stadium are not included.',
       },
       'airport-transfer': {
-        body: '$50 one way within 20 km, $80 for 20 to 40 km, and 10% off a round trip. No add-ons at the airport.',
+        body: 'LAX to your hotel and back again. Met at the terminal exit, helped through check-in, and a shopping stop on the way if you would like one.',
         excl: '',
+      },
+      'dodgers-ticket': {
+        body: 'Tickets bought on your behalf, with the section and seat chosen to suit you. Stadium tours and pre-game tours can be booked the same way.',
+        excl: 'The face value of the ticket is charged separately.',
       },
     } as Record<string, { body: string; excl: string }>,
 
@@ -106,8 +114,10 @@ const copy = {
       'solo-plan': `Four nights, six days, designed for one guest ${EM} reassurance from airport to airport.`,
       temecula: `Wine country at an adult${RSQ}s pace ${EM} three award-winning wineries, Old Town, olive oil tasting, door to door from your hotel.`,
       charter: `The city at your pace ${EM} sightseeing, shopping, neighborhoods ${EM} with guide and private transport.`,
-      'dodgers-concierge': `Fully private game-day transport ${EM} the vehicle waits through the game. No shared rides, no post-game rideshare line.`,
-      'airport-transfer': `Met on arrival, driven to your hotel ${EM} parking and fuel included.`,
+      'la-day-tour': `A full day from the moment you land ${EM} eight hours, collected at LAX, delivered to your hotel.`,
+      'dodgers-game': `Eight hours chartered around the game, with the ticket arranged ${EM} and no rideshare line afterwards.`,
+      'airport-transfer': `Met at the terminal, driven both ways ${EM} check-in help and a shopping stop if you want one.`,
+      'dodgers-ticket': `Section and seat chosen for you ${EM} stadium and pre-game tours booked the same way.`,
     } as Record<string, string>,
   },
 
@@ -180,16 +190,24 @@ const copy = {
         excl: '※ホテル代・航空券は含まれません。',
       },
       charter: {
-        body: '1〜2名様は1時間$70〜、3名様以上は$100〜。延長も同料金で、半日・終日のご利用もご相談いただけます。ショッピングアシスタント付き。',
+        body: '6時間の貸切。1〜7名様まで、日本語ガイドと専属ドライバーがご一緒します。観光もショッピングも街歩きも、その日のご希望のままに。LAXでのお迎えも承ります。',
         excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
       },
-      'dodgers-concierge': {
-        body: '空港・ホテル・スタジアムの送迎（観戦1試合分）。1〜2名様 $1,380〜、3〜5名様 $2,380〜。観戦の追加は1試合 $320／$420。LINEでのご相談も含まれます。',
-        excl: '',
+      'la-day-tour': {
+        body: '8時間の貸切。LAXでお迎えし、ホテルまでお送りします。レストランやショッピング、チェックインのお手伝いまで。旅のはじめの一日を、いちばん大変な日にしないために。',
+        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
+      },
+      'dodgers-game': {
+        body: '観戦を中心に8時間を完全貸切。チケットの手配も承ります。空港またはホテルまでお迎えにあがり、試合後に配車の列へ並ぶ必要もありません。',
+        excl: '※球場でのお食事代・グッズ代は含まれません。',
       },
       'airport-transfer': {
-        body: '20km以内 片道$50〜、20〜40kmは$80〜。往復でのご利用は10%オフ。空港での追加料金はありません。',
+        body: 'LAXとホテルの往復。ターミナル出口でお出迎えし、チェックインまでサポートいたします。ご希望に応じて、買い物への立ち寄りも可能です。',
         excl: '',
+      },
+      'dodgers-ticket': {
+        body: '観戦チケットを代わりにお求めします。セクションも座席もご希望に合わせてお選びいただけます。スタジアムツアーやプリゲームツアーも同様に承ります。',
+        excl: '※チケット代金は別途申し受けます。',
       },
     } as Record<string, { body: string; excl: string }>,
 
@@ -204,10 +222,14 @@ const copy = {
         '大人の余裕旅。受賞歴のあるワイナリー3か所とオールドタウンを、ホテルの玄関から玄関まで。',
       charter:
         '観光も、ショッピングも、街歩きも。ガイドと専用車で、あなたのペースのままに。',
-      'dodgers-concierge':
-        '完全貸切の観戦送迎。試合中も車両が待機し、帰りの列に並ぶ必要はありません。',
+      'la-day-tour':
+        '到着したその日から。8時間貸切、LAXお迎え、ホテルまでお送りします。',
+      'dodgers-game':
+        '観戦を中心に8時間を完全貸切。チケット手配込み、帰りの列にも並びません。',
       'airport-transfer':
-        '到着ロビーでお出迎えし、ホテルまで。駐車場代・ガソリン代込みです。',
+        'ターミナル出口でお出迎えし、往復とも。チェックインのお手伝いと買い物立ち寄りも。',
+      'dodgers-ticket':
+        'セクションも座席もご希望のままに。スタジアムツアーの手配も承ります。',
     } as Record<string, string>,
   },
 } as const;

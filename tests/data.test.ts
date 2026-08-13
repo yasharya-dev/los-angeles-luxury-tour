@@ -42,6 +42,46 @@ describe('offerings', () => {
     }
   });
 
+  // Japanese pages lead in yen, English in USD. Getting this backwards would
+  // read as the wrong currency entirely.
+  it('leads in the right currency for each locale', () => {
+    for (const o of offerings) {
+      expect(o.price.en, `${o.id} en`).toMatch(/\$/);
+      expect(o.price.ja, `${o.id} ja`).toMatch(/円/);
+      expect(o.price.ja, `${o.id} ja must not lead in USD`).not.toMatch(/^\$/);
+    }
+  });
+
+  // A per-group price shown as per-person, or the reverse, is a real
+  // commercial error rather than a copy nit.
+  it('never mixes per-group and per-person units across locales', () => {
+    for (const o of offerings) {
+      const en = o.priceNote?.en ?? '';
+      const ja = o.priceNote?.ja ?? '';
+      if (/per group/i.test(en)) {
+        expect(ja, `${o.id} says per group in en`).toMatch(/グループ/);
+      }
+      if (/per person/i.test(en)) {
+        expect(ja, `${o.id} says per person in en`).toMatch(/名様/);
+        expect(ja, `${o.id} is per person, not per group`).not.toMatch(/グループ/);
+      }
+    }
+  });
+
+  // 約 means "about". It belongs on figures we converted, never on the prices
+  // she publishes in yen herself.
+  it('marks converted yen with 約 and native yen without it', () => {
+    for (const o of offerings) {
+      const nativeYen = !/約/.test(o.price.ja);
+      const enHasUsdSource = /\$[\d,]+/.test(o.price.en);
+      if (nativeYen) {
+        expect(o.priceNote?.ja ?? '', `${o.id}`).not.toMatch(/\$/);
+      } else {
+        expect(enHasUsdSource, `${o.id} converted yen needs a USD source`).toBe(true);
+      }
+    }
+  });
+
   it('assigns every offering to a known tier', () => {
     for (const o of offerings) expect(tierOrder).toContain(o.tier);
   });
