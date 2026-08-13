@@ -12,3 +12,7 @@ node_modules/
 .env
 .env.*
 .wrangler/
+
+# Wrangler local secrets
+.dev.vars*
+!.dev.vars.example

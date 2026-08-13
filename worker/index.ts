@@ -1,9 +1,18 @@
+import {
+  gatePage,
+  grantAccess,
+  hasAccess,
+  safeNext,
+} from './beta';
+
 // Serves the static build and handles POST /api/inquiry.
 // Resend does the actual sending: Cloudflare has no outbound email.
 // Secrets: wrangler secret put RESEND_API_KEY / TURNSTILE_SECRET_KEY
 
 interface Env {
   ASSETS: Fetcher;
+  /** Set to gate the site for client review. Absent means the site is public. */
+  BETA_PASSWORD?: string;
   RESEND_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   INQUIRY_TO?: string;
@@ -63,9 +72,33 @@ async function verifyTurnstile(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const beta = env.BETA_PASSWORD;
+
+    if (beta) {
+      if (url.pathname === '/api/beta') {
+        if (request.method !== 'POST') {
+          return new Response('Method not allowed', { status: 405 });
+        }
+        const form = await request.formData();
+        const next = safeNext(clean(form.get('next'), 512) || '/');
+        const given = clean(form.get('password'), 200);
+        return given === beta
+          ? grantAccess(beta, next)
+          : gatePage({ failed: true, next });
+      }
+
+      if (!(await hasAccess(request, beta))) {
+        return gatePage({ failed: false, next: url.pathname + url.search });
+      }
+    }
 
     if (url.pathname !== '/api/inquiry') {
-      return env.ASSETS.fetch(request);
+      const res = await env.ASSETS.fetch(request);
+      if (!beta) return res;
+      // Nothing behind the gate should ever be indexed.
+      const gated = new Response(res.body, res);
+      gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
+      return gated;
     }
 
     if (request.method !== 'POST') {
