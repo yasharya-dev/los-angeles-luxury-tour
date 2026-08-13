@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "los-angeles-luxury-tour",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-07-01",
+
+  // The Worker only intercepts /api/inquiry; the rest is served from here.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  "vars": {
+    // Stays on the gmail; see src/data/contact.ts.
+    "INQUIRY_TO": "losangelesluxurytour@gmail.com",
+    // Must be a Resend-verified domain, so this differs from INQUIRY_TO.
+    "INQUIRY_FROM": "Los Angeles Luxury Tour <concierge@losangelesluxurytour.com>"
+  }
+
+  // Secrets are NOT here. Set them with:
+  //   wrangler secret put RESEND_API_KEY
+  //   wrangler secret put TURNSTILE_SECRET_KEY
+}

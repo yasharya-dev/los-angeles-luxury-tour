@@ -1,0 +1,25 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+// 完全予約制 = by appointment only. Not a scarcity device: no cap, no counter,
+// no urgency copy. Don't let anyone add one.
+---
+
+<div class="reservation">
+  <p class="reservation__title">{t('reservation.title')}</p>
+  <p class="reservation__note">{t('reservation.note')}</p>
+</div>
+
+<style>
+  /* Always on the dark plate, so the gold is safe in both themes. */
+  .reservation__title {
+    color: #d4af37;
+  }
+</style>

@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import About from '../views/About.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="About Amelia - Los Angeles Luxury Tour"
+  description="Raised in Japan, at home in Los Angeles. Amelia designs and personally guides every journey, working between two languages and two ideas of hospitality."
+>
+  <About locale={locale} />
+</Base>

@@ -1,0 +1,450 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { CONTACT } from '../data/contact';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const EM = String.fromCharCode(0x2014);
+
+// Unset until the widget exists; the Worker skips verification without it.
+const turnstileKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+const copy = {
+  en: {
+    kicker: 'Write to Amelia',
+    title: 'The journey starts here',
+    lead: 'Everything is by reservation, so everything starts with a conversation. Required fields are marked',
+    name: 'Your name',
+    nameErr: 'Please tell me your name.',
+    email: 'Email',
+    emailErr: 'Please check the email address.',
+    lang: 'Preferred language',
+    langOpts: ['English', 'Japanese', 'Either'],
+    guests: 'Guests',
+    guestOpts: ['Not sure yet', '1', '2', '3', '4', '5', '6 or more'],
+    dates: 'Approximate travel dates',
+    datesHint: 'e.g. around September 2026, four nights',
+    hoping: 'What are you hoping for?',
+    hopingErr: `A single line is plenty ${EM} what are you hoping for?`,
+    heard: 'How did you hear about me?',
+    heardNote: 'If a friend sent you, tell me their name. Referrals carry a small thank-you discount.',
+    heardOpts: [
+      'Choose one',
+      'A friend referred me',
+      'Instagram',
+      'LINE',
+      'Search',
+      'Other',
+    ],
+    referrer: `Your friend${String.fromCharCode(0x2019)}s name (optional)`,
+    send: 'Send',
+    sending: 'Sending',
+    reply: 'You will hear back within 24 hours.',
+    formErr: 'A few fields still need attention. See the marks above.',
+    sendErr: 'Something went wrong sending that. Please email me directly at',
+    okTitle: 'Thank you. Your message is on its way.',
+    okBody: 'You will hear back within 24 hours.',
+    required: 'required',
+  },
+
+  ja: {
+    kicker: 'フォームでのご相談',
+    title: '旅の入り口は、ここから',
+    lead: '完全予約制のため、まずはお話から始まります。必須項目は',
+    name: 'お名前',
+    nameErr: 'お名前をご記入ください。',
+    email: 'メールアドレス',
+    emailErr: 'メールアドレスをご確認ください。',
+    lang: 'ご希望の言語',
+    langOpts: ['日本語', 'English', 'どちらでも'],
+    guests: '人数',
+    guestOpts: [
+      '未定',
+      '1名様',
+      '2名様',
+      '3名様',
+      '4名様',
+      '5名様',
+      '6名様以上',
+    ],
+    dates: 'ご旅行の時期（未定でも大丈夫です）',
+    datesHint: '例：2026年9月ごろ・4泊',
+    hoping: 'どんな旅をお望みですか',
+    hopingErr: 'ひとことで構いません。ご希望をお聞かせください。',
+    heard: 'このサービスを、どこでお知りになりましたか？',
+    heardNote:
+      'ご紹介の場合は、ご紹介者のお名前でご紹介割引を適用いたします。',
+    heardOpts: [
+      '選択してください',
+      'ご友人・知人の紹介',
+      'Instagram',
+      'LINE',
+      '検索',
+      'その他',
+    ],
+    referrer: 'ご紹介者のお名前（任意）',
+    send: '送信する',
+    sending: '送信中',
+    reply: '24時間以内にご返信いたします。',
+    formErr: '未記入の項目があります。上の印をご確認ください。',
+    sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
+    okTitle: 'ありがとうございます。メッセージをお送りしました。',
+    okBody: '24時間以内にご返信いたします。',
+    required: '必須',
+  },
+} as const;
+
+const c = copy[locale];
+---
+
+<section class="section form-section" id="form">
+  <div class="measure--cards">
+    <p class="kicker center">{c.kicker}</p>
+    <h2 class="h2 center form__title">{c.title}</h2>
+    <p class="body center form__lead">
+      {c.lead} <span class="req" aria-hidden="true">*</span>
+      <span class="sr-only">{c.required}</span>.
+    </p>
+
+    <form
+      class="form"
+      method="post"
+      action={CONTACT.formEndpoint}
+      novalidate
+      data-inquiry-form
+    >
+      <input type="hidden" name="locale" value={locale} />
+
+      {/* Honeypot - the Worker drops anything that arrives with it filled. */}
+      <div class="hp" aria-hidden="true">
+        <label>
+          Company
+          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-name">
+          {c.name} <span class="req" aria-hidden="true">*</span>
+        </label>
+        <input
+          class="input"
+          id="f-name"
+          name="name"
+          type="text"
+          required
+          autocomplete="name"
+          aria-describedby="e-name"
+        />
+        <p class="err" id="e-name" hidden>{c.nameErr}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-email">
+          {c.email} <span class="req" aria-hidden="true">*</span>
+        </label>
+        <input
+          class="input"
+          id="f-email"
+          name="email"
+          type="email"
+          required
+          autocomplete="email"
+          inputmode="email"
+          aria-describedby="e-email"
+        />
+        <p class="err" id="e-email" hidden>{c.emailErr}</p>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="f-lang">{c.lang}</label>
+          <select class="input" id="f-lang" name="language">
+            {c.langOpts.map((o) => <option value={o}>{o}</option>)}
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="f-guests">{c.guests}</label>
+          <select class="input" id="f-guests" name="guests">
+            {c.guestOpts.map((o) => <option value={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Free text, not a picker - "sometime next spring" is a real answer. */}
+      <div class="field">
+        <label class="label" for="f-dates">{c.dates}</label>
+        <input
+          class="input"
+          id="f-dates"
+          name="dates"
+          type="text"
+          placeholder={c.datesHint}
+        />
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-hoping">
+          {c.hoping} <span class="req" aria-hidden="true">*</span>
+        </label>
+        <textarea
+          class="input textarea"
+          id="f-hoping"
+          name="hoping"
+          rows="5"
+          required
+          aria-describedby="e-hoping"></textarea>
+        <p class="err" id="e-hoping" hidden>{c.hopingErr}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-heard">{c.heard}</label>
+        <p class="caption hint">{c.heardNote}</p>
+        <select class="input" id="f-heard" name="heard">
+          {c.heardOpts.map((o) => <option value={o}>{o}</option>)}
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-ref">{c.referrer}</label>
+        <input class="input" id="f-ref" name="referrer" type="text" />
+      </div>
+
+      {
+        turnstileKey && (
+          <div
+            class="cf-turnstile"
+            data-sitekey={turnstileKey}
+            data-theme="auto"
+          />
+        )
+      }
+
+      <p class="form__err" data-form-error hidden>{c.formErr}</p>
+
+      <div class="form__foot">
+        <button class="btn" type="submit" data-submit data-label={c.send} data-sending={c.sending}>
+          {c.send}
+        </button>
+        <p class="caption form__reply">{c.reply}</p>
+      </div>
+    </form>
+
+    <div class="ok" data-form-ok hidden>
+      <p class="h3 ok__title">{c.okTitle}</p>
+      <p class="body">{c.okBody}</p>
+    </div>
+  </div>
+</section>
+
+{turnstileKey && <script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js" />}
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-inquiry-form]');
+  const ok = document.querySelector<HTMLElement>('[data-form-ok]');
+  const formErr = document.querySelector<HTMLElement>('[data-form-error]');
+  const submit = document.querySelector<HTMLButtonElement>('[data-submit]');
+
+  function showError(input: HTMLInputElement | HTMLTextAreaElement, on: boolean) {
+    const msg = document.getElementById(`e-${input.id.replace('f-', '')}`);
+    input.setAttribute('aria-invalid', String(on));
+    input.classList.toggle('input--err', on);
+    if (msg) msg.hidden = !on;
+  }
+
+  if (form && ok && formErr && submit) {
+    const required = Array.from(
+      form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'),
+    );
+
+    /* On blur, not on input - do not correct someone mid-type. */
+    required.forEach((input) => {
+      input.addEventListener('blur', () => {
+        if (input.value.trim()) showError(input, !input.checkValidity());
+      });
+      input.addEventListener('input', () => {
+        if (input.classList.contains('input--err') && input.checkValidity()) {
+          showError(input, false);
+        }
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      let bad = false;
+      required.forEach((input) => {
+        const invalid = !input.checkValidity();
+        showError(input, invalid);
+        if (invalid && !bad) {
+          input.focus();
+          bad = true;
+        }
+      });
+
+      formErr.hidden = !bad;
+      if (bad) return;
+
+      submit.disabled = true;
+      submit.textContent = submit.dataset.sending ?? 'Sending';
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) throw new Error(String(res.status));
+
+        form.hidden = true;
+        ok.hidden = false;
+        ok.setAttribute('tabindex', '-1');
+        ok.focus();
+      } catch {
+        formErr.hidden = false;
+        submit.disabled = false;
+        submit.textContent = submit.dataset.label ?? 'Send';
+      }
+    });
+  }
+</script>
+
+<style>
+  .form-section {
+    padding-top: 0;
+  }
+
+  .form__title {
+    margin-block: 22px;
+  }
+
+  .form__lead {
+    margin-bottom: clamp(36px, 5vw, 52px);
+  }
+
+  .form {
+    display: grid;
+    gap: var(--gap-lg);
+  }
+
+  /* Off-screen, not display:none - some bots skip the latter. */
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .row {
+    display: grid;
+    gap: var(--gap-lg);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 620px) {
+    .row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .label {
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  :global(html[lang='ja']) .label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: none;
+  }
+
+  .req {
+    color: var(--gold-text);
+  }
+
+  .hint {
+    margin: 0;
+  }
+
+  .input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--card-edge);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 13px 14px;
+    border-radius: 0;
+    transition: border-color 0.3s ease;
+  }
+
+  .input:focus {
+    border-color: var(--gold-text);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  .input--err {
+    border-color: var(--err);
+  }
+
+  .textarea {
+    resize: vertical;
+    min-height: 8em;
+  }
+
+  .err,
+  .form__err {
+    margin: 0;
+    color: var(--err);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .form__err[hidden] {
+    display: none;
+  }
+
+  .form__foot {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-lg);
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .form__reply {
+    margin: 0;
+  }
+
+  .ok {
+    border: 1px solid var(--hairline);
+    padding: clamp(32px, 5vw, 48px);
+    text-align: center;
+  }
+  .ok[hidden] {
+    display: none;
+  }
+  .ok__title {
+    margin-bottom: 14px;
+    color: var(--gold-text);
+  }
+</style>

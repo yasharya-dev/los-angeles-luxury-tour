@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import About from '../../views/About.astro';
+
+const locale = 'ja' as const;
+---
+
+<Base
+  locale={locale}
+  title="アメリアについて｜Los Angeles Luxury Tour"
+  description="日本で育ち、ロサンゼルスに暮らして。旅の設計から当日のご案内まで、すべてをアメリア自身が担当します。ふたつの言葉と文化のあいだで、あなただけの旅をお仕立てします。"
+>
+  <About locale={locale} />
+</Base>

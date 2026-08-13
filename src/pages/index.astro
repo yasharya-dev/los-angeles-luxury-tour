@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import Landing from '../views/Landing.astro';
+import { useTranslations } from '../i18n/utils';
+
+const locale = 'en' as const;
+const t = useTranslations(locale);
+---
+
+<Base
+  locale={locale}
+  title={`${t('site.title')} - ${t('site.tagline')}`}
+  description="Private travel across Los Angeles and Orange County, designed and guided personally in Japanese and English. By reservation only."
+>
+  <Landing locale={locale} />
+</Base>

@@ -1,0 +1,81 @@
+---
+import '../styles/base.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import LangToggle from '../components/LangToggle.astro';
+import LangOfferBar from '../components/LangOfferBar.astro';
+import { type Locale } from '../i18n/ui';
+import { useTranslations, alternatePath } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  offerBar?: boolean;
+}
+
+const { locale, title, description, offerBar = true } = Astro.props;
+const t = useTranslations(locale);
+
+const pathname = Astro.url.pathname;
+const enHref = alternatePath(pathname, 'en');
+const jaHref = alternatePath(pathname, 'ja');
+const site = Astro.site?.origin ?? 'https://losangelesluxurytour.com';
+const canonical = new URL(pathname, site).href;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <link rel="alternate" hreflang="en" href={new URL(enHref, site).href} />
+    <link rel="alternate" hreflang="ja" href={new URL(jaHref, site).href} />
+    <link rel="alternate" hreflang="x-default" href={new URL(enHref, site).href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale === 'ja' ? 'ja_JP' : 'en_US'} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&family=Noto+Serif+JP:wght@400;500;600;700&display=swap"
+    />
+
+    {/* Inline and blocking, or light-theme visitors get a black flash. */}
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('lalt-theme');
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.dataset.theme = saved;
+          } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+            document.documentElement.dataset.theme = 'light';
+          }
+        } catch (e) {
+          /* private mode - fall through to dark */
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{t('nav.skip')}</a>
+    {offerBar && <LangOfferBar locale={locale} jaHref={jaHref} />}
+    <Header locale={locale} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer locale={locale} />
+    <LangToggle locale={locale} />
+  </body>
+</html>

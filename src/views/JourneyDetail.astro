@@ -1,0 +1,300 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { bySlug } from '../data/offerings';
+import { journeyBySlug } from '../data/journeys';
+import Divider from '../components/Divider.astro';
+import Reservation from '../components/Reservation.astro';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+}
+const { locale, slug } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const journey = journeyBySlug(slug);
+const offering = bySlug(slug);
+if (!journey || !offering) {
+  throw new Error(`No journey data for slug "${slug}"`);
+}
+
+const labels = {
+  en: {
+    includes: 'What is included',
+    excludes: 'Not included',
+    schedule: 'The shape of the day',
+    book: 'Reserve this journey',
+    ask: 'or ask a question first',
+  },
+  ja: {
+    includes: '料金に含まれるもの',
+    excludes: '料金に含まれないもの',
+    schedule: '1日の流れ',
+    book: 'このプランを予約する',
+    ask: 'まずは相談する',
+  },
+}[locale];
+---
+
+<section class="section head">
+  <div class="measure measure--wide">
+    <a class="back" href={p('/experience')}>
+      <span aria-hidden="true">&larr;</span> {t('cta.back')}
+    </a>
+    <p class="kicker head__kicker">{journey.kicker[locale]}</p>
+    <h1 class="h2 head__title">
+      {journey.title[locale].map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h1>
+    <p class="price">
+      <span class="price__amount">{offering.price[locale]}</span>
+      {offering.priceNote?.[locale] && (
+        <span class="price__unit">{offering.priceNote[locale]}</span>
+      )}
+    </p>
+    <p class="body head__lead">{journey.lead[locale]}</p>
+    {t('price.note') && <p class="caption rate">{t('price.note')}</p>}
+  </div>
+</section>
+
+{
+  journey.schedule && (
+    <section class="section section--deep">
+      <div class="measure--cards">
+        <h2 class="h3 block__title">{labels.schedule}</h2>
+        <ol class="schedule">
+          {journey.schedule.map((row) => (
+            <li class="row">
+              <span class="row__time">{row.time}</span>
+              <div class="row__text">
+                <p class="row__title">{row.title[locale]}</p>
+                {row.note && <p class="caption row__note">{row.note[locale]}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {journey.scheduleNote && (
+          <p class="caption note">{journey.scheduleNote[locale]}</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+<section class="section">
+  <div class="measure--cards lists">
+    <div class="list">
+      <h2 class="h3 block__title">{labels.includes}</h2>
+      <ul class="list__items">
+        {journey.includes[locale].map((item) => <li class="list__item">{item}</li>)}
+      </ul>
+    </div>
+
+    <div class="list">
+      <h2 class="h3 block__title">{labels.excludes}</h2>
+      <ul class="list__items list__items--muted">
+        {journey.excludes[locale].map((item) => <li class="list__item">{item}</li>)}
+      </ul>
+    </div>
+  </div>
+
+  {
+    !journey.schedule && journey.scheduleNote && (
+      <p class="caption note measure center">{journey.scheduleNote[locale]}</p>
+    )
+  }
+</section>
+
+<Divider />
+
+<section class="section">
+  <Reservation locale={locale} />
+  <p class="actions">
+    {
+      offering.formUrl && (
+        <a class="btn" href={offering.formUrl} rel="noopener" target="_blank">
+          {labels.book}
+        </a>
+      )
+    }
+    <a class="ask" href={p('/contact')}>{labels.ask}</a>
+  </p>
+</section>
+
+<style>
+  .head {
+    padding-block: clamp(48px, 7vw, 84px) clamp(40px, 6vw, 60px);
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 30px;
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .back:hover {
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .back {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: none;
+  }
+
+  .head__title {
+    margin-block: 20px 22px;
+  }
+
+  .price {
+    margin: 0 0 26px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .price__amount {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 3.2vw, 30px);
+    color: var(--gold-text);
+    white-space: nowrap;
+  }
+
+  :global(html[lang='ja']) .price__amount {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(18px, 2.6vw, 24px);
+  }
+
+  .price__unit {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .rate {
+    margin-top: 18px;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+
+  .block__title {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  /* ----------------------------------------------------------- schedule */
+
+  .schedule {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: clamp(16px, 3vw, 28px);
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  /* Times stay in Cormorant in both locales: they are Latin numerals and
+     Mincho figures here would read as an accident. */
+  .row__time {
+    font-family: var(--font-display);
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--gold-text);
+    white-space: nowrap;
+    min-width: 3.5em;
+  }
+
+  .row__title {
+    margin: 0;
+    font-size: clamp(15px, 1.9vw, 17px);
+    color: var(--ink);
+  }
+
+  .row__note {
+    margin-top: 6px;
+  }
+
+  .note {
+    margin-top: 22px;
+    color: var(--ink-soft);
+  }
+
+  /* -------------------------------------------------------------- lists */
+
+  .lists {
+    margin-inline: auto;
+    display: grid;
+    gap: clamp(40px, 6vw, 60px);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 760px) {
+    .lists {
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: start;
+    }
+  }
+
+  .list__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .list__item {
+    position: relative;
+    padding: 9px 0 9px 20px;
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--ink-mid);
+  }
+
+  /* Her own bullet convention: a middot for inclusions. */
+  .list__item::before {
+    content: '\30FB';
+    position: absolute;
+    left: 0;
+    color: var(--gold-text);
+  }
+
+  .list__items--muted .list__item {
+    color: var(--ink-soft);
+  }
+  .list__items--muted .list__item::before {
+    content: '\203B'; /* her caveat mark */
+    color: var(--ink-soft);
+  }
+
+  /* ------------------------------------------------------------ actions */
+
+  .actions {
+    margin: clamp(32px, 5vw, 44px) auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap-lg);
+    flex-wrap: wrap;
+  }
+
+  .ask {
+    font-size: 14px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .ask:hover {
+    color: var(--gold-text);
+  }
+</style>

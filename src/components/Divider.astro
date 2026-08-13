@@ -1,0 +1,32 @@
+---
+/*
+  Her section divider: a thin gold rule, a four-pointed sparkle, a thin rule.
+  Purely decorative, so it is hidden from assistive tech and the sparkle uses
+  --gold-deco, which stays #D4AF37 in both themes.
+*/
+---
+
+<div class="divider" aria-hidden="true">
+  <span class="divider__rule"></span>
+  <svg
+    class="divider__mark"
+    width="15"
+    height="15"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+    focusable="false"
+  >
+    <path d="M8 0 C8.6 4.6 11.4 7.4 16 8 C11.4 8.6 8.6 11.4 8 16 C7.4 11.4 4.6 8.6 0 8 C4.6 7.4 7.4 4.6 8 0 Z" />
+  </svg>
+  <span class="divider__rule"></span>
+</div>
+
+<style>
+  .divider {
+    padding-inline: 24px;
+  }
+  .divider__mark {
+    color: var(--gold-deco);
+    flex: none;
+  }
+</style>

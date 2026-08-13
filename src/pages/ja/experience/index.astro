@@ -1,0 +1,14 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Experience from '../../../views/Experience.astro';
+
+const locale = 'ja' as const;
+---
+
+<Base
+  locale={locale}
+  title="旅のプラン｜Los Angeles Luxury Tour"
+  description="メニューから選ぶ旅ではなく、あなたのために仕立てる旅を。特別な滞在プラン、1日の体験、送迎・サポートをご用意しています。完全予約制。"
+>
+  <Experience locale={locale} />
+</Base>

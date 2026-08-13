@@ -1,0 +1,8 @@
+---
+import Base from '../../layouts/Base.astro';
+import Message from '../../views/Message.astro';
+const locale = 'ja' as const;
+---
+<Base locale={locale} title="ページが見つかりません｜Los Angeles Luxury Tour" description="お探しのページが見つかりません。" offerBar={false}>
+  <Message locale={locale} kind="notfound" />
+</Base>

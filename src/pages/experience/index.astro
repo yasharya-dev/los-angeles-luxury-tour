@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import Experience from '../../views/Experience.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="The Experience - Los Angeles Luxury Tour"
+  description="A journey made to order, not chosen from a menu. Signature journeys, day experiences, and private transport across Los Angeles and Orange County."
+>
+  <Experience locale={locale} />
+</Base>

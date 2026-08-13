@@ -1,0 +1,16 @@
+---
+import Base from '../../layouts/Base.astro';
+import Landing from '../../views/Landing.astro';
+import { useTranslations } from '../../i18n/utils';
+
+const locale = 'ja' as const;
+const t = useTranslations(locale);
+---
+
+<Base
+  locale={locale}
+  title={`${t('site.title')}｜${t('site.tagline')}`}
+  description="ロサンゼルスとオレンジカウンティで、現地在住の日本人ガイドが「安全＆安心」の貸切プライベートツアーとVIP送迎をご提供します。完全予約制。"
+>
+  <Landing locale={locale} />
+</Base>
