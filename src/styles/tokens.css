@@ -2,7 +2,7 @@
   #D4AF37 is 9.0:1 on #101010 but only 2.1:1 on white, which fails AA for text
   and the 3:1 floor for UI. So gold is two tokens:
 
-    --gold-text   anything meaning-carrying. Darkens to #8A6D1F in light.
+    --gold-text   anything meaning-carrying. Darkens to #806419 in light.
     --gold-deco   wedges and sparkle only. Stays #D4AF37.
 
   Never use --gold-deco for text, an icon, or a border that means something.
@@ -82,7 +82,7 @@ html[data-theme='light'] {
   --ink-soft: rgba(22, 21, 17, 0.6);
 
   
-  --gold-text: #8a6d1f;
+  --gold-text: #806419;
   /* --gold-deco deliberately not overridden */
 
   --hairline: rgba(138, 109, 31, 0.5);
