@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { offerings, tierOrder, byTier, bySlug } from '../src/data/offerings';
 import { journeys, journeyBySlug } from '../src/data/journeys';
 import { CONTACT } from '../src/data/contact';
@@ -88,6 +90,24 @@ describe('offerings', () => {
 
   it('leaves no tier empty', () => {
     for (const tier of tierOrder) expect(byTier(tier).length).toBeGreaterThan(0);
+  });
+
+  // An offering with no booking link is fine, but it has to be a known gap
+  // rather than an oversight. Adding one without either a link or a marker
+  // means it ships with nothing to click.
+  it('marks every offering that has no booking link', () => {
+    const src = readFileSync(
+      join(process.cwd(), 'src/data/offerings.ts'),
+      'utf8',
+    );
+    for (const o of offerings) {
+      if (o.formUrl) continue;
+      const block = src.slice(src.indexOf(`id: '${o.id}'`));
+      const entry = block.slice(0, block.indexOf('name: {'));
+      expect(entry, `${o.id} has no booking link and no TODO`).toMatch(
+        /TODO\(#\d+\)/,
+      );
+    }
   });
 
   it('looks up by slug', () => {
