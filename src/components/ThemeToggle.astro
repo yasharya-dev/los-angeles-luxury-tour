@@ -1,0 +1,69 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<button
+  class="theme-toggle"
+  type="button"
+  aria-label={t('toggle.theme')}
+  aria-pressed="false"
+  title={t('toggle.theme')}
+  data-theme-toggle></button>
+
+<script>
+  const KEY = 'lalt-theme';
+  const root = document.documentElement;
+
+  function sync(btn: HTMLElement) {
+    const isLight = root.dataset.theme === 'light';
+    btn.setAttribute('aria-pressed', String(isLight));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((btn) => {
+    sync(btn);
+    btn.addEventListener('click', () => {
+      const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem(KEY, next);
+      } catch {
+        /* private mode: the choice just will not persist */
+      }
+      document
+        .querySelectorAll<HTMLElement>('[data-theme-toggle]')
+        .forEach(sync);
+    });
+  });
+</script>
+
+<style>
+  /* Half-filled circle: a sun/moon glyph would need two icons and a swap.
+     This reads as "two states" at 30px and costs no markup. */
+  .theme-toggle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    background: linear-gradient(90deg, #d4af37 0 50%, transparent 50% 100%);
+    cursor: pointer;
+    flex: none;
+    padding: 0;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+
+  .theme-toggle:hover {
+    border-color: #d4af37;
+    transform: rotate(180deg);
+  }
+
+  .theme-toggle[aria-pressed='true'] {
+    background: linear-gradient(90deg, transparent 0 50%, #d4af37 50% 100%);
+  }
+</style>

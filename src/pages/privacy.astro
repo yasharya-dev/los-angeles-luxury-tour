@@ -1,0 +1,8 @@
+---
+import Base from '../layouts/Base.astro';
+import Privacy from '../views/Privacy.astro';
+const locale = 'en' as const;
+---
+<Base locale={locale} title="Privacy - Los Angeles Luxury Tour" description="What happens to what you tell me. No tracking cookies, no advertising, and nothing shared for marketing." offerBar={false}>
+  <Privacy locale={locale} />
+</Base>

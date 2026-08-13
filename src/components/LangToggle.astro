@@ -1,0 +1,83 @@
+---
+import { localeNames, locales, type Locale } from '../i18n/ui';
+import { useTranslations, alternatePath } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+// Labelled in the destination language's own script: someone looking for
+// English needs to see "EN", not "英語". Maps over the array so a third
+// locale is a data change.
+const others = locales.filter((l) => l !== locale);
+---
+
+<div class="lang-toggle">
+  {
+    others.map((other) => (
+      <a
+        class="lang-toggle__link"
+        href={alternatePath(Astro.url.pathname, other)}
+        hreflang={other}
+        lang={other}
+        aria-label={t('toggle.lang')}
+      >
+        {localeNames[other]}
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .lang-toggle {
+    position: fixed;
+    right: clamp(16px, 3vw, 28px);
+    bottom: clamp(16px, 3vw, 28px);
+    z-index: 40;
+    display: flex;
+    gap: 6px;
+  }
+
+  .lang-toggle__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    background: var(--pill);
+    backdrop-filter: blur(6px);
+    box-shadow: var(--shadow-pill);
+    color: #d4af37;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    transition:
+      border-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  /* 日本語 falls back to a system font in Montserrat. */
+  .lang-toggle__link[lang='ja'] {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+
+  .lang-toggle__link:hover {
+    border-color: #d4af37;
+    color: #f5f5fa;
+  }
+
+  @media print {
+    .lang-toggle {
+      display: none;
+    }
+  }
+</style>

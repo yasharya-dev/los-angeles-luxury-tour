@@ -1,0 +1,483 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { byTier, capabilities, tierOrder, type Tier } from '../data/offerings';
+import Divider from '../components/Divider.astro';
+import Reservation from '../components/Reservation.astro';
+import heroImg from '../assets/hero-dtla.jpg';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+// Built by code point so the source stays ASCII.
+const EM = String.fromCharCode(0x2014);
+const RSQ = String.fromCharCode(0x2019);
+
+// JA display lines are arrays because the breaks are authored: Japanese has
+// no spaces and auto-wrap lands mid-clause. EN uses text-wrap: balance.
+const copy = {
+  en: {
+    heroKicker: 'Private transportation & tour service',
+    heroTitle: [
+      `The best journeys don${RSQ}t just show you new places.`,
+      'They help you discover new ways of seeing your life.',
+    ],
+    heroLead: `Private travel across Los Angeles and Orange County ${EM} designed and guided personally, in Japanese and English, from your first message to your flight home.`,
+    heroAlt: 'Palm-lined road above downtown Los Angeles at golden hour',
+
+    reassureKicker: 'Safety and reassurance, first',
+    reassureTitle: ['Nothing is left for you to figure out alone.'],
+    reassureBody: `Los Angeles is a wonderful city that can feel like a difficult one ${EM} the distances, the freeways, the language. My service exists for travelers who want safety and reassurance before anything else. I live here, and I design and guide every journey myself: Japanese-standard care, delivered in person, not promised from far away. Luxury, to me, is simply how that care feels.`,
+
+    whyKicker: 'Why travel with Amelia',
+    pillars: [
+      {
+        title: ['Japanese hospitality, delivered in Los Angeles'],
+        body: `The thoughtfulness I grew up with in Japan ${EM} heartfelt omotenashi ${EM} offered in the city I now call home.`,
+      },
+      {
+        title: ['Built entirely around you'],
+        body: `There is no fixed menu. I listen to what you say ${EM} and to what you mean ${EM} and design the journey from there.`,
+      },
+      {
+        title: ['One guide, start to finish'],
+        body: `You are never handed off. The person who plans your journey is the person beside you on it ${EM} me.`,
+      },
+    ],
+
+    offersKicker: 'The journeys',
+    offersTitle: ['What I can offer you'],
+    offersLead: `Every journey is designed to order ${EM} these are starting points, not a fixed menu. Every price is a floor.`,
+
+    closingTitle: ['Tell me what you are hoping for.'],
+    closingBody:
+      'Write in Japanese or English. You will hear back within 24 hours.',
+  },
+
+  ja: {
+    heroKicker: '完全予約制｜VIP送迎＆貸切プライベートツアー',
+    heroTitle: ['ロサンゼルスで叶える、', 'あなただけの特別な旅。'],
+    heroLead:
+      '海外旅行に「安全＆安心」を求めるお客様のために。現地在住の日本人ガイドが、真心こもったおもてなしで、あなたの旅を優雅で上質な体験へと導きます。',
+    heroAlt: '夕暮れのロサンゼルス。ヤシ並木とダウンタウンの眺め',
+
+    reassureKicker: '「安全＆安心」',
+    reassureTitle: ['何も、おひとりで', '悩む必要はありません。'],
+    reassureBody:
+      'ロサンゼルスは素晴らしい街ですが、距離も、運転も、言葉も、はじめての方には不安の種になります。弊社では、海外旅行における「安全＆安心」を求めるお客様向けに、完全予約制のツアーサービスを提供しております。皆様が海外においても日本人のクオリティを堪能していただけるよう、現地在住の日本人ガイドが真心こもったおもてなしで、皆様の旅をプライベートで優雅かつ上質な体験へと導きます。',
+
+    whyKicker: 'なぜ、アメリアなのか',
+    pillars: [
+      {
+        title: ['日本のおもてなしを、', 'ロサンゼルスで。'],
+        body: '日本で育った細やかな心配りを、いま暮らすこの街で。真心こもったおもてなしをお届けします。',
+      },
+      {
+        title: ['あなたのためだけに、', 'お仕立てする旅。'],
+        body: '決まったメニューはありません。お客様の「言葉」だけでなく「想い」に耳を傾け、旅を一から設計します。',
+      },
+      {
+        title: ['最初から最後まで、', '同じガイドが。'],
+        body: '旅を設計する人と、当日隣を歩く人は同じ。担当が替わることはありません。',
+      },
+    ],
+
+    offersKicker: '旅のプラン',
+    offersTitle: ['ご用意しているプラン'],
+    offersLead:
+      'どの旅も、お客様に合わせて一からお仕立てします。下記は出発点であり、決まったメニューではありません。',
+
+    closingTitle: ['あなたの「行ってみたい」を、', 'お聞かせください。'],
+    closingBody: '日本語でお気軽にどうぞ。24時間以内にご返信いたします。',
+  },
+} as const;
+
+const c = copy[locale];
+
+const tierCta: Record<Tier, string> = {
+  signature: t('cta.journeys'),
+  day: t('cta.days'),
+  transport: t('cta.transport'),
+};
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+---
+
+<section class="hero">
+  <img
+    class="hero__img"
+    src={heroImg.src}
+    alt={c.heroAlt}
+    width={heroImg.width}
+    height={heroImg.height}
+    fetchpriority="high"
+  />
+  <div class="hero__scrim"></div>
+  <div class="hero__inner">
+    <p class="kicker hero__kicker">{c.heroKicker}</p>
+    <h1 class="display hero__title">
+      {c.heroTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h1>
+    <p class="hero__lead">{c.heroLead}</p>
+    <div class="hero__cta">
+      <a class="btn" href={p('/contact')}>{t('cta.begin')}</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="measure measure--wide center">
+    <p class="kicker">{c.reassureKicker}</p>
+    <h2 class="h2 section__title">
+      {c.reassureTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+    <p class="body">{c.reassureBody}</p>
+  </div>
+</section>
+
+<Divider />
+
+<section class="section">
+  <div class="measure--grid center pillars-head">
+    <p class="kicker">{c.whyKicker}</p>
+  </div>
+  <ul class="pillars measure--grid">
+    {
+      c.pillars.map((pillar) => (
+        <li class="pillar">
+          <h3 class="h3 pillar__title">
+            {pillar.title.map((line, i) => (
+              <>
+                {i > 0 && <br />}
+                {line}
+              </>
+            ))}
+          </h3>
+          <p class="body pillar__body">{pillar.body}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<section class="section section--deep section--wedged" id="journeys">
+  <div class="measure measure--wide center offers__head">
+    <p class="kicker">{c.offersKicker}</p>
+    <h2 class="h2 section__title">
+      {c.offersTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+    <p class="body">{c.offersLead}</p>
+  </div>
+
+  <div class="tiers measure--cards">
+    {
+      tierOrder.map((tier) => (
+        <section class="tier" aria-labelledby={`tier-${tier}`}>
+          <h3 class="tier__label" id={`tier-${tier}`}>
+            {tierLabel[tier]}
+          </h3>
+          <ul class="tier__list">
+            {byTier(tier).map((o) => (
+              <li class="offer">
+                <div class="offer__text">
+                  <p class="offer__name">{o.name[locale]}</p>
+                  <p class="offer__blurb">{o.blurb[locale]}</p>
+                </div>
+                <p class="offer__price">
+                  <span class="offer__amount">{o.price[locale]}</span>
+                  {o.priceNote?.[locale] && (
+                    <span class="offer__unit">{o.priceNote[locale]}</span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <a class="tier__cta" href={p('/experience')}>
+            {tierCta[tier]} <span aria-hidden="true">&rarr;</span>
+          </a>
+        </section>
+      ))
+    }
+  </div>
+
+  <div class="measure--cards offers__foot">
+    <p class="caption">{capabilities[locale]}</p>
+    {t('price.note') && <p class="caption offers__rate">{t('price.note')}</p>}
+  </div>
+</section>
+
+<section class="section">
+  <Reservation locale={locale} />
+</section>
+
+<section class="section section--deep">
+  <div class="measure measure--wide center">
+    <h2 class="h2 section__title">
+      {c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+    <p class="body closing__body">{c.closingBody}</p>
+    <a class="btn" href={p('/contact')}>{t('cta.start')}</a>
+  </div>
+</section>
+
+<style>
+  /* ------------------------------------------------------------- hero */
+
+  .hero {
+    position: relative;
+    min-height: min(66svh, 620px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Heavier at the bottom so the CTA contrasts with the plate, not the photo. */
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 8, 8, 0.66) 0%,
+      rgba(8, 8, 8, 0.58) 40%,
+      rgba(8, 8, 8, 0.82) 100%
+    );
+  }
+
+  .hero__inner {
+    position: relative;
+    text-align: center;
+    padding: clamp(56px, 9vh, 96px) 24px;
+    max-width: 860px;
+    animation: fadeIn 1.1s ease both;
+  }
+
+  .hero__kicker {
+    margin-bottom: 26px;
+    letter-spacing: 0.38em;
+    color: rgba(245, 245, 250, 0.85);
+  }
+
+  .hero__title {
+    text-shadow: 0 1px 34px rgba(8, 8, 8, 0.5);
+    color: #d4af37;
+  }
+
+  .hero__lead {
+    margin: 30px auto 0;
+    max-width: var(--measure-narrow);
+    font-size: clamp(15px, 2vw, 17px);
+    line-height: 1.85;
+    color: rgba(245, 245, 250, 0.88);
+    text-wrap: pretty;
+  }
+
+  :global(html[lang='ja']) .hero__lead {
+    line-height: 2.1;
+    text-wrap: initial;
+  }
+
+  .hero__cta {
+    margin-top: 44px;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Plate is always dark, so these are literal rather than tokens. */
+  .hero :global(.btn) {
+    color: #d4af37;
+    border-color: rgba(212, 175, 55, 0.75);
+  }
+  .hero :global(.btn:hover) {
+    background: rgba(212, 175, 55, 0.12);
+    color: #f5f5fa;
+  }
+
+  /* ---------------------------------------------------------- sections */
+
+  .section__title {
+    margin-block: 30px;
+  }
+
+  /* ---------------------------------------------------------- pillars */
+
+  .pillars-head {
+    margin-inline: auto;
+    margin-bottom: clamp(40px, 6vw, 64px);
+  }
+
+  .pillars {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    display: grid;
+    gap: clamp(40px, 6vw, 56px);
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  @media (min-width: 720px) {
+    .pillars {
+      grid-template-columns: repeat(3, 1fr);
+      /* JA runs ~40% shorter; don't derive height from text. */
+      align-items: start;
+    }
+  }
+
+  .pillar__title {
+    margin-bottom: 18px;
+  }
+
+  .pillar__body {
+    max-width: 34ch;
+    margin-inline: auto;
+  }
+
+  /* ------------------------------------------------------------ offers */
+
+  .offers__head {
+    margin-inline: auto;
+    margin-bottom: clamp(48px, 7vw, 72px);
+  }
+
+  .tiers {
+    margin-inline: auto;
+    display: grid;
+    gap: clamp(44px, 6vw, 64px);
+  }
+
+  .tier__label {
+    margin: 0 0 var(--gap-lg);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline-soft);
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .tier__label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: none;
+  }
+
+  .tier__list {
+    list-style: none;
+    margin: 0 0 var(--gap-lg);
+    padding: 0;
+  }
+
+  .offer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    flex-wrap: wrap;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  .offer__text {
+    flex: 1 1 16rem;
+  }
+
+  .offer__name {
+    margin: 0 0 4px;
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2.2vw, 21px);
+    color: var(--ink);
+  }
+
+  :global(html[lang='ja']) .offer__name {
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.9vw, 17px);
+    font-weight: 500;
+  }
+
+  .offer__blurb {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+
+  /* Never wrap mid-figure; the row wraps around it. */
+  .offer__price {
+    margin: 0;
+    text-align: right;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .offer__amount {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(17px, 2.1vw, 20px);
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .offer__amount {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(15px, 1.9vw, 17px);
+  }
+
+  .offer__unit {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .tier__cta {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  :global(html[lang='ja']) .tier__cta {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: none;
+  }
+
+  .offers__foot {
+    margin: clamp(40px, 6vw, 56px) auto 0;
+    text-align: center;
+  }
+
+  .offers__rate {
+    margin-top: 10px;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+
+  /* ----------------------------------------------------------- closing */
+
+  .closing__body {
+    margin-bottom: 40px;
+  }
+</style>

@@ -1,0 +1,21 @@
+---
+import Base from '../../layouts/Base.astro';
+import JourneyDetail from '../../views/JourneyDetail.astro';
+import { journeys } from '../../data/journeys';
+
+export function getStaticPaths() {
+  return journeys.map((j) => ({ params: { slug: j.slug } }));
+}
+
+const locale = 'en' as const;
+const { slug } = Astro.params;
+const journey = journeys.find((j) => j.slug === slug)!;
+---
+
+<Base
+  locale={locale}
+  title={`${journey.title.en.join(' ')} - Los Angeles Luxury Tour`}
+  description={journey.lead.en}
+>
+  <JourneyDetail locale={locale} slug={slug!} />
+</Base>

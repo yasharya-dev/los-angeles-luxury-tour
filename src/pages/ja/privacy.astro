@@ -1,0 +1,8 @@
+---
+import Base from '../../layouts/Base.astro';
+import Privacy from '../../views/Privacy.astro';
+const locale = 'ja' as const;
+---
+<Base locale={locale} title="プライバシーポリシー｜Los Angeles Luxury Tour" description="お預かりする情報の取り扱いについて。トラッキングクッキーや広告は使用しておりません。" offerBar={false}>
+  <Privacy locale={locale} />
+</Base>

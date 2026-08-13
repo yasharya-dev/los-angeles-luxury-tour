@@ -1,0 +1,384 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations } from '../i18n/utils';
+import { CONTACT } from '../data/contact';
+import ContactForm from '../components/ContactForm.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const EM = String.fromCharCode(0x2014);
+
+const copy = {
+  en: {
+    kicker: 'Contact',
+    title: ['Tell me what you are hoping for.'],
+    lead: `Roughly is fine ${EM} undecided dates, half-formed plans, a single question. You will hear back from me within 24 hours.`,
+
+    channelsKicker: 'Prefer to write directly?',
+    channels: [
+      {
+        label: 'LINE',
+        note: 'The fastest reply, if LINE is already on your phone.',
+        value: CONTACT.lineId,
+        href: CONTACT.lineUrl,
+        action: 'Open LINE',
+      },
+      {
+        label: 'Email',
+        note: `The unhurried way ${EM} write as much or as little as you like.`,
+        value: CONTACT.email,
+        href: `mailto:${CONTACT.email}`,
+        action: 'Write an email',
+      },
+      {
+        label: 'Instagram',
+        note: `The day-to-day lives here ${EM} DMs are welcome.`,
+        value: CONTACT.instagramHandle,
+        href: CONTACT.instagram,
+        action: 'Open the profile',
+      },
+    ],
+
+    faqKicker: 'Questions, answered',
+    faqTitle: ['Ask until the hesitation is gone'],
+    faq: [
+      {
+        q: 'Can I join alone, with peace of mind?',
+        a: `Yes. Every plan works from one guest, with a Japanese-speaking guide and a dedicated driver supporting you throughout ${EM} any gender, seasoned traveler or first-timer alike.`,
+        open: true,
+      },
+      {
+        q: 'Is it wheelchair accessible?',
+        a: `Yes ${EM} barrier-free vehicles and venues are arranged. Just mention it when you reserve.`,
+        open: true,
+      },
+      {
+        q: 'How do I book a tour?',
+        a: 'Send the contact form on this page and I will get back to you. Booking by email or official LINE works just as well.',
+      },
+      {
+        q: 'How does payment work?',
+        a: `By card, in advance ${EM} arranged with you after we confirm the plan.`,
+      },
+      {
+        q: 'Can I make special requests during the tour?',
+        a: `Yes ${EM} I accommodate requests as far as possible even mid-tour. Anything fixed, let me know when booking or before we set out.`,
+      },
+      {
+        q: 'How far ahead should I book transfers?',
+        a: 'You can book after arriving, but popular plans are best reserved ahead. Write as soon as your plans take shape.',
+      },
+      {
+        q: 'What kind of seats are the game tickets?',
+        a: 'Base plans use the most affordable seats; upgrades are available for a fee.',
+      },
+      {
+        q: 'What about dietary restrictions?',
+        a: 'Vegetarian, vegan, and allergy-aware menus are arranged to suit you.',
+      },
+      {
+        q: 'What language are tours offered in?',
+        a: 'Japanese, with other languages possible by prior arrangement.',
+      },
+      {
+        q: 'Can you arrange hotels too?',
+        a: `Yes ${EM} hotel bookings are handled on request.`,
+      },
+      {
+        q: 'Can I change my tour dates?',
+        a: `Yes, subject to availability ${EM} if your new date is busy, the earlier you write, the better.`,
+      },
+      {
+        q: 'Can you help with souvenirs?',
+        a: `Yes ${EM} purchase and shipping arrangements are both possible.`,
+      },
+    ],
+  },
+
+  ja: {
+    kicker: 'お問い合わせ',
+    title: ['あなたの「行ってみたい」を、', 'お聞かせください。'],
+    lead: 'ざっくりで大丈夫です。日程が未定でも、質問だけでも。24時間以内に、私からご返信いたします。',
+
+    channelsKicker: '直接ご連絡をご希望の方へ',
+    channels: [
+      {
+        label: 'LINE',
+        note: 'いちばん早いご連絡方法です。ID検索でも、下のボタンからでも。',
+        value: CONTACT.lineId,
+        href: CONTACT.lineUrl,
+        action: 'LINEで相談する',
+      },
+      {
+        label: 'メール',
+        note: 'ゆっくり書きたい方はこちらへ。',
+        value: CONTACT.email,
+        href: `mailto:${CONTACT.email}`,
+        action: 'メールを書く',
+      },
+      {
+        label: 'Instagram',
+        note: '日々の様子はこちら。DMもどうぞ。',
+        value: CONTACT.instagramHandle,
+        href: CONTACT.instagram,
+        action: 'プロフィールを見る',
+      },
+    ],
+
+    faqKicker: 'よくあるご質問',
+    faqTitle: ['ためらいが消えるまで、どうぞ'],
+    faq: [
+      {
+        q: '1人でも安心して参加できますか？',
+        a: 'はい。本プランは1名様から安心してご利用いただけるよう、日本人ガイドと専属ドライバーが丁寧にサポートいたします。男性女性問わず、旅慣れた方にも初めての方にもご満足いただける内容です。',
+        open: true,
+      },
+      {
+        q: '車椅子利用者でも参加できますか？',
+        a: 'はい、バリアフリー対応の車両や施設を手配いたしますので、ご予約時にお知らせください。',
+        open: true,
+      },
+      {
+        q: 'ツアーの予約方法は？',
+        a: '弊社ウェブサイトのお問い合わせフォームに必要事項をご記入の上、送信してください。担当者より折り返しご連絡いたします。また、メールや公式LINEでのご予約も承っております。',
+      },
+      {
+        q: '支払い方法は？',
+        a: '事前にカード決済にて承ります。',
+      },
+      {
+        q: 'ツアー中に特別なリクエストがある場合、対応してもらえますか？',
+        a: 'はい、ツアー最中もお客様のご要望にできる限りお応えいたします。確定希望事項はご予約時またはツアー開始前にお知らせください。',
+      },
+      {
+        q: '空港送迎やドジャース送迎の申込はいつまでに必要ですか？',
+        a: 'いずれのプランも現地到着後でもお申し込みいただけますが、人気のプランは事前予約をおすすめしております。ご希望の内容が決まり次第、お早めにご相談ください。',
+      },
+      {
+        q: '野球観戦チケットはどのような席ですか？',
+        a: '基本プランでは最安値の席をご用意しております。追加料金にてアップグレード対応も可能です。',
+      },
+      {
+        q: '特別な食事制限がある場合は？',
+        a: 'ベジタリアン、ヴィーガン、アレルギー対応など、お客様の食事制限に応じたメニューをご用意いたします。',
+      },
+      {
+        q: 'ツアーはどの言語で提供されますか？',
+        a: 'ツアーは日本語で提供しております。その他の言語をご希望の場合は、事前にご相談ください。',
+      },
+      {
+        q: 'ホテルの手配もお願いできますか？',
+        a: 'はい、ホテルのご予約も希望に応じて承ります。',
+      },
+      {
+        q: 'ツアーの日程を変更することはできますか？',
+        a: 'はい、空き状況により変更を承ります。ご希望日が満席の場合もございますので、お早めにご相談ください。',
+      },
+      {
+        q: 'お土産の手配もお願いできますか？',
+        a: 'はい、お土産の購入や配送の手配も承ります。',
+      },
+    ],
+  },
+} as const;
+
+const c = copy[locale];
+---
+
+<section class="section head">
+  <div class="measure measure--wide center">
+    <p class="kicker">{c.kicker}</p>
+    <h1 class="h2 head__title">
+      {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h1>
+    <p class="body">{c.lead}</p>
+  </div>
+</section>
+
+<ContactForm locale={locale} />
+
+{/* Below the form but full weight: many of her customers prefer LINE. */}
+<section class="section section--deep">
+  <div class="measure--cards">
+    <p class="kicker center channels__kicker">{c.channelsKicker}</p>
+    <ul class="channels">
+      {
+        c.channels.map((ch) => (
+          <li class="channel">
+            <p class="channel__label">{ch.label}</p>
+            <p class="caption channel__note">{ch.note}</p>
+            <p class="channel__value">{ch.value}</p>
+            <a class="channel__action" href={ch.href} rel="noopener">
+              {ch.action}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="measure measure--wide center faq__head">
+    <p class="kicker">{c.faqKicker}</p>
+    <h2 class="h2 head__title">
+      {c.faqTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+  </div>
+
+  <div class="faq measure--cards">
+    {
+      c.faq.map((item) => (
+        <details class="faq__item" open={'open' in item && item.open}>
+          <summary class="faq__q">{item.q}</summary>
+          <p class="body faq__a">{item.a}</p>
+        </details>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .head {
+    padding-block: clamp(64px, 9vw, 110px) clamp(40px, 6vw, 64px);
+  }
+  .head__title {
+    margin-block: 26px;
+  }
+
+  /* ----------------------------------------------------------- channels */
+
+  .channels__kicker {
+    margin-bottom: clamp(32px, 5vw, 46px);
+  }
+
+  .channels {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--gap-md);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 760px) {
+    .channels {
+      grid-template-columns: repeat(3, 1fr);
+      align-items: start;
+    }
+  }
+
+  .channel {
+    border: 1px solid var(--card-edge);
+    background: var(--card);
+    padding: clamp(22px, 3vw, 30px);
+    text-align: center;
+  }
+
+  .channel__label {
+    margin: 0 0 12px;
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .channel__label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: none;
+  }
+
+  .channel__note {
+    margin-bottom: 18px;
+    min-height: 3.2em;
+  }
+
+  /* Never uppercase an identifier someone has to type. */
+  .channel__value {
+    margin: 0 0 18px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    text-transform: none;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  .channel__action {
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  :global(html[lang='ja']) .channel__action {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: none;
+  }
+
+  /* ---------------------------------------------------------------- faq */
+
+  .faq__head {
+    margin-inline: auto;
+    margin-bottom: clamp(36px, 5vw, 52px);
+  }
+
+  .faq {
+    margin-inline: auto;
+  }
+
+  .faq__item {
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .faq__item:first-child {
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  .faq__q {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    padding: 20px 0;
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2vw, 19px);
+    color: var(--ink);
+  }
+  .faq__q::-webkit-details-marker {
+    display: none;
+  }
+  .faq__q::after {
+    content: '+';
+    flex: none;
+    color: var(--gold-text);
+    font-size: 16px;
+  }
+  .faq__item[open] .faq__q::after {
+    content: '\2212';
+  }
+
+  :global(html[lang='ja']) .faq__q {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(14.5px, 1.8vw, 16.5px);
+    line-height: 1.7;
+  }
+
+  .faq__a {
+    margin: 0;
+    padding: 0 0 24px;
+    max-width: 60ch;
+  }
+</style>

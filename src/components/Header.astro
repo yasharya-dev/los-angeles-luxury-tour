@@ -1,0 +1,151 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import ThemeToggle from './ThemeToggle.astro';
+import logo from '../assets/logo.png';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const current = Astro.url.pathname.replace(/\/$/, '');
+const isCurrent = (path: string) => current === p(path).replace(/\/$/, '');
+
+const links = [
+  { href: '/experience', label: t('nav.experience') },
+  { href: '/about', label: t('nav.about') },
+  { href: '/contact', label: t('nav.contact') },
+];
+---
+
+<header class="site-header">
+  <a class="brand" href={p('/')} aria-label={t('nav.home')}>
+    <span class="brand__mark">
+      <img src={logo.src} alt="" width="46" height="46" />
+    </span>
+    <span class="brand__words">
+      <span class="brand__name">LOS ANGELES</span>
+      <span class="brand__sub">LUXURY TOUR</span>
+    </span>
+  </a>
+
+  <nav class="nav" aria-label={t('nav.main')}>
+    {
+      links.map((l) => (
+        <a
+          class="nav__link"
+          href={p(l.href)}
+          aria-current={isCurrent(l.href) ? 'page' : undefined}
+        >
+          {l.label}
+        </a>
+      ))
+    }
+    <ThemeToggle locale={locale} />
+  </nav>
+</header>
+
+<style>
+  /* Her leather bar - stays dark in both themes. */
+  .site-header {
+    background: var(--bar);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    padding: 14px clamp(16px, 4vw, 40px);
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    color: inherit;
+  }
+  .brand:hover {
+    color: inherit;
+  }
+
+  /* Monogram is cropped from the full lockup, so there is one logo file. */
+  .brand__mark {
+    display: block;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    flex: none;
+  }
+  .brand__mark img {
+    position: absolute;
+    width: 148px;
+    height: 148px;
+    left: -49px;
+    top: -41px;
+    max-width: none;
+  }
+
+  .brand__words {
+    display: block;
+  }
+  .brand__name,
+  .brand__sub {
+    display: block;
+    font-family: var(--font-label);
+  }
+  .brand__name {
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: #f5f5fa;
+  }
+  .brand__sub {
+    font-weight: 400;
+    font-size: 8.5px;
+    letter-spacing: 0.46em;
+    color: #d4af37;
+    margin-top: 3px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: clamp(14px, 3vw, 30px);
+  }
+
+  .nav__link {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(245, 245, 250, 0.85);
+  }
+  .nav__link:hover,
+  .nav__link[aria-current='page'] {
+    color: #d4af37;
+  }
+
+  :global(html[lang='ja']) .nav__link {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: none;
+  }
+
+  /* wrap under the logo rather than crush it */
+  @media (max-width: 380px) {
+    .site-header {
+      justify-content: center;
+    }
+    .nav {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

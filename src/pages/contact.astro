@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import Contact from '../views/Contact.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="Contact - Los Angeles Luxury Tour"
+  description="Tell me what you are hoping for. Write in Japanese or English, by form, email or LINE. You will hear back within 24 hours."
+>
+  <Contact locale={locale} />
+</Base>

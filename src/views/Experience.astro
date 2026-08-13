@@ -1,0 +1,684 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { byTier, tierOrder, type Tier } from '../data/offerings';
+import { CONTACT } from '../data/contact';
+import Divider from '../components/Divider.astro';
+import InstagramBlock from '../components/InstagramBlock.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const EM = String.fromCharCode(0x2014);
+const RSQ = String.fromCharCode(0x2019);
+const LDQ = String.fromCharCode(0x201c);
+const RDQ = String.fromCharCode(0x201d);
+
+const copy = {
+  en: {
+    kicker: 'The experience',
+    title: ['A journey made to order, not chosen from a menu.'],
+
+    howKicker: 'How a journey is made',
+    steps: [
+      {
+        n: '01',
+        title: 'You tell me what you are hoping for',
+        body: `Dates, company, pace, dreams ${EM} roughly is fine, in Japanese or English. A game you want to see. A mood you want to feel.`,
+      },
+      {
+        n: '02',
+        title: 'I design it around you',
+        body: `Places, tables, tickets, timing ${EM} and the quiet in-between. Designed from what you said, and from what you meant.`,
+      },
+      {
+        n: '03',
+        title: 'I guide it, start to finish',
+        body: `The person who planned your days is the person beside you through them. Doors, menus, language ${EM} handled quietly.`,
+      },
+      {
+        n: '04',
+        title: 'You come home with something unexpected',
+        body: `The best souvenir is usually a new way of seeing ${EM} something you did not plan to find.`,
+      },
+    ],
+    quote: `${LDQ}Sometimes my role is to listen not only to what they say, but also to what they mean.${RDQ}`,
+    quoteAttr: 'Amelia',
+
+    journeysKicker: 'The journeys',
+    journeysTitle: ['Find the shape of your trip'],
+    journeysLead: 'Prices are floors, not fixed fares. Ready to book? Each plan links to its own reservation form.',
+    journeysAsk: 'Rather talk first?',
+    journeysAskLink: 'Write to me',
+
+    viewJourney: 'View this journey',
+    detailsLabel: 'Details',
+    bookLabel: 'Book this plan',
+    askLabel: 'or ask a question first',
+
+    requestKicker: 'Arranged on request, quoted individually',
+    requestBody: `Shopping and proxy purchasing. Restaurant reservations. In-restaurant accompaniment ${EM} menu help, dish explanations, conversation support, photos.`,
+    requestLink: 'Ask for a quote',
+
+    beyondKicker: 'Beyond the plans',
+    beyondTitle: ['What I can arrange for you'],
+    beyond: [
+      'The luxury restaurants people are talking about',
+      'Views that take your breath away',
+      'Refined boutiques and little shops',
+      'First-class hotels and cafes',
+      'The newest spots that delight',
+      'Experiences no guidebook lists',
+    ],
+    honest: 'Every journey is different. Nothing on this page is a fixed menu.',
+
+    closingTitle: ['Tell me what you are hoping for.'],
+    closingBody:
+      'Write in Japanese or English. You will hear back within 24 hours.',
+
+    details: {
+      'solo-plan': {
+        body: `One game with round-trip stadium transfers, a full day of sightseeing, hotel check-in assistance, and easy stops ${EM} supermarkets, restaurants, wherever the day leads. Additional games can be added at $150 each.`,
+        excl: 'Hotel and airfare are not included.',
+      },
+      charter: {
+        body: `$70 an hour for one or two guests, $100 an hour for three or more ${EM} the same rate if the day runs long. Half and full days welcome, with a shopping assistant included.`,
+        excl: 'Meals, event tickets, and activity fees are not included.',
+      },
+      'dodgers-concierge': {
+        body: `Airport, hotel, and stadium transfers for one game ${EM} $1,380 for one or two guests, $2,380 for three to five. Extra games at $320 or $420. Consultation over LINE is included.`,
+        excl: '',
+      },
+      'airport-transfer': {
+        body: '$50 one way within 20 km, $80 for 20 to 40 km, and 10% off a round trip. No add-ons at the airport.',
+        excl: '',
+      },
+    } as Record<string, { body: string; excl: string }>,
+
+    blurbs: {
+      'dodgers-journey': `Four nights, six days, three games. The stadium tour, the murals, the food ${EM} a fan${RSQ}s week in Los Angeles, handled end to end.`,
+      'mansion-dinner':
+        'A Hollywood or Santa Monica residence, reserved for one evening. A chef trusted by VIPs finishes each course in front of you.',
+      'solo-plan': `Four nights, six days, designed for one guest ${EM} reassurance from airport to airport.`,
+      temecula: `Wine country at an adult${RSQ}s pace ${EM} three award-winning wineries, Old Town, olive oil tasting, door to door from your hotel.`,
+      charter: `The city at your pace ${EM} sightseeing, shopping, neighborhoods ${EM} with guide and private transport.`,
+      'dodgers-concierge': `Fully private game-day transport ${EM} the vehicle waits through the game. No shared rides, no post-game rideshare line.`,
+      'airport-transfer': `Met on arrival, driven to your hotel ${EM} parking and fuel included.`,
+    } as Record<string, string>,
+  },
+
+  ja: {
+    kicker: '旅のプラン',
+    title: ['メニューから選ぶ旅ではなく、', 'あなたのために仕立てる旅を。'],
+
+    howKicker: '旅ができるまで',
+    steps: [
+      {
+        n: '01',
+        title: '「行ってみたい」を、お聞かせください',
+        body: '日程、人数、ペース、夢見ていること。ざっくりで大丈夫です。観たい試合も、感じたい気分も、そのままどうぞ。',
+      },
+      {
+        n: '02',
+        title: 'あなたに合わせて、設計します',
+        body: '場所、レストラン、チケット、時間配分。その合間の余白まで。お客様の「言葉」と「想い」から組み立てます。',
+      },
+      {
+        n: '03',
+        title: '最初から最後まで、私がご案内します',
+        body: '旅を設計した本人が、当日も隣にいます。ドアも、メニューも、言葉も、そっとお任せください。',
+      },
+      {
+        n: '04',
+        title: '想像していなかったお土産を',
+        body: 'いちばんのお土産は、新しいものの見方。予定していなかった何かに、きっと出会えます。',
+      },
+    ],
+    quote: '「お客様の言葉だけでなく、その奥にある想いに、耳を傾けること。」',
+    quoteAttr: 'アメリア',
+
+    journeysKicker: 'プラン一覧',
+    journeysTitle: ['あなたの旅のかたちを探す'],
+    journeysLead:
+      '料金はすべて「〜」からの目安です。ご予約がお決まりの方は、各プランの予約フォームへお進みください。',
+    journeysAsk: 'まずご相談したい方は、',
+    journeysAskLink: 'お気軽にどうぞ',
+
+    viewJourney: 'このプランを見る',
+    detailsLabel: '詳細を見る',
+    bookLabel: 'このプランを予約する',
+    askLabel: 'まずは相談する',
+
+    requestKicker: 'ご相談ベースで承ります｜個別お見積り',
+    requestBody:
+      'ショッピング代行・購入代行、レストラン予約代行、飲食店での同行サポート（英語メニューの注文補助、料理説明、会話サポート、写真撮影）。',
+    requestLink: 'お見積りを相談する',
+
+    beyondKicker: 'プランのその先へ',
+    beyondTitle: ['こんなご案内もできます'],
+    beyond: [
+      '話題のラグジュアリーレストラン',
+      '心を奪われる絶景スポット',
+      '洗練されたブティックや雑貨店',
+      '一流のホテル＆カフェ情報',
+      '女心をくすぐる最新スポット',
+      '観光ガイドには載っていない特別な体験',
+    ],
+    honest:
+      'どの旅も、一つとして同じではありません。ここにあるのは決まったメニューではなく、出発点です。',
+
+    closingTitle: ['あなたの「行ってみたい」を、', 'お聞かせください。'],
+    closingBody: '日本語でお気軽にどうぞ。24時間以内にご返信いたします。',
+
+    details: {
+      'solo-plan': {
+        body: '観戦1試合（スタジアム往復送迎付き）、終日観光ツアー、ホテルチェックインのお手伝い。スーパーやレストランへの立ち寄りも、柔軟にご一緒します。観戦の追加は1試合$150にて。',
+        excl: '※ホテル代・航空券は含まれません。',
+      },
+      charter: {
+        body: '1〜2名様は1時間$70〜、3名様以上は$100〜。延長も同料金で、半日・終日のご利用もご相談いただけます。ショッピングアシスタント付き。',
+        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
+      },
+      'dodgers-concierge': {
+        body: '空港・ホテル・スタジアムの送迎（観戦1試合分）。1〜2名様 $1,380〜、3〜5名様 $2,380〜。観戦の追加は1試合 $320／$420。LINEでのご相談も含まれます。',
+        excl: '',
+      },
+      'airport-transfer': {
+        body: '20km以内 片道$50〜、20〜40kmは$80〜。往復でのご利用は10%オフ。空港での追加料金はありません。',
+        excl: '',
+      },
+    } as Record<string, { body: string; excl: string }>,
+
+    blurbs: {
+      'dodgers-journey':
+        '4泊6日・観戦3試合。スタジアムツアーも、壁画も、グルメも。ファンの夢を詰め込んだ一週間を、まるごとお任せください。',
+      'mansion-dinner':
+        'ハリウッドやサンタモニカの豪邸を、一夜だけ貸し切りに。VIPに愛されるシェフが、目の前でコースを仕上げます。',
+      'solo-plan':
+        '4泊6日、1名様のための旅。空港から空港まで、「安全＆安心」をおそばに。',
+      temecula:
+        '大人の余裕旅。受賞歴のあるワイナリー3か所とオールドタウンを、ホテルの玄関から玄関まで。',
+      charter:
+        '観光も、ショッピングも、街歩きも。ガイドと専用車で、あなたのペースのままに。',
+      'dodgers-concierge':
+        '完全貸切の観戦送迎。試合中も車両が待機し、帰りの列に並ぶ必要はありません。',
+      'airport-transfer':
+        '到着ロビーでお出迎えし、ホテルまで。駐車場代・ガソリン代込みです。',
+    } as Record<string, string>,
+  },
+} as const;
+
+const c = copy[locale];
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+---
+
+<section class="section head">
+  <div class="measure measure--wide center">
+    <p class="kicker">{c.kicker}</p>
+    <h1 class="h2 head__title">
+      {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h1>
+  </div>
+</section>
+
+<section class="section section--deep">
+  <div class="measure--grid center how__head">
+    <p class="kicker">{c.howKicker}</p>
+  </div>
+  <ol class="steps measure--cards">
+    {
+      c.steps.map((step) => (
+        <li class="step">
+          <span class="step__n" aria-hidden="true">
+            {step.n}
+          </span>
+          <div class="step__text">
+            <h2 class="h3 step__title">{step.title}</h2>
+            <p class="body step__body">{step.body}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  <blockquote class="pullquote measure">
+    <p class="pullquote__text">{c.quote}</p>
+    <footer class="pullquote__attr">{c.quoteAttr}</footer>
+  </blockquote>
+</section>
+
+<Divider />
+
+<section class="section" id="journeys">
+  <div class="measure measure--wide center journeys__head">
+    <p class="kicker">{c.journeysKicker}</p>
+    <h2 class="h2 head__title">
+      {c.journeysTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+    <p class="body">
+      {c.journeysLead}{' '}
+      {c.journeysAsk}{' '}
+      <a href={p('/contact')}>{c.journeysAskLink}</a>.
+    </p>
+    {t('price.note') && <p class="caption rate">{t('price.note')}</p>}
+  </div>
+
+  <div class="tiers measure--cards">
+    {
+      tierOrder.map((tier) => (
+        <section class="tier" aria-labelledby={`tier-${tier}`}>
+          <h3 class="tier__label" id={`tier-${tier}`}>
+            {tierLabel[tier]}
+          </h3>
+
+          {byTier(tier).map((o) => {
+            const detail = c.details[o.id];
+            return (
+              <article class="card">
+                <div class="card__head">
+                  <h4 class="card__name">{o.name[locale]}</h4>
+                  <p class="card__price">
+                    <span class="card__amount">{o.price[locale]}</span>
+                    {o.priceNote?.[locale] && (
+                      <span class="card__unit">{o.priceNote[locale]}</span>
+                    )}
+                  </p>
+                </div>
+
+                <p class="body card__blurb">{c.blurbs[o.id]}</p>
+
+                {o.slug ? (
+                  <a class="card__link" href={p(`/experience/${o.slug}`)}>
+                    {c.viewJourney} <span aria-hidden="true">&rarr;</span>
+                  </a>
+                ) : (
+                  <details class="card__details">
+                    <summary class="card__summary">{c.detailsLabel}</summary>
+                    <div class="card__body">
+                      {detail && <p class="body">{detail.body}</p>}
+                      {detail?.excl && <p class="caption excl">{detail.excl}</p>}
+                      <p class="card__actions">
+                        {o.formUrl && (
+                          <a
+                            class="card__book"
+                            href={o.formUrl}
+                            rel="noopener"
+                            target="_blank"
+                          >
+                            {c.bookLabel}
+                          </a>
+                        )}
+                        <a class="card__ask" href={p('/contact')}>
+                          {c.askLabel}
+                        </a>
+                      </p>
+                    </div>
+                  </details>
+                )}
+              </article>
+            );
+          })}
+        </section>
+      ))
+    }
+  </div>
+
+  <div class="measure--cards request">
+    <p class="kicker request__kicker">{c.requestKicker}</p>
+    <p class="body">
+      {c.requestBody} <a href={p('/contact')}>{c.requestLink}</a>.
+    </p>
+  </div>
+</section>
+
+<section class="section section--deep section--wedged">
+  <div class="measure measure--wide center beyond__head">
+    <p class="kicker">{c.beyondKicker}</p>
+    <h2 class="h2 head__title">
+      {c.beyondTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+  </div>
+  {/* Her own taxonomy, verbatim from her caption boilerplate. */}
+  <ul class="beyond measure">
+    {c.beyond.map((item) => <li class="beyond__item">{item}</li>)}
+  </ul>
+  <p class="body center honest measure">{c.honest}</p>
+</section>
+
+<InstagramBlock locale={locale} />
+
+<section class="section">
+  <div class="measure measure--wide center">
+    <h2 class="h2 head__title">
+      {c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+    </h2>
+    <p class="body closing__body">{c.closingBody}</p>
+    <a class="btn" href={p('/contact')}>{t('cta.start')}</a>
+  </div>
+</section>
+
+<style>
+  .head {
+    padding-block: clamp(64px, 9vw, 110px);
+  }
+  .head__title {
+    margin-block: 26px;
+  }
+
+  /* -------------------------------------------------------------- steps */
+
+  .how__head {
+    margin-inline: auto;
+    margin-bottom: clamp(44px, 6vw, 68px);
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    display: grid;
+    gap: clamp(34px, 5vw, 48px);
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: clamp(18px, 3vw, 30px);
+    align-items: start;
+    border-top: 1px solid var(--hairline-soft);
+    padding-top: 26px;
+  }
+
+  /* Cormorant in both locales - Mincho figures would look accidental. */
+  .step__n {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 4vw, 38px);
+    line-height: 1;
+    color: var(--gold-text);
+  }
+
+  .step__title {
+    margin-bottom: 12px;
+  }
+
+  /* ---------------------------------------------------------- pullquote */
+
+  .pullquote {
+    margin: clamp(52px, 8vw, 80px) auto 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  .pullquote__text {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(19px, 2.8vw, 26px);
+    font-style: italic;
+    line-height: 1.65;
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .pullquote__text {
+    font-family: var(--font-body);
+    font-style: normal;
+    font-weight: 500;
+    font-size: clamp(16px, 2.3vw, 21px);
+    line-height: 2;
+  }
+
+  .pullquote__attr {
+    margin-top: 16px;
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  :global(html[lang='ja']) .pullquote__attr {
+    font-family: var(--font-body);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: none;
+  }
+
+  /* ------------------------------------------------------------- tiers */
+
+  .journeys__head {
+    margin-inline: auto;
+    margin-bottom: clamp(44px, 6vw, 64px);
+  }
+
+  .rate {
+    margin-top: 12px;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+
+  .tiers {
+    margin-inline: auto;
+    display: grid;
+    gap: clamp(48px, 7vw, 72px);
+  }
+
+  .tier__label {
+    margin: 0 0 var(--gap-lg);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline-soft);
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .tier__label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: none;
+  }
+
+  .card {
+    border: 1px solid var(--card-edge);
+    background: var(--card);
+    padding: clamp(22px, 3.5vw, 32px);
+  }
+  .card + .card {
+    margin-top: var(--gap-md);
+  }
+
+  .card__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .card__name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(19px, 2.4vw, 23px);
+    color: var(--ink);
+  }
+
+  :global(html[lang='ja']) .card__name {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(16px, 2vw, 19px);
+  }
+
+  .card__price {
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .card__amount {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2vw, 19px);
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .card__amount {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(15px, 1.8vw, 17px);
+  }
+
+  .card__unit {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .card__blurb {
+    margin-bottom: 18px;
+  }
+
+  .card__link,
+  .card__summary {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  :global(html[lang='ja']) .card__link,
+  :global(html[lang='ja']) .card__summary {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: none;
+  }
+
+  .card__summary {
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card__summary::-webkit-details-marker {
+    display: none;
+  }
+  .card__summary::after {
+    content: '+';
+    font-size: 14px;
+  }
+  .card__details[open] .card__summary::after {
+    content: '\2212'; /* minus */
+  }
+
+  .card__body {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  .excl {
+    margin-top: 10px;
+  }
+
+  .card__actions {
+    margin: 20px 0 0;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-md);
+    flex-wrap: wrap;
+  }
+
+  .card__book {
+    display: inline-block;
+    border: 1px solid var(--hairline);
+    padding: 11px 22px;
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  .card__book:hover {
+    background: var(--btn-hover);
+    color: var(--ink);
+  }
+
+  :global(html[lang='ja']) .card__book {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: none;
+  }
+
+  .card__ask {
+    font-size: 13px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .card__ask:hover {
+    color: var(--gold-text);
+  }
+
+  /* ------------------------------------------------------------ request */
+
+  .request {
+    margin: clamp(44px, 6vw, 64px) auto 0;
+    border-top: 1px solid var(--hairline-soft);
+    padding-top: 26px;
+  }
+
+  .request__kicker {
+    margin-bottom: 14px;
+  }
+
+  /* ------------------------------------------------------------- beyond */
+
+  .beyond__head {
+    margin-inline: auto;
+    margin-bottom: clamp(36px, 5vw, 52px);
+  }
+
+  .beyond {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+
+  .beyond__item {
+    padding: 15px 0;
+    border-bottom: 1px solid var(--hairline-soft);
+    text-align: center;
+    font-size: clamp(15px, 1.9vw, 17px);
+    color: var(--ink-mid);
+  }
+  .beyond__item:first-child {
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  .honest {
+    margin: clamp(32px, 5vw, 44px) auto 0;
+    color: var(--ink-soft);
+  }
+
+  .closing__body {
+    margin-bottom: 38px;
+  }
+</style>

@@ -1,0 +1,119 @@
+---
+import type { Locale } from '../i18n/ui';
+import { CONTACT } from '../data/contact';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+// Names the actual processors rather than boilerplate. If the form provider
+// or analytics changes, this page changes in the same commit.
+const copy = {
+  en: {
+    kicker: 'Privacy',
+    title: 'What happens to what you tell me',
+    updated: 'Last updated July 2026',
+    sections: [
+      {
+        h: 'What I collect',
+        b: 'Only what you type into the contact form: your name, email address, preferred language, approximate travel dates, number of guests, what you are hoping for, and how you heard about me. Nothing else, and nothing you have not chosen to write.',
+      },
+      {
+        h: 'Why I collect it',
+        b: 'To reply to you and to plan your journey. That is the only purpose. Your details are never sold, never rented, and never shared for marketing.',
+      },
+      {
+        h: 'Who else sees it',
+        b: 'Your message is delivered to my inbox by Resend, an email provider, and this site is hosted by Cloudflare. Both handle the message in transit. No one else has access.',
+      },
+      {
+        h: 'How long I keep it',
+        b: 'For as long as we are in conversation, and afterwards only as an ordinary record of correspondence. Ask me to delete it and I will.',
+      },
+      {
+        h: 'Cookies',
+        b: 'This site sets no tracking cookies and runs no advertising. Your language and theme preferences are stored in your own browser, and never leave it. Visitor numbers are counted by Cloudflare Web Analytics, which uses no cookies and does not identify individuals.',
+      },
+      {
+        h: 'Getting in touch',
+        b: 'To see, correct, or delete anything I hold about you, write to me at',
+      },
+    ],
+  },
+
+  ja: {
+    kicker: 'プライバシーポリシー',
+    title: 'お預かりする情報について',
+    updated: '最終更新：2026年7月',
+    sections: [
+      {
+        h: '取得する情報',
+        b: 'お問い合わせフォームにご記入いただいた内容のみです。お名前、メールアドレス、ご希望の言語、ご旅行の時期、人数、ご希望の内容、当サービスをお知りになったきっかけ。それ以外の情報は取得いたしません。',
+      },
+      {
+        h: '利用目的',
+        b: 'ご返信と、旅のご提案のためだけに利用いたします。第三者への販売・貸与、マーケティング目的での共有は一切行いません。',
+      },
+      {
+        h: '第三者への提供',
+        b: 'お送りいただいた内容は、メール配信サービスのResendを通じて弊社の受信箱へ届きます。また、本サイトはCloudflareにてホスティングしています。いずれも送信の過程で内容を取り扱いますが、それ以外の第三者がアクセスすることはありません。',
+      },
+      {
+        h: '保存期間',
+        b: 'ご連絡を取り合っている間、およびその後は通常の連絡記録として保管いたします。削除をご希望の場合は、お申し付けください。',
+      },
+      {
+        h: 'クッキーについて',
+        b: '本サイトでは、トラッキングクッキーや広告は使用しておりません。言語とテーマの設定はお客様のブラウザ内にのみ保存され、外部に送信されることはありません。アクセス数の集計にはCloudflare Web Analyticsを使用しており、クッキーを用いず、個人を特定することもありません。',
+      },
+      {
+        h: 'お問い合わせ',
+        b: '弊社が保有するお客様の情報の確認・訂正・削除をご希望の場合は、こちらまでご連絡ください：',
+      },
+    ],
+  },
+} as const;
+
+const c = copy[locale];
+---
+
+<section class="section">
+  <div class="measure">
+    <p class="kicker">{c.kicker}</p>
+    <h1 class="h2 title">{c.title}</h1>
+    <p class="caption updated">{c.updated}</p>
+
+    {
+      c.sections.map((s, i) => (
+        <section class="block">
+          <h2 class="h3 block__h">{s.h}</h2>
+          <p class="body">
+            {s.b}
+            {i === c.sections.length - 1 && (
+              <>
+                {' '}
+                <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+              </>
+            )}
+          </p>
+        </section>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .title {
+    margin-block: 22px 12px;
+  }
+  .updated {
+    margin-bottom: clamp(40px, 6vw, 56px);
+  }
+  .block + .block {
+    margin-top: clamp(32px, 4vw, 44px);
+  }
+  .block__h {
+    margin-bottom: 14px;
+  }
+</style>

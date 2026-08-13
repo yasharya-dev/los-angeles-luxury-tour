@@ -1,2 +1,14 @@
 # Working notes, client source material and sweep transcripts. Local only.
-docs/
+.arya
+
+# Build output
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Local env and Cloudflare state
+.env
+.env.*
+.wrangler/
