@@ -48,7 +48,7 @@ export const ui = {
     'price.from': 'from',
     'price.perPerson': 'per person',
     'price.perHour': 'an hour',
-    'price.note': '',
+    'price.note': 'Prices set in yen are shown here at ¥163 to the dollar.',
 
     'footer.signoff': 'Have a beautiful stay in Los Angeles.',
     'footer.email': 'Email',
@@ -93,7 +93,7 @@ export const ui = {
     'price.from': '',
     'price.perPerson': '／1名様',
     'price.perHour': '1時間',
-    'price.note': '※$1=163円で換算・千円単位に四捨五入しています。',
+    'price.note': '※ドル建ての料金は$1=163円で換算し、千円単位に四捨五入しています。',
 
     'footer.signoff': '心に残る、上質な旅となりますように。',
     'footer.email': 'メール',

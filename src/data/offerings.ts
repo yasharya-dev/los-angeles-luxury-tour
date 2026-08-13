@@ -1,6 +1,13 @@
 // Prices always carry the from-form. Her own posts contradict each other
 // ("$2,650〜" vs a flat "$2,650" in the same post), so a floor is the safe read.
-// Yen on JA pages only, at ¥163/$ rounded to the nearest ¥1,000.
+//
+// Each offering has a native currency. The multi-day journeys are priced in
+// USD; everything from her BUYMA listing is priced in yen, per group. Japanese
+// pages lead in yen and English pages lead in USD, so one side of every pair is
+// converted at ¥163. See the price.note string in i18n/ui.ts.
+//
+// Her BUYMA listing shows a channel discount. These are the original prices,
+// which is what she asked us to publish.
 
 import type { Locale } from '../i18n/ui';
 
@@ -16,7 +23,7 @@ export interface Offering {
   name: Record<Locale, string>;
   blurb: Record<Locale, string>;
   price: Record<Locale, string>;
-  /** Second line under the price. Japanese carries the yen gloss here. */
+  /** Second line under the price. Carries the unit, and the converted figure. */
   priceNote?: Partial<Record<Locale, string>>;
 }
 
@@ -36,8 +43,8 @@ export const offerings: Offering[] = [
       en: '4 nights, 6 days · three games, guided throughout',
       ja: '4泊6日・観戦3試合・ガイドと専属ドライバー付き',
     },
-    price: { en: 'from $2,650', ja: '$2,650〜' },
-    priceNote: { en: 'per person', ja: '（約432,000円〜）／1名様' },
+    price: { en: 'from $2,650', ja: '約432,000円〜' },
+    priceNote: { en: 'per person', ja: '（$2,650〜）／1名様' },
   },
   {
     id: 'solo-plan',
@@ -51,8 +58,8 @@ export const offerings: Offering[] = [
       en: '4 nights, 6 days · for one guest, at ease',
       ja: '4泊6日・1名様から、安心のひとり旅を',
     },
-    price: { en: 'from $2,480', ja: '$2,480〜' },
-    priceNote: { en: '', ja: '（約404,000円〜）／1名様' },
+    price: { en: 'from $2,480', ja: '約404,000円〜' },
+    priceNote: { en: '', ja: '（$2,480〜）／1名様' },
   },
   {
     id: 'mansion-dinner',
@@ -67,9 +74,10 @@ export const offerings: Offering[] = [
       en: 'one evening, a private chef, for two',
       ja: '一夜限りの出張シェフ付きディナー体験',
     },
-    price: { en: 'from $2,000', ja: '$2,000〜' },
-    priceNote: { en: 'for two', ja: '（約326,000円〜）／2名様〜' },
+    price: { en: 'from $2,000', ja: '約326,000円〜' },
+    priceNote: { en: 'for two', ja: '（$2,000〜）／2名様〜' },
   },
+
   {
     id: 'temecula',
     tier: 'day',
@@ -83,54 +91,81 @@ export const offerings: Offering[] = [
       en: 'wine country, 9:00 to 18:00, door to door',
       ja: '9:00〜18:00・ホテル発着・受賞ワイナリー3か所',
     },
-    price: { en: 'from $360', ja: '$360〜' },
-    priceNote: { en: 'per person', ja: '（約59,000円〜）／1名様' },
+    price: { en: 'from $360', ja: '約59,000円〜' },
+    priceNote: { en: 'per person', ja: '（$360〜）／1名様' },
   },
   {
     id: 'charter',
     tier: 'day',
-    // TODO(#9): confirm the live URL for the la-tour form. The three
-    // slug-named forms were not captured as full URLs during discovery.
+    // TODO(#9): confirm the live URL for the la-tour form.
     name: {
       en: 'Private charter tour',
       ja: '貸切プライベートツアー',
     },
     blurb: {
-      en: 'the city at your pace, guide and driver included',
-      ja: '観光・ショッピング・街歩き。ガイドと送迎付き',
+      en: '6 hours at your pace · guide and driver · LAX pickup available',
+      ja: '6時間貸切・ガイドと専属ドライバー・LAX送迎対応',
     },
-    price: { en: 'from $70', ja: '1時間 $70〜' },
-    priceNote: { en: 'an hour', ja: '（約11,000円〜）' },
+    price: { en: 'from $675', ja: '110,000円〜' },
+    priceNote: { en: 'per group, 1 to 7', ja: '／1グループ（1〜7名様）' },
   },
   {
-    id: 'dodgers-concierge',
-    tier: 'transport',
-    // TODO(#9): confirm the live URL for the dodgers-concierge form.
+    id: 'la-day-tour',
+    tier: 'day',
     name: {
-      en: 'Dodgers concierge',
-      ja: 'ドジャース送迎コンシェルジュ',
+      en: 'Los Angeles day tour',
+      ja: 'ロサンゼルス1日観光',
     },
     blurb: {
-      en: 'fully private game-day transport, waiting through the game',
-      ja: '完全貸切。試合中も車両が待機します',
+      en: '8 hours from the airport · restaurants, shopping, check-in help',
+      ja: '8時間貸切・LAXお迎え・ホテル送迎付き',
     },
-    price: { en: 'from $1,380', ja: '$1,380〜' },
-    priceNote: { en: '1 to 2 guests', ja: '（約225,000円〜）／1〜2名様' },
+    price: { en: 'from $785', ja: '128,000円〜' },
+    priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
   },
+  {
+    id: 'dodgers-game',
+    tier: 'day',
+    name: {
+      en: 'Dodgers game experience',
+      ja: 'ドジャース観戦・送迎付きツアー',
+    },
+    blurb: {
+      en: '8 hours chartered · the ticket arranged · airport or hotel pickup',
+      ja: '8時間完全貸切・チケット手配込み・空港またはホテルお迎え',
+    },
+    price: { en: 'from $785', ja: '128,000円〜' },
+    priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
+  },
+
   {
     id: 'airport-transfer',
     tier: 'transport',
     // TODO(#9): confirm the live URL for the airport-hotel form.
     name: {
-      en: 'Airport transfer',
-      ja: '空港送迎',
+      en: 'LAX airport transfer',
+      ja: '空港送迎（LAX⇔ホテル往復）',
     },
     blurb: {
-      en: 'met on arrival, parking and fuel included',
-      ja: '駐車場代・ガソリン代込み。到着時にお出迎え',
+      en: 'round trip · met at the terminal · check-in support · shopping stops',
+      ja: '往復・ターミナル出口お出迎え・チェックインサポート・買い物立ち寄り可',
     },
-    price: { en: 'from $50', ja: '$50〜' },
-    priceNote: { en: 'one way', ja: '（約8,000円〜）／片道' },
+    price: { en: 'from $725', ja: '118,000円〜' },
+    priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
+  },
+  {
+    id: 'dodgers-ticket',
+    tier: 'transport',
+    name: {
+      en: 'Dodgers ticket service',
+      ja: 'ドジャース観戦チケット購入代行',
+    },
+    blurb: {
+      en: 'section and seat chosen for you · stadium and pre-game tours too',
+      ja: 'セクション・座席の指定可・スタジアムツアー／プリゲームツアーも',
+    },
+    price: { en: 'from $20', ja: '3,000円〜' },
+    priceNote: { en: 'per booking', ja: '／1件' },
   },
 ];
 
