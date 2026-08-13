@@ -94,8 +94,10 @@ a:hover {
   transform: translate(-50%, -120%);
   z-index: 100;
   background: var(--bar);
-  color: var(--gold-text);
-  border: 1px solid var(--hairline);
+  /* --bar is dark in both themes, so the gold must NOT darken with the theme
+     the way --gold-text does. Literal, same as the header and footer. */
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.45);
   padding: 12px 24px;
   font-family: var(--font-label);
   font-size: 11px;
@@ -181,7 +183,8 @@ html[lang='ja'] .h3 {
 
 html[lang='ja'] .body {
   line-height: 2.2;
-  text-align: left;
+  /* No text-wrap: balance - there are no spaces to rebalance. Alignment is
+     left by default and inherited from .center where a section centres. */
   text-wrap: initial;
 }
 

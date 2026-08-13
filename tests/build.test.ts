@@ -108,10 +108,13 @@ describe('content parity', () => {
 });
 
 describe('the light theme gold rule', () => {
-  // #D4AF37 on white is 2.1:1. It fails AA for text and fails the 3:1 floor
-  // for UI components, so the light theme must swap in a darkened gold for
-  // anything that carries meaning. This is the constraint most likely to be
-  // "simplified" away by someone tidying the tokens.
+  // #D4AF37 is 9.0:1 on the dark plate but only about 2:1 on the light one, so
+  // the light theme swaps in a darker gold for anything meaning-carrying.
+  //
+  // This computes real ratios rather than asserting a hex value. The earlier
+  // version checked only that the token equalled #8a6d1f, which passed happily
+  // while that colour measured 4.37:1 against the warm paper background. The
+  // token was never the thing that mattered.
   const css = () => {
     const dir = join(DIST, '_astro');
     return readdirSync(dir)
@@ -120,29 +123,75 @@ describe('the light theme gold rule', () => {
       .join('\n');
   };
 
+  const hex = (h: string): [number, number, number] => [
+    parseInt(h.slice(1, 3), 16),
+    parseInt(h.slice(3, 5), 16),
+    parseInt(h.slice(5, 7), 16),
+  ];
+
+  const luminance = ([r, g, b]: [number, number, number]) => {
+    const f = (v: number) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+
+  const contrast = (a: string, b: string) => {
+    const [l1, l2] = [luminance(hex(a)), luminance(hex(b))];
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+
+  const lightBlock = () =>
+    css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
+
+  const token = (block: string, name: string) =>
+    block.match(new RegExp(`--${name}:(#[0-9a-f]{6})`, 'i'))?.[1] ?? '';
+
   it('defines a light theme block', () => {
-    expect(css()).toMatch(/data-theme=light\]/);
+    expect(lightBlock(), 'light theme block not found').not.toBe('');
   });
 
-  it('never uses the bright gold as meaning-carrying colour in light', () => {
-    const light = css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
-    expect(light, 'light theme block not found').not.toBe('');
-    expect(light).toMatch(/--gold-text:#8a6d1f/i);
-    expect(light).not.toMatch(/--gold-text:#d4af37/i);
+  // Both light surfaces, because the sections alternate between them and the
+  // darker one is the binding constraint.
+  it('clears AA for meaning-carrying gold on every light surface', () => {
+    const block = lightBlock();
+    const gold = token(block, 'gold-text');
+    expect(gold, '--gold-text missing').toMatch(/^#[0-9a-f]{6}$/i);
+
+    for (const surface of ['bg', 'bg-deep'] as const) {
+      const bg = token(block, surface);
+      expect(bg, `--${surface} missing`).toMatch(/^#[0-9a-f]{6}$/i);
+      const ratio = contrast(gold, bg);
+      expect(
+        ratio,
+        `--gold-text ${gold} on --${surface} ${bg} is ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps the bright gold usable on the dark plate', () => {
+    // --bar never changes with the theme, which is what makes the literal
+    // #d4af37 on the header, footer, hero and skip link safe.
+    expect(contrast('#d4af37', '#101010')).toBeGreaterThanOrEqual(4.5);
   });
 
   it('keeps the decorative wedge gold bright', () => {
-    const light = css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
-    expect(light).toMatch(/--wedge:#d4af37/i);
+    expect(lightBlock()).toMatch(/--wedge:#d4af37/i);
   });
 
-  // The dark plates stay dark in both themes, which is what makes the
-  // hardcoded #d4af37 on the header, footer and hero safe.
   it('does not override the dark plate tokens in light', () => {
-    const light = css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
-    for (const token of ['--bar:', '--bar-deep:', '--pill:']) {
-      expect(light, token).not.toContain(token);
+    const block = lightBlock();
+    for (const t of ['--bar:', '--bar-deep:', '--pill:']) {
+      expect(block, t).not.toContain(t);
     }
+  });
+
+  // The skip link sits on --bar, so its colour must not follow --gold-text.
+  it('does not let the skip link darken with the theme', () => {
+    const rule = css().match(/\.skip-link\{[^}]*\}/)?.[0] ?? '';
+    expect(rule, '.skip-link rule not found').not.toBe('');
+    expect(rule).not.toMatch(/color:var\(--gold-text\)/);
   });
 });
 
