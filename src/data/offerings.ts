@@ -97,7 +97,7 @@ export const offerings: Offering[] = [
   {
     id: 'charter',
     tier: 'day',
-    // TODO(#9): confirm the live URL for the la-tour form.
+    // TODO(#7): no booking link. Her Linktree slug is `la-tour`.
     name: {
       en: 'Private charter tour',
       ja: '貸切プライベートツアー',
@@ -111,7 +111,8 @@ export const offerings: Offering[] = [
   },
   {
     id: 'la-day-tour',
-    tier: 'day',
+    // TODO(#7): sold through BUYMA, so there may be no form to link.
+        tier: 'day',
     name: {
       en: 'Los Angeles day tour',
       ja: 'ロサンゼルス1日観光',
@@ -125,7 +126,8 @@ export const offerings: Offering[] = [
   },
   {
     id: 'dodgers-game',
-    tier: 'day',
+    // TODO(#7): sold through BUYMA, so there may be no form to link.
+        tier: 'day',
     name: {
       en: 'Dodgers game experience',
       ja: 'ドジャース観戦・送迎付きツアー',
@@ -141,7 +143,7 @@ export const offerings: Offering[] = [
   {
     id: 'airport-transfer',
     tier: 'transport',
-    // TODO(#9): confirm the live URL for the airport-hotel form.
+    // TODO(#7): no booking link. Her Linktree slug is `airport-hotel`.
     name: {
       en: 'LAX airport transfer',
       ja: '空港送迎（LAX⇔ホテル往復）',
@@ -155,7 +157,8 @@ export const offerings: Offering[] = [
   },
   {
     id: 'dodgers-ticket',
-    tier: 'transport',
+    // TODO(#7): sold through BUYMA, so there may be no form to link.
+        tier: 'transport',
     name: {
       en: 'Dodgers ticket service',
       ja: 'ドジャース観戦チケット購入代行',
