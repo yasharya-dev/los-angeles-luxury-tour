@@ -1,5 +1,0 @@
-# Copy to .dev.vars for local development. Never committed.
-
-# Set to gate the whole site behind one shared password, for client review.
-# Leave it out entirely and the site serves normally.
-BETA_PASSWORD=

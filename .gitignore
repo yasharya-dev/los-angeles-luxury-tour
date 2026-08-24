@@ -15,4 +15,3 @@ node_modules/
 
 # Wrangler local secrets
 .dev.vars*
-!.dev.vars.example
