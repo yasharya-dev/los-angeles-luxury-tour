@@ -4,12 +4,14 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-07-01",
 
-  // The Worker only intercepts /api/inquiry; the rest is served from here.
+  // run_worker_first matters: without it Cloudflare serves a matching asset
+  // and never calls the Worker, so the beta gate would let every page through.
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "html_handling": "auto-trailing-slash"
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": true
   },
 
   "observability": {
