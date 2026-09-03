@@ -55,6 +55,20 @@ describe('routes', () => {
     expect(existsSync(join(DIST, 'robots.txt'))).toBe(true);
   });
 
+  // Every page declares summary_large_image, so every page needs the image.
+  it('gives every page a share image that exists', () => {
+    expect(existsSync(join(DIST, 'og', 'default.jpg'))).toBe(true);
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        const doc = html(prefix + p);
+        expect(doc, `${prefix}${p}`).toContain(
+          'property="og:image" content="https://losangelesluxurytour.com/og/default.jpg"',
+        );
+        expect(doc, `${prefix}${p} twitter`).toContain('name="twitter:image"');
+      }
+    }
+  });
+
   it('never ships the env example', () => {
     expect(existsSync(join(DIST, '.env.example'))).toBe(false);
   });

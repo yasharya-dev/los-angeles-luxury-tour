@@ -22,6 +22,14 @@ const enHref = alternatePath(pathname, 'en');
 const jaHref = alternatePath(pathname, 'ja');
 const site = Astro.site?.origin ?? 'https://losangelesluxurytour.com';
 const canonical = new URL(pathname, site).href;
+
+// One image for both locales: photography and the logo, no text, composed
+// by scripts/og.mjs from the same assets the hero uses.
+const ogImage = new URL('/og/default.jpg', site).href;
+const ogAlt =
+  locale === 'ja'
+    ? 'ダウンタウン・ロサンゼルスを望むパームツリーの並木道と、Los Angeles Luxury Tourのロゴ'
+    : 'Palm-lined road above downtown Los Angeles with the Los Angeles Luxury Tour logo';
 ---
 
 <!doctype html>
@@ -42,7 +50,12 @@ const canonical = new URL(pathname, site).href;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={locale === 'ja' ? 'ja_JP' : 'en_US'} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
