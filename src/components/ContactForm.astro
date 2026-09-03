@@ -236,7 +236,11 @@ const c = copy[locale];
         <label class="label" for="f-heard">{c.heard}</label>
         <p class="caption hint">{c.heardNote}</p>
         <select class="input" id="f-heard" name="heard">
-          {c.heardOpts.map((o) => <option value={o}>{o}</option>)}
+          {/* The first option is the placeholder. Empty value, so an unanswered
+              question sends nothing and the Worker leaves the row out. */}
+          {c.heardOpts.map((o, i) => (
+            <option value={i === 0 ? '' : o}>{o}</option>
+          ))}
         </select>
       </div>
 
