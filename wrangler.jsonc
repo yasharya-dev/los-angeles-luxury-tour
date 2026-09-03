@@ -4,6 +4,12 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-07-01",
 
+  // The preview lives on a subdomain. The apex is serving a placeholder page
+  // until launch and stays up; at launch this becomes the apex plus www.
+  "routes": [
+    { "pattern": "preview.losangelesluxurytour.com", "custom_domain": true }
+  ],
+
   // run_worker_first matters: without it Cloudflare serves a matching asset
   // and never calls the Worker, so the beta gate would let every page through.
   "assets": {
