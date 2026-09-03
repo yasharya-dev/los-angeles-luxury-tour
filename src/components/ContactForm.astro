@@ -256,6 +256,10 @@ const c = copy[locale];
       }
 
       <p class="form__err" data-form-error hidden>{c.formErr}</p>
+      {/* A failed send is not the visitor's fault. Say so, and give a way out. */}
+      <p class="form__err" data-send-error hidden>
+        {c.sendErr} <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+      </p>
 
       <div class="form__foot">
         <button class="btn" type="submit" data-submit data-label={c.send} data-sending={c.sending}>
@@ -278,6 +282,7 @@ const c = copy[locale];
   const form = document.querySelector<HTMLFormElement>('[data-inquiry-form]');
   const ok = document.querySelector<HTMLElement>('[data-form-ok]');
   const formErr = document.querySelector<HTMLElement>('[data-form-error]');
+  const sendErr = document.querySelector<HTMLElement>('[data-send-error]');
   const submit = document.querySelector<HTMLButtonElement>('[data-submit]');
 
   function showError(input: HTMLInputElement | HTMLTextAreaElement, on: boolean) {
@@ -287,7 +292,7 @@ const c = copy[locale];
     if (msg) msg.hidden = !on;
   }
 
-  if (form && ok && formErr && submit) {
+  if (form && ok && formErr && sendErr && submit) {
     /* Static build, so the plan a card linked with is selected here. Without
        JS the select opens on "not sure yet", which is a fine answer too. */
     const service = form.querySelector('[name="service"]') as HTMLSelectElement | null;
@@ -309,12 +314,15 @@ const c = copy[locale];
       input.addEventListener('input', () => {
         if (input.classList.contains('input--err') && input.checkValidity()) {
           showError(input, false);
+          /* Once the last mark is gone, the summary pointing at them goes too. */
+          if (!form.querySelector('.input--err')) formErr.hidden = true;
         }
       });
     });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      sendErr.hidden = true;
 
       let bad = false;
       required.forEach((input) => {
@@ -345,7 +353,7 @@ const c = copy[locale];
         ok.setAttribute('tabindex', '-1');
         ok.focus();
       } catch {
-        formErr.hidden = false;
+        sendErr.hidden = false;
         submit.disabled = false;
         submit.textContent = submit.dataset.label ?? 'Send';
       }
