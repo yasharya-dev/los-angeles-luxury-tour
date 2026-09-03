@@ -1,7 +1,7 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
-import { bySlug } from '../data/offerings';
+import { bySlug, enquiryPath } from '../data/offerings';
 import { journeyBySlug } from '../data/journeys';
 import Divider from '../components/Divider.astro';
 import Reservation from '../components/Reservation.astro';
@@ -27,6 +27,7 @@ const labels = {
     schedule: 'The shape of the day',
     book: 'Reserve this journey',
     ask: 'or ask a question first',
+    enquire: 'Enquire about this journey',
   },
   ja: {
     includes: '料金に含まれるもの',
@@ -34,6 +35,7 @@ const labels = {
     schedule: '1日の流れ',
     book: 'このプランを予約する',
     ask: 'まずは相談する',
+    enquire: 'このプランについて相談する',
   },
 }[locale];
 ---
@@ -112,13 +114,17 @@ const labels = {
   <Reservation locale={locale} />
   <p class="actions">
     {
-      offering.formUrl && (
-        <a class="btn" href={offering.formUrl} rel="noopener" target="_blank">
-          {labels.book}
-        </a>
+      offering.formUrl ? (
+        <>
+          <a class="btn" href={offering.formUrl} rel="noopener" target="_blank">
+            {labels.book}
+          </a>
+          <a class="ask" href={p(enquiryPath(offering))}>{labels.ask}</a>
+        </>
+      ) : (
+        <a class="btn" href={p(enquiryPath(offering))}>{labels.enquire}</a>
       )
     }
-    <a class="ask" href={p('/contact')}>{labels.ask}</a>
   </p>
 </section>
 

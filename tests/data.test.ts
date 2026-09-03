@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { offerings, tierOrder, byTier, bySlug } from '../src/data/offerings';
+import {
+  offerings,
+  tierOrder,
+  byTier,
+  bySlug,
+  enquiryPath,
+} from '../src/data/offerings';
 import { journeys, journeyBySlug } from '../src/data/journeys';
 import { CONTACT } from '../src/data/contact';
 import { locales } from '../src/i18n/ui';
@@ -92,22 +98,31 @@ describe('offerings', () => {
     for (const tier of tierOrder) expect(byTier(tier).length).toBeGreaterThan(0);
   });
 
-  // An offering with no booking link is fine, but it has to be a known gap
-  // rather than an oversight. Adding one without either a link or a marker
-  // means it ships with nothing to click.
-  it('marks every offering that has no booking link', () => {
+  // Every offering has somewhere to go: her JotForm where one matches the
+  // plan as published, otherwise the contact form with the plan carried
+  // through. Nothing renders with nothing to click.
+  it('links every booking form to JotForm', () => {
+    for (const o of offerings) {
+      if (o.formUrl) {
+        expect(o.formUrl, o.id).toMatch(/^https:\/\/form\.jotform\.com\//);
+      }
+    }
+  });
+
+  it('routes the rest to the contact form with the plan carried through', () => {
+    for (const o of offerings) {
+      if (!o.formUrl) {
+        expect(enquiryPath(o)).toBe(`/contact?service=${o.id}`);
+      }
+    }
+  });
+
+  it('carries no leftover TODO markers', () => {
     const src = readFileSync(
       join(process.cwd(), 'src/data/offerings.ts'),
       'utf8',
     );
-    for (const o of offerings) {
-      if (o.formUrl) continue;
-      const block = src.slice(src.indexOf(`id: '${o.id}'`));
-      const entry = block.slice(0, block.indexOf('name: {'));
-      expect(entry, `${o.id} has no booking link and no TODO`).toMatch(
-        /TODO\(#\d+\)/,
-      );
-    }
+    expect(src).not.toMatch(/TODO/);
   });
 
   it('looks up by slug', () => {

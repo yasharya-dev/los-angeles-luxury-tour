@@ -1,7 +1,7 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
-import { byTier, tierOrder, type Tier } from '../data/offerings';
+import { byTier, tierOrder, type Tier, enquiryPath } from '../data/offerings';
 import { CONTACT } from '../data/contact';
 import Divider from '../components/Divider.astro';
 import InstagramBlock from '../components/InstagramBlock.astro';
@@ -59,6 +59,7 @@ const copy = {
     detailsLabel: 'Details',
     bookLabel: 'Book this plan',
     askLabel: 'or ask a question first',
+    enquireLabel: 'Enquire about this plan',
 
     requestKicker: 'Arranged on request, quoted individually',
     requestBody: `Shopping and proxy purchasing. Restaurant reservations. In-restaurant accompaniment ${EM} menu help, dish explanations, conversation support, photos.`,
@@ -162,6 +163,7 @@ const copy = {
     detailsLabel: '詳細を見る',
     bookLabel: 'このプランを予約する',
     askLabel: 'まずは相談する',
+    enquireLabel: 'このプランについて相談する',
 
     requestKicker: 'ご相談ベースで承ります｜個別お見積り',
     requestBody:
@@ -329,19 +331,25 @@ const tierLabel: Record<Tier, string> = {
                       {detail && <p class="body">{detail.body}</p>}
                       {detail?.excl && <p class="caption excl">{detail.excl}</p>}
                       <p class="card__actions">
-                        {o.formUrl && (
-                          <a
-                            class="card__book"
-                            href={o.formUrl}
-                            rel="noopener"
-                            target="_blank"
-                          >
-                            {c.bookLabel}
+                        {o.formUrl ? (
+                          <>
+                            <a
+                              class="card__book"
+                              href={o.formUrl}
+                              rel="noopener"
+                              target="_blank"
+                            >
+                              {c.bookLabel}
+                            </a>
+                            <a class="card__ask" href={p(enquiryPath(o))}>
+                              {c.askLabel}
+                            </a>
+                          </>
+                        ) : (
+                          <a class="card__book" href={p(enquiryPath(o))}>
+                            {c.enquireLabel}
                           </a>
                         )}
-                        <a class="card__ask" href={p('/contact')}>
-                          {c.askLabel}
-                        </a>
                       </p>
                     </div>
                   </details>

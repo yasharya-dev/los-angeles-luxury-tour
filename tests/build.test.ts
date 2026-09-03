@@ -219,6 +219,45 @@ describe('output hygiene', () => {
   });
 });
 
+describe('every offering has somewhere to go', () => {
+  const localized = (path: string, prefix: string) => `${prefix}${path}`;
+
+  // A card with a JotForm shows the booking link; one without goes to the
+  // contact form with the plan pre-selected. Either way, nothing is a dead end.
+  it('gives every card on the experience page an action', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(prefix + '/experience');
+      for (const o of offerings) {
+        if (o.slug) continue; // those cards link to the journey page instead
+        const target = o.formUrl ?? localized(`/contact?service=${o.id}`, prefix);
+        expect(doc, `${prefix} ${o.id}`).toContain(`href="${target}"`);
+      }
+    }
+  });
+
+  it('carries the plan from every journey page to the contact form', () => {
+    for (const prefix of ['', '/ja']) {
+      for (const j of journeys) {
+        const doc = html(`${prefix}/experience/${j.slug}`);
+        expect(doc, `${prefix} ${j.slug}`).toContain(
+          `href="${localized(`/contact?service=${j.slug}`, prefix)}"`,
+        );
+      }
+    }
+  });
+
+  it('lists every plan in the contact form, in the right language', () => {
+    for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
+      const doc = html(prefix + '/contact');
+      for (const o of offerings) {
+        // Scoped styles put a data-astro-cid attribute between the two.
+        expect(doc, `${prefix} ${o.id}`).toContain(`<option value="${o.id}"`);
+        expect(doc, `${prefix} ${o.id}`).toContain(`>${o.name[locale]}</option>`);
+      }
+    }
+  });
+});
+
 describe('sitemap', () => {
   const xml = () => readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
 
