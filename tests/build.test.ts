@@ -196,6 +196,13 @@ describe('the light theme gold rule', () => {
     expect(lightBlock()).toMatch(/--wedge:#d4af37/i);
   });
 
+  // form.hidden = true is how the contact form gets out of the way after a
+  // successful submit. Any author display rule beats the browser's own
+  // [hidden] rule, so the reset has to say it with !important.
+  it('hides anything with the hidden attribute, whatever its own display rule', () => {
+    expect(css()).toMatch(/\[hidden\]\{display:none!important\}/);
+  });
+
   it('does not override the dark plate tokens in light', () => {
     const block = lightBlock();
     for (const t of ['--bar:', '--bar-deep:', '--pill:']) {
