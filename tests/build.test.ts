@@ -125,6 +125,13 @@ describe('content parity', () => {
     }
   });
 
+  // An unanswered "how did you hear about me" must send nothing, not the
+  // placeholder text as an answer.
+  it('sends nothing for the unanswered heard-about question', () => {
+    expect(html('/contact')).not.toContain('value="Choose one"');
+    expect(html('/ja/contact')).not.toContain('value="選択してください"');
+  });
+
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);
