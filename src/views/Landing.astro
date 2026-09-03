@@ -454,6 +454,10 @@ const tierLabel: Record<Tier, string> = {
     font-size: 11px;
     letter-spacing: 0.24em;
     text-transform: uppercase;
+    /* Standalone CTA, so it owns a 24px target rather than borrowing the
+       inline exception. */
+    display: inline-block;
+    padding-block: 4px;
   }
 
   :global(html[lang='ja']) .tier__cta {

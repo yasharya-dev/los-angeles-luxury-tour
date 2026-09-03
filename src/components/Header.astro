@@ -127,6 +127,10 @@ const links = [
     /* Japanese has no spaces, so without this the browser breaks labels
        mid-word: 旅のプラ / ン. */
     white-space: nowrap;
+    /* 11px type on a line box of 2 measures 22px, under the 24px minimum
+       target size. The padding buys the height without moving the header. */
+    display: inline-block;
+    padding-block: 5px;
   }
   .nav__link:hover,
   .nav__link[aria-current='page'] {
