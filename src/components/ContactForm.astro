@@ -27,6 +27,7 @@ const copy = {
     kicker: 'Write to Amelia',
     title: 'The journey starts here',
     lead: 'Everything is by reservation, so everything starts with a conversation. Required fields are marked',
+    leadAfter: '.',
     name: 'Your name',
     nameErr: 'Please tell me your name.',
     email: 'Email',
@@ -65,7 +66,8 @@ const copy = {
   ja: {
     kicker: 'フォームでのご相談',
     title: '旅の入り口は、ここから',
-    lead: '完全予約制のため、まずはお話から始まります。必須項目は',
+    lead: '完全予約制のため、まずはお話から始まります。',
+    leadAfter: 'は必須項目です。',
     name: 'お名前',
     nameErr: 'お名前をご記入ください。',
     email: 'メールアドレス',
@@ -120,7 +122,7 @@ const c = copy[locale];
     <h2 class="h2 center form__title">{c.title}</h2>
     <p class="body center form__lead">
       {c.lead} <span class="req" aria-hidden="true">*</span>
-      <span class="sr-only">{c.required}</span>.
+      <span class="sr-only">{c.required}</span>{c.leadAfter}
     </p>
 
     <form

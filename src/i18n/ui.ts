@@ -24,6 +24,7 @@ export const ui = {
     'nav.contact': 'Contact',
     'nav.home': 'Los Angeles Luxury Tour, home',
     'nav.main': 'Main',
+    'nav.language': 'Language',
     'nav.skip': 'Skip to content',
 
     'toggle.theme': 'Switch between dark and light theme',
@@ -69,6 +70,7 @@ export const ui = {
     'nav.contact': 'お問い合わせ',
     'nav.home': 'ロサンゼルス ラグジュアリーツアー ホーム',
     'nav.main': 'メインメニュー',
+    'nav.language': '言語',
     'nav.skip': '本文へ移動',
 
     'toggle.theme': 'ダークモードとライトモードを切り替える',

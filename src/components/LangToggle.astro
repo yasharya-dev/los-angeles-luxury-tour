@@ -14,7 +14,7 @@ const t = useTranslations(locale);
 const others = locales.filter((l) => l !== locale);
 ---
 
-<div class="lang-toggle">
+<nav class="lang-toggle" aria-label={t('nav.language')}>
   {
     others.map((other) => (
       <a
@@ -28,7 +28,7 @@ const others = locales.filter((l) => l !== locale);
       </a>
     ))
   }
-</div>
+</nav>
 
 <style>
   .lang-toggle {

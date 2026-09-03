@@ -98,6 +98,10 @@ const copy = {
 
 const c = copy[locale];
 
+// The Japanese kicker may break only at the ｜, never inside a word. Japanese
+// has no spaces, so without this a narrow phone breaks プライベートツアー in half.
+const kickerParts = c.heroKicker.split('｜');
+
 const tierCta: Record<Tier, string> = {
   signature: t('cta.journeys'),
   day: t('cta.days'),
@@ -121,7 +125,16 @@ const tierLabel: Record<Tier, string> = {
   />
   <div class="hero__scrim"></div>
   <div class="hero__inner">
-    <p class="kicker hero__kicker">{c.heroKicker}</p>
+    <p class="kicker hero__kicker">
+      {kickerParts.length > 1
+        ? kickerParts.map((part, i) => (
+            <>
+              {i > 0 && '｜'}
+              <span class="nowrap">{part}</span>
+            </>
+          ))
+        : c.heroKicker}
+    </p>
     <h1 class="display hero__title">
       {c.heroTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
     </h1>
@@ -272,6 +285,9 @@ const tierLabel: Record<Tier, string> = {
     letter-spacing: 0.38em;
     color: rgba(245, 245, 250, 0.85);
   }
+  .nowrap {
+    white-space: nowrap;
+  }
 
   .hero__title {
     text-shadow: 0 1px 34px rgba(8, 8, 8, 0.5);
@@ -420,9 +436,12 @@ const tierLabel: Record<Tier, string> = {
     color: var(--ink-soft);
   }
 
-  /* Never wrap mid-figure; the row wraps around it. */
+  /* Never wrap mid-figure; the row wraps around it. When it does wrap onto
+     its own line, auto margin keeps it on the right edge, so amount and
+     unit share an edge instead of each amount landing wherever its unit's
+     width puts it. */
   .offer__price {
-    margin: 0;
+    margin: 0 0 0 auto;
     text-align: right;
     flex: 0 0 auto;
     white-space: nowrap;

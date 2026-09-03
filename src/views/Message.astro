@@ -30,14 +30,14 @@ const copy = {
   ja: {
     notfound: {
       code: '404',
-      title: 'お探しのページが見つかりません。',
+      title: ['お探しのページが', '見つかりません。'],
       body: 'ページが移動したか、リンクに誤りがあるかもしれません。プランの一覧は、こちらからご覧いただけます。',
       cta: 'プランを見る',
       href: '/experience',
     },
     thanks: {
       code: '',
-      title: 'ありがとうございます。メッセージをお送りしました。',
+      title: ['ありがとうございます。', 'メッセージをお送りしました。'],
       body: '24時間以内にご返信いたします。お急ぎの場合は、LINEがいちばん早くご連絡いただけます。',
       cta: 'トップページへ戻る',
       href: '/',
@@ -51,7 +51,17 @@ const c = copy[locale][kind];
 <section class="section message">
   <div class="measure center">
     {c.code && <p class="code" aria-hidden="true">{c.code}</p>}
-    <h1 class="h2 message__title">{c.title}</h1>
+    {/* Japanese titles carry authored breaks, as every Japanese heading does. */}
+    <h1 class="h2 message__title">
+      {typeof c.title === 'string'
+        ? c.title
+        : c.title.map((line, i) => (
+            <>
+              {i > 0 && <br />}
+              {line}
+            </>
+          ))}
+    </h1>
     <p class="body message__body">{c.body}</p>
     <div class="message__actions">
       <a class="btn" href={p(c.href)}>{c.cta}</a>
