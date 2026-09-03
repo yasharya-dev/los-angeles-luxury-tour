@@ -64,7 +64,9 @@ npm run preview    # wrangler dev: the built site through the real Worker
 npm run deploy     # astro build && wrangler deploy
 ```
 
-`npm run preview` is the one that matters before a deploy. `astro dev` never goes through the assets binding, and two of the defects in this repo's history were only visible through it.
+`npm run preview` is the one that matters before a deploy. `astro dev` never goes through the assets binding and has no Worker at all, and four of the defects in this repo's history were only visible through the real thing.
+
+To test the contact form for real locally, copy `.dev.vars.example` to `.dev.vars`, put a Resend sending-only key in `RESEND_API_KEY` and your own address in `INQUIRY_TO`, then `npm run preview`. Without the key, every submit takes the send-failure path, and the success path never runs.
 
 ## Tests
 

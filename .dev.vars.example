@@ -3,3 +3,11 @@
 # Set to gate the whole site behind one shared password, for client review.
 # Leave it out entirely and the site serves normally.
 BETA_PASSWORD=
+
+# A Resend key with sending access. Without it every submit takes the
+# send-failure path, and the success path never runs locally.
+RESEND_API_KEY=
+
+# Where local test submissions land. Set it to your own address so a test
+# does not arrive in the client's inbox.
+INQUIRY_TO=
