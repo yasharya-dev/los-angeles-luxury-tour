@@ -54,7 +54,9 @@ const c = copy[locale];
     font-family: var(--font-label);
     font-size: clamp(12px, 2vw, 15px);
     letter-spacing: 0.28em;
-    text-transform: uppercase;
+    /* A handle is an identifier: it is never uppercased, in either language.
+       Same rule as the LINE id. */
+    text-transform: none;
     color: #d4af37;
     border-bottom: 1px solid rgba(212, 175, 55, 0.4);
     padding-bottom: 6px;

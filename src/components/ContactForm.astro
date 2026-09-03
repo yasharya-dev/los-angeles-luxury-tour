@@ -389,7 +389,8 @@ const c = copy[locale];
     border: 1px solid var(--card-edge);
     color: var(--ink);
     font-family: var(--font-body);
-    font-size: 15px;
+    /* Below 16px, iOS Safari zooms the page when the field takes focus. */
+    font-size: 16px;
     line-height: 1.7;
     padding: 13px 14px;
     border-radius: 0;

@@ -46,6 +46,9 @@ body {
 html[lang='ja'] body {
   font-feature-settings: 'palt';
   line-height: 2.15;
+  /* Kinsoku shori: keeps the long-vowel mark and small kana off the start of
+     a line. Without it the browser breaks プリゲームツアー before the ー. */
+  line-break: strict;
 }
 
 img,

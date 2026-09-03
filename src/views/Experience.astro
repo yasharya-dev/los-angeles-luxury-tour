@@ -580,6 +580,13 @@ const tierLabel: Record<Tier, string> = {
     color: var(--gold-text);
   }
 
+  /* Only the link: .card__summary sets its own box below. Measured 19px,
+     under the 24px minimum target size. */
+  .card__link {
+    display: inline-block;
+    padding-block: 4px;
+  }
+
   :global(html[lang='ja']) .card__link,
   :global(html[lang='ja']) .card__summary {
     font-family: var(--font-body);

@@ -101,7 +101,9 @@ const p = (path: string) => localizePath(path, locale);
     font-size: 10px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(245, 245, 250, 0.42);
+    /* 0.42 measured 3.80:1 on --bar-deep and failed AA. 0.55 is 5.84:1 and
+       still reads as the quietest line on the page. */
+    color: rgba(245, 245, 250, 0.55);
   }
 
   .site-footer__meta a {
