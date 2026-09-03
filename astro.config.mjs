@@ -19,6 +19,11 @@ export default defineConfig({
   },
 
   build: {
+    // about.html rather than about/index.html. Cloudflare's 404-page mode
+    // looks for files named 404.html walking up from the request, so this is
+    // what puts the Japanese one at ja/404.html where /ja/* can find it. The
+    // URL shape is unchanged: wrangler.jsonc serves both layouts at /about.
+    format: 'file',
     // One stylesheet: the CSS is almost entirely shared, so per-page
     // inlining would duplicate it 18 times.
     inlineStylesheets: 'never',
