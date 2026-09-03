@@ -58,6 +58,13 @@ video {
   display: block;
 }
 
+/* Any author display rule beats the browser's own [hidden] rule, whatever the
+   specificity, because origin is compared before specificity. Without this,
+   form.hidden = true on a display: grid form does nothing. */
+[hidden] {
+  display: none !important;
+}
+
 a {
   color: var(--gold-text);
   text-decoration: none;
