@@ -18,7 +18,11 @@ export interface Offering {
   tier: Tier;
   /** Set when the offering has its own detail page. */
   slug?: string;
-  /** Her existing JotForm. Not replaced yet. */
+  /**
+   * Her existing JotForm, where one matches the plan as published here.
+   * Without one the plan routes to the contact form with the plan carried
+   * through. See enquiryPath().
+   */
   formUrl?: string;
   name: Record<Locale, string>;
   blurb: Record<Locale, string>;
@@ -97,7 +101,6 @@ export const offerings: Offering[] = [
   {
     id: 'charter',
     tier: 'day',
-    // TODO(#7): no booking link. Her Linktree slug is `la-tour`.
     name: {
       en: 'Private charter tour',
       ja: '貸切プライベートツアー',
@@ -111,8 +114,7 @@ export const offerings: Offering[] = [
   },
   {
     id: 'la-day-tour',
-    // TODO(#7): sold through BUYMA, so there may be no form to link.
-        tier: 'day',
+    tier: 'day',
     name: {
       en: 'Los Angeles day tour',
       ja: 'ロサンゼルス1日観光',
@@ -126,8 +128,7 @@ export const offerings: Offering[] = [
   },
   {
     id: 'dodgers-game',
-    // TODO(#7): sold through BUYMA, so there may be no form to link.
-        tier: 'day',
+    tier: 'day',
     name: {
       en: 'Dodgers game experience',
       ja: 'ドジャース観戦・送迎付きツアー',
@@ -143,7 +144,6 @@ export const offerings: Offering[] = [
   {
     id: 'airport-transfer',
     tier: 'transport',
-    // TODO(#7): no booking link. Her Linktree slug is `airport-hotel`.
     name: {
       en: 'LAX airport transfer',
       ja: '空港送迎（LAX⇔ホテル往復）',
@@ -157,8 +157,7 @@ export const offerings: Offering[] = [
   },
   {
     id: 'dodgers-ticket',
-    // TODO(#7): sold through BUYMA, so there may be no form to link.
-        tier: 'transport',
+    tier: 'transport',
     name: {
       en: 'Dodgers ticket service',
       ja: 'ドジャース観戦チケット購入代行',
@@ -187,4 +186,10 @@ export function byTier(tier: Tier): Offering[] {
 
 export function bySlug(slug: string): Offering | undefined {
   return offerings.find((o) => o.slug === slug);
+}
+
+// Plans without a JotForm go to the contact form with the plan pre-selected,
+// so an enquiry about a named plan arrives as one. ContactForm.astro reads it.
+export function enquiryPath(o: Pick<Offering, 'id'>): string {
+  return `/contact?service=${o.id}`;
 }

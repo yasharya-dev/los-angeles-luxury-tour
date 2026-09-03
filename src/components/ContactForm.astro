@@ -2,6 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
+import { byTier, tierOrder, type Tier } from '../data/offerings';
 
 interface Props {
   locale: Locale;
@@ -14,6 +15,12 @@ const EM = String.fromCharCode(0x2014);
 
 // Unset until the widget exists; the Worker skips verification without it.
 const turnstileKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
 
 const copy = {
   en: {
@@ -30,6 +37,8 @@ const copy = {
     guestOpts: ['Not sure yet', '1', '2', '3', '4', '5', '6 or more'],
     dates: 'Approximate travel dates',
     datesHint: 'e.g. around September 2026, four nights',
+    service: 'Which plan are you interested in?',
+    serviceNone: 'Not sure yet, just exploring',
     hoping: 'What are you hoping for?',
     hopingErr: `A single line is plenty ${EM} what are you hoping for?`,
     heard: 'How did you hear about me?',
@@ -75,6 +84,8 @@ const copy = {
     ],
     dates: 'ご旅行の時期（未定でも大丈夫です）',
     datesHint: '例：2026年9月ごろ・4泊',
+    service: 'ご興味のあるプラン',
+    serviceNone: '未定・相談しながら決めたい',
     hoping: 'どんな旅をお望みですか',
     hopingErr: 'ひとことで構いません。ご希望をお聞かせください。',
     heard: 'このサービスを、どこでお知りになりましたか？',
@@ -190,6 +201,21 @@ const c = copy[locale];
         />
       </div>
 
+      {/* A plan card links here with ?service=<id>; the script pre-selects it. */}
+      <div class="field">
+        <label class="label" for="f-service">{c.service}</label>
+        <select class="input" id="f-service" name="service">
+          <option value="">{c.serviceNone}</option>
+          {tierOrder.map((tier) => (
+            <optgroup label={tierLabel[tier]}>
+              {byTier(tier).map((o) => (
+                <option value={o.id}>{o.name[locale]}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
       <div class="field">
         <label class="label" for="f-hoping">
           {c.hoping} <span class="req" aria-hidden="true">*</span>
@@ -260,6 +286,15 @@ const c = copy[locale];
   }
 
   if (form && ok && formErr && submit) {
+    /* Static build, so the plan a card linked with is selected here. Without
+       JS the select opens on "not sure yet", which is a fine answer too. */
+    const service = form.querySelector('[name="service"]') as HTMLSelectElement | null;
+    const wanted = new URLSearchParams(location.search).get('service');
+    if (service && wanted) {
+      const known = Array.from(service.options).some((o) => o.value === wanted);
+      if (known) service.value = wanted;
+    }
+
     const required = Array.from(
       form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'),
     );

@@ -4,6 +4,7 @@ import {
   hasAccess,
   safeNext,
 } from './beta';
+import { offerings } from '../src/data/offerings';
 
 // Serves the static build and handles POST /api/inquiry.
 // Resend does the actual sending: Cloudflare has no outbound email.
@@ -22,6 +23,7 @@ interface Env {
 const FIELDS = [
   'name',
   'email',
+  'service',
   'language',
   'guests',
   'dates',
@@ -37,6 +39,13 @@ export function clean(value: FormDataEntryValue | null, max = 2000): string {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .trim()
     .slice(0, max);
+}
+
+// The form sends the plan id. She reads the email, so show the plan in both
+// languages; an id nothing matches is shown as sent rather than dropped.
+export function serviceLabel(id: string): string {
+  const o = offerings.find((x) => x.id === id);
+  return o ? `${o.name.ja} / ${o.name.en}` : id;
 }
 
 export function escapeHtml(s: string): string {
@@ -154,7 +163,7 @@ export default {
     const rows = FIELDS.filter((f) => data[f]).map(
       (f) =>
         `<tr><td style="padding:4px 14px 4px 0;color:#666;vertical-align:top">${f}</td>` +
-        `<td style="padding:4px 0">${escapeHtml(data[f]).replace(/\n/g, '<br>')}</td></tr>`,
+        `<td style="padding:4px 0">${escapeHtml(f === 'service' ? serviceLabel(data[f]) : data[f]).replace(/\n/g, '<br>')}</td></tr>`,
     );
 
     const send = await fetch('https://api.resend.com/emails', {
@@ -168,7 +177,10 @@ export default {
         to: [env.INQUIRY_TO ?? 'losangelesluxurytour@gmail.com'],
         // So a reply in the inbox goes straight back to the guest.
         reply_to: data.email,
-        subject: `Inquiry from ${data.name}${locale === 'ja' ? '（日本語）' : ''}`,
+        subject:
+          `Inquiry from ${data.name}` +
+          (data.service ? ` - ${serviceLabel(data.service)}` : '') +
+          (locale === 'ja' ? '（日本語）' : ''),
         html: `<table style="font:15px/1.6 system-ui,sans-serif">${rows.join('')}</table>`,
       }),
     });

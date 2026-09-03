@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clean, escapeHtml, thanksPath } from '../worker/index';
+import { clean, escapeHtml, serviceLabel, thanksPath } from '../worker/index';
 
 describe('clean', () => {
   it('trims and returns strings', () => {
@@ -50,5 +50,18 @@ describe('thanksPath', () => {
   it('falls back to English for anything unexpected', () => {
     expect(thanksPath('fr')).toBe('/thank-you');
     expect(thanksPath('')).toBe('/thank-you');
+  });
+});
+
+describe('serviceLabel', () => {
+  // She reads the email in Japanese; the id is ours.
+  it('shows a known plan in both languages', () => {
+    expect(serviceLabel('temecula')).toBe(
+      'テメキュラ ワイナリー1日旅 / Temecula winery day',
+    );
+  });
+
+  it('passes an unknown value through rather than dropping it', () => {
+    expect(serviceLabel('something-else')).toBe('something-else');
   });
 });
