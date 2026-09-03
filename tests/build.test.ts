@@ -115,6 +115,16 @@ describe('content parity', () => {
     expect(ja).toBe(offerings.length);
   });
 
+  // A failed send has to say so and hand over the email address, rather than
+  // point at fields that are fine.
+  it('gives the contact form a send-failure message with a way out', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(prefix + '/contact');
+      expect(doc, prefix).toContain('data-send-error');
+      expect(doc, prefix).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+    }
+  });
+
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);
