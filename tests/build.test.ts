@@ -19,11 +19,14 @@ const PATHS = [
   '/thank-you',
 ];
 
-const html = (route: string) => {
-  const file =
-    route === '/' ? 'index.html' : join(route.replace(/^\//, ''), 'index.html');
-  return readFileSync(join(DIST, file), 'utf8');
+// build.format is 'file': /about is about.html and /ja is ja.html. Only the
+// site root is an index.html.
+const distFile = (route: string) => {
+  const bare = route.replace(/\/$/, '');
+  return join(DIST, bare === '' ? 'index.html' : `${bare}.html`);
 };
+
+const html = (route: string) => readFileSync(distFile(route), 'utf8');
 
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
@@ -38,17 +41,16 @@ describe('routes', () => {
     for (const p of PATHS) {
       for (const prefix of ['', '/ja']) {
         const route = prefix + p;
-        const file =
-          route === '/'
-            ? 'index.html'
-            : join(route.replace(/^\//, ''), 'index.html');
-        expect(existsSync(join(DIST, file)), route).toBe(true);
+        expect(existsSync(distFile(route)), route).toBe(true);
       }
     }
   });
 
   it('builds 404, sitemap and robots', () => {
     expect(existsSync(join(DIST, '404.html'))).toBe(true);
+    // 404-page mode walks up looking for this exact name, so the Japanese
+    // page has to be here and not at ja/404/index.html.
+    expect(existsSync(join(DIST, 'ja', '404.html'))).toBe(true);
     expect(existsSync(join(DIST, 'sitemap.xml'))).toBe(true);
     expect(existsSync(join(DIST, 'robots.txt'))).toBe(true);
   });

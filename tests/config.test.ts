@@ -28,6 +28,12 @@ describe('URL shape', () => {
     expect(wrangler().assets.html_handling).toBe('drop-trailing-slash');
   });
 
+  // 404-page mode finds files named 404.html, so the Japanese 404 has to
+  // build as ja/404.html and not ja/404/index.html.
+  it('builds one file per page so the Japanese 404 is where Cloudflare looks', () => {
+    expect(astroConfig()).toMatch(/format:\s*'file'/);
+  });
+
   it('serves the 404 page for unknown routes', () => {
     expect(wrangler().assets.not_found_handling).toBe('404-page');
   });
