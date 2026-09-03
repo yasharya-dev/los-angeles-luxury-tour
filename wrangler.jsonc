@@ -10,7 +10,11 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "html_handling": "auto-trailing-slash",
+    // astro.config sets trailingSlash: "never", so every canonical, hreflang
+    // and sitemap entry says /about. This serves about/index.html there and
+    // redirects /about/ back. auto-trailing-slash does the reverse for
+    // directory indexes, which put a 307 on every page but the root.
+    "html_handling": "drop-trailing-slash",
     "run_worker_first": true
   },
 

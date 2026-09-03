@@ -14,7 +14,7 @@
     "astro": "astro",
     "check": "astro check",
     "test": "astro build && vitest run",
-    "test:unit": "vitest run tests/i18n.test.ts tests/data.test.ts tests/worker.test.ts",
+    "test:unit": "vitest run tests/i18n.test.ts tests/data.test.ts tests/worker.test.ts tests/beta.test.ts tests/config.test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
