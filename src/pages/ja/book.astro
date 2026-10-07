@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import Book from '../../views/Book.astro';
+
+const locale = 'ja' as const;
+---
+
+<Base
+  locale={locale}
+  title="ご予約｜Los Angeles Luxury Tour"
+  description="プラン・ご希望日・人数をご入力ください。送信後、空き状況を確認し、通常24時間以内の承認をもって確定となります。"
+>
+  <Book locale={locale} />
+</Base>

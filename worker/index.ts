@@ -6,7 +6,10 @@ import {
 } from './beta';
 import { offerings } from '../src/data/offerings';
 
-// Serves the static build and handles POST /api/inquiry.
+// Serves the static build and handles the two forms: POST /api/inquiry is the
+// consultation form, POST /api/booking is a booking request. Everything about
+// handling them is shared; what differs is declared in SUBMISSIONS below.
+//
 // Resend does the actual sending: Cloudflare has no outbound email.
 // Secrets: wrangler secret put RESEND_API_KEY / TURNSTILE_SECRET_KEY
 
@@ -20,17 +23,58 @@ interface Env {
   INQUIRY_FROM?: string;
 }
 
-const FIELDS = [
-  'name',
-  'email',
-  'service',
-  'language',
-  'guests',
-  'dates',
-  'hoping',
-  'heard',
-  'referrer',
-] as const;
+type Locale = 'en' | 'ja';
+type Data = Record<string, string>;
+
+/** One form, one endpoint. */
+export interface Submission {
+  /** Fields read from the form, in the order they appear in the email. */
+  fields: readonly string[];
+  /** Refused without these. The page validates too; this is the backstop. */
+  required: readonly string[];
+  subject: (data: Data, locale: Locale) => string;
+  /** Where a no-JS post lands afterwards. */
+  next: (locale: string) => string;
+  /** A line above the table, when the email needs context she can act on. */
+  intro?: string;
+}
+
+const jaTag = (locale: Locale) => (locale === 'ja' ? '（日本語）' : '');
+
+export const SUBMISSIONS: Readonly<Record<string, Submission>> = {
+  '/api/inquiry': {
+    fields: [
+      'name',
+      'email',
+      'service',
+      'language',
+      'guests',
+      'dates',
+      'hoping',
+      'heard',
+      'referrer',
+    ],
+    required: ['name', 'email', 'hoping'],
+    subject: (d, locale) =>
+      `Inquiry from ${d.name}` +
+      (d.service ? ` - ${serviceLabel(d.service)}` : '') +
+      jaTag(locale),
+    next: thanksPath,
+  },
+
+  // A booking is a request: she checks availability and confirms, normally
+  // within 24 hours. The intro line says so, in her inbox, every time.
+  '/api/booking': {
+    fields: ['name', 'email', 'line', 'service', 'date', 'guests', 'notes'],
+    required: ['name', 'email', 'service', 'date', 'guests'],
+    subject: (d, locale) =>
+      `Booking request from ${d.name} - ${serviceLabel(d.service)}` +
+      jaTag(locale),
+    next: receivedPath,
+    intro:
+      'ご予約リクエストです。空き状況を確認のうえ、通常24時間以内にお客様へご返信ください。 / Booking request: check availability and reply to the guest, normally within 24 hours.',
+  },
+};
 
 // Newlines survive; everything else in the control range doesn't.
 export function clean(value: FormDataEntryValue | null, max = 2000): string {
@@ -56,6 +100,14 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+export function thanksPath(locale: string): string {
+  return locale === 'ja' ? '/ja/thank-you' : '/thank-you';
+}
+
+export function receivedPath(locale: string): string {
+  return locale === 'ja' ? '/ja/book/received' : '/book/received';
+}
+
 async function verifyTurnstile(
   token: string,
   secret: string,
@@ -76,6 +128,101 @@ async function verifyTurnstile(
   } catch {
     return false;
   }
+}
+
+function emailHtml(sub: Submission, data: Data): string {
+  const rows = sub.fields
+    .filter((f) => data[f])
+    .map((f) => {
+      const shown = f === 'service' ? serviceLabel(data[f]) : data[f];
+      return (
+        `<tr><td style="padding:4px 14px 4px 0;color:#666;vertical-align:top">${f}</td>` +
+        `<td style="padding:4px 0">${escapeHtml(shown).replace(/\n/g, '<br>')}</td></tr>`
+      );
+    });
+  const intro = sub.intro
+    ? `<p style="margin:0 0 14px;color:#444">${escapeHtml(sub.intro)}</p>`
+    : '';
+  return (
+    `<div style="font:15px/1.6 system-ui,sans-serif">${intro}` +
+    `<table>${rows.join('')}</table></div>`
+  );
+}
+
+async function handleSubmission(
+  request: Request,
+  env: Env,
+  sub: Submission,
+  url: URL,
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', {
+      status: 405,
+      headers: { Allow: 'POST' },
+    });
+  }
+
+  const form = await request.formData();
+  const wantsJson = (request.headers.get('Accept') ?? '').includes(
+    'application/json',
+  );
+  const locale: Locale = clean(form.get('locale'), 8) === 'ja' ? 'ja' : 'en';
+  const done = () =>
+    wantsJson
+      ? Response.json({ ok: true })
+      : Response.redirect(new URL(sub.next(locale), url), 303);
+  const fail = (error: string, status: number, text: string) =>
+    wantsJson
+      ? Response.json({ ok: false, error }, { status })
+      : new Response(text, { status });
+
+  // Honeypot. 200 so the bot logs a success and doesn't retry.
+  if (clean(form.get('company'))) return done();
+
+  if (env.TURNSTILE_SECRET_KEY) {
+    const token = clean(form.get('cf-turnstile-response'), 4096);
+    const ok = await verifyTurnstile(
+      token,
+      env.TURNSTILE_SECRET_KEY,
+      request.headers.get('CF-Connecting-IP'),
+    );
+    if (!ok) return fail('challenge', 400, 'Verification failed');
+  }
+
+  const data: Data = {};
+  for (const key of sub.fields) data[key] = clean(form.get(key));
+
+  if (sub.required.some((key) => !data[key])) {
+    return fail('missing', 400, 'Missing required fields');
+  }
+
+  if (!env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set; submission dropped');
+    return fail('unconfigured', 500, 'Mail is not configured');
+  }
+
+  const send = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: env.INQUIRY_FROM ?? 'Website <concierge@losangelesluxurytour.com>',
+      to: [env.INQUIRY_TO ?? 'losangelesluxurytour@gmail.com'],
+      // So a reply in the inbox goes straight back to the guest.
+      reply_to: data.email,
+      subject: sub.subject(data, locale),
+      html: emailHtml(sub, data),
+    }),
+  });
+
+  if (!send.ok) {
+    console.error('Resend failed', send.status, await send.text());
+    return fail('send', 502, 'Could not send');
+  }
+
+  return done();
 }
 
 export default {
@@ -101,103 +248,14 @@ export default {
       }
     }
 
-    if (url.pathname !== '/api/inquiry') {
-      const res = await env.ASSETS.fetch(request);
-      if (!beta) return res;
-      // Nothing behind the gate should ever be indexed.
-      const gated = new Response(res.body, res);
-      gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
-      return gated;
-    }
+    const submission = SUBMISSIONS[url.pathname];
+    if (submission) return handleSubmission(request, env, submission, url);
 
-    if (request.method !== 'POST') {
-      return new Response('Method not allowed', {
-        status: 405,
-        headers: { Allow: 'POST' },
-      });
-    }
-
-    const form = await request.formData();
-    const wantsJson = (request.headers.get('Accept') ?? '').includes(
-      'application/json',
-    );
-    const locale = clean(form.get('locale'), 8) === 'ja' ? 'ja' : 'en';
-
-    // Honeypot. 200 so the bot logs a success and doesn't retry.
-    if (clean(form.get('company'))) {
-      return wantsJson
-        ? Response.json({ ok: true })
-        : Response.redirect(new URL(thanksPath(locale), url), 303);
-    }
-
-    if (env.TURNSTILE_SECRET_KEY) {
-      const token = clean(form.get('cf-turnstile-response'), 4096);
-      const ok = await verifyTurnstile(
-        token,
-        env.TURNSTILE_SECRET_KEY,
-        request.headers.get('CF-Connecting-IP'),
-      );
-      if (!ok) {
-        return wantsJson
-          ? Response.json({ ok: false, error: 'challenge' }, { status: 400 })
-          : new Response('Verification failed', { status: 400 });
-      }
-    }
-
-    const data: Record<string, string> = {};
-    for (const key of FIELDS) data[key] = clean(form.get(key));
-
-    if (!data.name || !data.email || !data.hoping) {
-      return wantsJson
-        ? Response.json({ ok: false, error: 'missing' }, { status: 400 })
-        : new Response('Missing required fields', { status: 400 });
-    }
-
-    if (!env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is not set; inquiry dropped');
-      return wantsJson
-        ? Response.json({ ok: false, error: 'unconfigured' }, { status: 500 })
-        : new Response('Mail is not configured', { status: 500 });
-    }
-
-    const rows = FIELDS.filter((f) => data[f]).map(
-      (f) =>
-        `<tr><td style="padding:4px 14px 4px 0;color:#666;vertical-align:top">${f}</td>` +
-        `<td style="padding:4px 0">${escapeHtml(f === 'service' ? serviceLabel(data[f]) : data[f]).replace(/\n/g, '<br>')}</td></tr>`,
-    );
-
-    const send = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: env.INQUIRY_FROM ?? 'Website <concierge@losangelesluxurytour.com>',
-        to: [env.INQUIRY_TO ?? 'losangelesluxurytour@gmail.com'],
-        // So a reply in the inbox goes straight back to the guest.
-        reply_to: data.email,
-        subject:
-          `Inquiry from ${data.name}` +
-          (data.service ? ` - ${serviceLabel(data.service)}` : '') +
-          (locale === 'ja' ? '（日本語）' : ''),
-        html: `<table style="font:15px/1.6 system-ui,sans-serif">${rows.join('')}</table>`,
-      }),
-    });
-
-    if (!send.ok) {
-      console.error('Resend failed', send.status, await send.text());
-      return wantsJson
-        ? Response.json({ ok: false, error: 'send' }, { status: 502 })
-        : new Response('Could not send', { status: 502 });
-    }
-
-    return wantsJson
-      ? Response.json({ ok: true })
-      : Response.redirect(new URL(thanksPath(locale), url), 303);
+    const res = await env.ASSETS.fetch(request);
+    if (!beta) return res;
+    // Nothing behind the gate should ever be indexed.
+    const gated = new Response(res.body, res);
+    gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return gated;
   },
 };
-
-export function thanksPath(locale: string): string {
-  return locale === 'ja' ? '/ja/thank-you' : '/thank-you';
-}

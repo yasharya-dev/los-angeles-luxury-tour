@@ -1,4 +1,5 @@
 ---
+import '../styles/form.css';
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
@@ -130,6 +131,7 @@ const c = copy[locale];
       method="post"
       action={CONTACT.formEndpoint}
       novalidate
+      data-enhance
       data-inquiry-form
     >
       <input type="hidden" name="locale" value={locale} />
@@ -283,86 +285,8 @@ const c = copy[locale];
 {turnstileKey && <script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js" />}
 
 <script>
-  const form = document.querySelector<HTMLFormElement>('[data-inquiry-form]');
-  const ok = document.querySelector<HTMLElement>('[data-form-ok]');
-  const formErr = document.querySelector<HTMLElement>('[data-form-error]');
-  const sendErr = document.querySelector<HTMLElement>('[data-send-error]');
-  const submit = document.querySelector<HTMLButtonElement>('[data-submit]');
-
-  function showError(input: HTMLInputElement | HTMLTextAreaElement, on: boolean) {
-    const msg = document.getElementById(`e-${input.id.replace('f-', '')}`);
-    input.setAttribute('aria-invalid', String(on));
-    input.classList.toggle('input--err', on);
-    if (msg) msg.hidden = !on;
-  }
-
-  if (form && ok && formErr && sendErr && submit) {
-    /* Static build, so the plan a card linked with is selected here. Without
-       JS the select opens on "not sure yet", which is a fine answer too. */
-    const service = form.querySelector('[name="service"]') as HTMLSelectElement | null;
-    const wanted = new URLSearchParams(location.search).get('service');
-    if (service && wanted) {
-      const known = Array.from(service.options).some((o) => o.value === wanted);
-      if (known) service.value = wanted;
-    }
-
-    const required = Array.from(
-      form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'),
-    );
-
-    /* On blur, not on input - do not correct someone mid-type. */
-    required.forEach((input) => {
-      input.addEventListener('blur', () => {
-        if (input.value.trim()) showError(input, !input.checkValidity());
-      });
-      input.addEventListener('input', () => {
-        if (input.classList.contains('input--err') && input.checkValidity()) {
-          showError(input, false);
-          /* Once the last mark is gone, the summary pointing at them goes too. */
-          if (!form.querySelector('.input--err')) formErr.hidden = true;
-        }
-      });
-    });
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      sendErr.hidden = true;
-
-      let bad = false;
-      required.forEach((input) => {
-        const invalid = !input.checkValidity();
-        showError(input, invalid);
-        if (invalid && !bad) {
-          input.focus();
-          bad = true;
-        }
-      });
-
-      formErr.hidden = !bad;
-      if (bad) return;
-
-      submit.disabled = true;
-      submit.textContent = submit.dataset.sending ?? 'Sending';
-
-      try {
-        const res = await fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { Accept: 'application/json' },
-        });
-        if (!res.ok) throw new Error(String(res.status));
-
-        form.hidden = true;
-        ok.hidden = false;
-        ok.setAttribute('tabindex', '-1');
-        ok.focus();
-      } catch {
-        sendErr.hidden = false;
-        submit.disabled = false;
-        submit.textContent = submit.dataset.label ?? 'Send';
-      }
-    });
-  }
+  import { enhanceForms } from '../scripts/enhance-form';
+  enhanceForms();
 </script>
 
 <style>
@@ -376,122 +300,5 @@ const c = copy[locale];
 
   .form__lead {
     margin-bottom: clamp(36px, 5vw, 52px);
-  }
-
-  .form {
-    display: grid;
-    gap: var(--gap-lg);
-  }
-
-  /* Off-screen, not display:none - some bots skip the latter. */
-  .hp {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-  }
-
-  .row {
-    display: grid;
-    gap: var(--gap-lg);
-    grid-template-columns: 1fr;
-  }
-  @media (min-width: 620px) {
-    .row {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .field {
-    display: grid;
-    gap: 8px;
-  }
-
-  .label {
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-
-  :global(html[lang='ja']) .label {
-    font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.14em;
-    text-transform: none;
-  }
-
-  .req {
-    color: var(--gold-text);
-  }
-
-  .hint {
-    margin: 0;
-  }
-
-  .input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--card-edge);
-    color: var(--ink);
-    font-family: var(--font-body);
-    /* Below 16px, iOS Safari zooms the page when the field takes focus. */
-    font-size: 16px;
-    line-height: 1.7;
-    padding: 13px 14px;
-    border-radius: 0;
-    transition: border-color 0.3s ease;
-  }
-
-  .input:focus {
-    border-color: var(--gold-text);
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-  }
-
-  .input--err {
-    border-color: var(--err);
-  }
-
-  .textarea {
-    resize: vertical;
-    min-height: 8em;
-  }
-
-  .err,
-  .form__err {
-    margin: 0;
-    color: var(--err);
-    font-size: 13px;
-    line-height: 1.6;
-  }
-
-  .form__err[hidden] {
-    display: none;
-  }
-
-  .form__foot {
-    display: flex;
-    align-items: center;
-    gap: var(--gap-lg);
-    flex-wrap: wrap;
-    margin-top: 6px;
-  }
-
-  .form__reply {
-    margin: 0;
-  }
-
-  .ok {
-    border: 1px solid var(--hairline);
-    padding: clamp(32px, 5vw, 48px);
-    text-align: center;
-  }
-  .ok__title {
-    margin-bottom: 14px;
-    color: var(--gold-text);
   }
 </style>
