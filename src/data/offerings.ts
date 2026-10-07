@@ -18,8 +18,6 @@ export interface Offering {
   tier: Tier;
   /** Set when the offering has its own detail page. */
   slug?: string;
-  /** Her JotForm. No longer linked from the site; the field goes in #50. */
-  formUrl?: string;
   name: Record<Locale, string>;
   blurb: Record<Locale, string>;
   price: Record<Locale, string>;
@@ -27,14 +25,11 @@ export interface Offering {
   priceNote?: Partial<Record<Locale, string>>;
 }
 
-const JOTFORM = 'https://form.jotform.com';
-
 export const offerings: Offering[] = [
   {
     id: 'dodgers-journey',
     tier: 'signature',
     slug: 'dodgers-journey',
-    formUrl: `${JOTFORM}/251396890230156`,
     name: {
       en: 'Dodgers fan journey',
       ja: 'ドジャース観戦の旅',
@@ -49,7 +44,6 @@ export const offerings: Offering[] = [
   {
     id: 'solo-plan',
     tier: 'signature',
-    formUrl: `${JOTFORM}/251308655646159`,
     name: {
       en: 'Solo traveler plan',
       ja: 'ひとり旅プライベートプラン',
@@ -65,7 +59,6 @@ export const offerings: Offering[] = [
     id: 'mansion-dinner',
     tier: 'signature',
     slug: 'mansion-dinner',
-    formUrl: `${JOTFORM}/251526764796168`,
     name: {
       en: 'Private mansion dinner',
       ja: '貸切邸宅ディナー',
@@ -82,7 +75,6 @@ export const offerings: Offering[] = [
     id: 'temecula',
     tier: 'day',
     slug: 'temecula',
-    formUrl: `${JOTFORM}/251506264563052`,
     name: {
       en: 'Temecula winery day',
       ja: 'テメキュラ ワイナリー1日旅',
@@ -184,8 +176,6 @@ export function bySlug(slug: string): Offering | undefined {
   return offerings.find((o) => o.slug === slug);
 }
 
-// Plans without a JotForm go to the contact form with the plan pre-selected,
-// so an enquiry about a named plan arrives as one. ContactForm.astro reads it.
 /** The booking form, with this plan pre-selected. */
 export function bookPath(o: Pick<Offering, 'id'>): string {
   return `/book?service=${o.id}`;

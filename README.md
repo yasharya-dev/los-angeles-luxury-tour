@@ -26,13 +26,13 @@ src/
   i18n/         locale list, dictionaries, path helpers
   views/        one component per page, holding both languages' copy
   pages/        thin route files: English at the root, Japanese under /ja/
-  components/   header, footer, contact form, toggles
+  components/   header, footer, the two forms, toggles
   styles/       tokens.css (the design tokens) and base.css (reset and utilities)
-worker/         the inquiry endpoint and the beta gate
+worker/         the two form endpoints and the beta gate
 tests/          the suite, see below
 ```
 
-Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in the contact form's plan select without touching a template. Adding a locale is a config entry plus a dictionary; no new markup.
+Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in both forms' plan selects without touching a template. Adding a locale is a config entry plus a dictionary; no new markup.
 
 ## Decisions worth knowing
 
@@ -46,7 +46,7 @@ Adding an offering is a data change in `src/data/offerings.ts`. It appears on th
 
 **Prices are floors.** Every price carries a from-form. Yen figures on the Japanese pages are converted at a printed rate; English pages show dollars only.
 
-**Every offering has somewhere to go.** Plans with a matching booking form link to it. The rest link to the contact form with the plan carried through as `?service=`, where a select built from the same data is pre-selected. Nothing renders with nothing to click, and a test checks that on every card in both languages.
+**Every offering has two paths.** Each plan card offers booking and consultation, with the plan carried through as `?service=` to a select built from the same data. A booking is a request: the owner checks availability and confirms, normally within 24 hours, and the pages say so in her words. The site is the one place to book; the owner's older third-party forms are not linked. A test checks both links on every card in both languages.
 
 **No phone number, one person.** Both are deliberate and both are the owner's instruction.
 
@@ -66,17 +66,17 @@ npm run deploy     # astro build && wrangler deploy
 
 `npm run preview` is the one that matters before a deploy. `astro dev` never goes through the assets binding and has no Worker at all, and four of the defects in this repo's history were only visible through the real thing.
 
-To test the contact form for real locally, copy `.dev.vars.example` to `.dev.vars`, put a Resend sending-only key in `RESEND_API_KEY` and your own address in `INQUIRY_TO`, then `npm run preview`. Without the key, every submit takes the send-failure path, and the success path never runs.
+To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put a Resend sending-only key in `RESEND_API_KEY` and your own address in `INQUIRY_TO`, then `npm run preview`. Without the key, every submit takes the send-failure path, and the success path never runs.
 
 ## Tests
 
 | File | Guards |
 | --- | --- |
-| `tests/build.test.ts` | Every route in both locales, `lang` and reciprocal `hreflang`, no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity, the gold contrast maths, every offering has an action, no phone number, sitemap and robots |
-| `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every booking link a real form |
+| `tests/build.test.ts` | Every route in both locales, `lang` and reciprocal `hreflang`, no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity, the gold contrast maths, both paths on every card, the booking notice, no phone number, sitemap and robots |
+| `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every plan books and consults on the site |
 | `tests/i18n.test.ts` | Path helpers and dictionary key parity |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
-| `tests/worker.test.ts` | Input cleaning, HTML escaping, plan labels, redirect paths |
+| `tests/worker.test.ts` | Input cleaning, HTML escaping, plan labels, redirect paths, and both endpoints driven end to end with Resend stubbed |
 | `tests/beta.test.ts` | The gate: cookie signing, open-redirect guard, `noindex`, the page itself |
 
 ## The beta gate
