@@ -17,7 +17,7 @@ export const localeNames: Record<Locale, string> = {
 export const ui = {
   en: {
     'site.title': 'Los Angeles Luxury Tour',
-    'site.tagline': 'Private travel, designed and guided personally',
+    'site.tagline': 'Private tours and transfers, by reservation only',
 
     'nav.experience': 'Experience',
     'nav.about': 'About',
