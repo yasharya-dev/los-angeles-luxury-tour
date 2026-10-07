@@ -30,7 +30,7 @@ export const ui = {
     'toggle.theme': 'Switch between dark and light theme',
     'toggle.lang': 'Read this page in Japanese',
 
-    'cta.begin': 'Begin the conversation',
+    'cta.begin': 'Ask about a private tour',
     'cta.start': 'Start planning',
     'cta.journeys': 'View the journeys',
     'cta.days': 'View the days',
@@ -76,7 +76,7 @@ export const ui = {
     'toggle.theme': 'ダークモードとライトモードを切り替える',
     'toggle.lang': 'Read this page in English',
 
-    'cta.begin': 'まずはご相談から',
+    'cta.begin': 'プライベートツアーのご相談はこちら',
     'cta.start': 'お問い合わせ',
     'cta.journeys': 'プランを見る',
     'cta.days': 'プランを見る',

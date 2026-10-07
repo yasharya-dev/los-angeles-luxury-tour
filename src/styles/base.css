@@ -402,6 +402,19 @@ html[lang='ja'] .btn {
   padding: 15px 34px 14px 38px;
 }
 
+/* On a phone the tracking is what pushes a long label onto two lines, and a
+   Japanese label has no spaces, so it breaks mid-word. Tighten there. */
+@media (max-width: 430px) {
+  .btn {
+    letter-spacing: 0.18em;
+    padding-inline: 30px 34px;
+  }
+  html[lang='ja'] .btn {
+    letter-spacing: 0.12em;
+    padding-inline: 26px 30px;
+  }
+}
+
 .btn--solid {
   background: var(--gold-deco);
   border-color: var(--gold-deco);
