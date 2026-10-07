@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import Consult from '../views/Consult.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="Consultation - Los Angeles Luxury Tour"
+  description="Not sure which plan, or want something tailor-made? Tell us what you have in mind, in Japanese or English. You will usually hear back within 24 hours."
+>
+  <Consult locale={locale} />
+</Base>

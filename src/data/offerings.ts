@@ -18,11 +18,7 @@ export interface Offering {
   tier: Tier;
   /** Set when the offering has its own detail page. */
   slug?: string;
-  /**
-   * Her existing JotForm, where one matches the plan as published here.
-   * Without one the plan routes to the contact form with the plan carried
-   * through. See enquiryPath().
-   */
+  /** Her JotForm. No longer linked from the site; the field goes in #50. */
   formUrl?: string;
   name: Record<Locale, string>;
   blurb: Record<Locale, string>;
@@ -190,6 +186,12 @@ export function bySlug(slug: string): Offering | undefined {
 
 // Plans without a JotForm go to the contact form with the plan pre-selected,
 // so an enquiry about a named plan arrives as one. ContactForm.astro reads it.
-export function enquiryPath(o: Pick<Offering, 'id'>): string {
-  return `/contact?service=${o.id}`;
+/** The booking form, with this plan pre-selected. */
+export function bookPath(o: Pick<Offering, 'id'>): string {
+  return `/book?service=${o.id}`;
+}
+
+/** The consultation form, with this plan pre-selected. */
+export function consultPath(o: Pick<Offering, 'id'>): string {
+  return `/consult?service=${o.id}`;
 }

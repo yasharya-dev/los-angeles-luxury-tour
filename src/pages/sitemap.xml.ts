@@ -14,6 +14,7 @@ const paths = [
   '/about',
   '/contact',
   '/book',
+  '/consult',
   '/privacy',
 ];
 
