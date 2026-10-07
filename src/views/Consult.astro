@@ -1,7 +1,7 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { localizePath } from '../i18n/utils';
-import BookingForm from '../components/BookingForm.astro';
+import ContactForm from '../components/ContactForm.astro';
 
 interface Props {
   locale: Locale;
@@ -9,22 +9,22 @@ interface Props {
 const { locale } = Astro.props;
 const p = (path: string) => localizePath(path, locale);
 
-// The page for people who already know their plan. The other path, for
-// people who do not, is one link away at the bottom.
+// The page for people who do not know their plan yet. The other path, for
+// people who do, is one link away at the bottom.
 const copy = {
   en: {
-    kicker: 'Booking',
-    title: ['Book a plan'],
-    lead: 'Choose a plan, tell us when and how many, and we will check availability.',
-    asideText: 'Not decided yet?',
-    asideLink: 'Talk to us first',
+    kicker: 'Consultation',
+    title: ['Tell us what you have in mind.'],
+    lead: 'A tailor-made trip, a question about a plan, or no idea where to start yet. All of it belongs here.',
+    asideText: 'Know your plan already?',
+    asideLink: 'Book it directly',
   },
   ja: {
-    kicker: 'ご予約',
-    title: ['ご希望のプランを、', 'お申し込みください。'],
-    lead: 'プラン、ご希望日、人数をご入力ください。空き状況を確認のうえ、ご連絡いたします。',
-    asideText: 'プランがまだお決まりでない方は、',
-    asideLink: 'ご相談フォームへ',
+    kicker: 'ご相談',
+    title: ['ご希望を、', 'お聞かせください。'],
+    lead: 'オーダーメイドのご希望も、プランについてのご質問も。まだ何も決まっていなくても大丈夫です。',
+    asideText: 'プランがお決まりの方は、',
+    asideLink: 'ご予約フォームへ',
   },
 } as const;
 
@@ -41,11 +41,11 @@ const c = copy[locale];
   </div>
 </section>
 
-<BookingForm locale={locale} />
+<ContactForm locale={locale} />
 
 <section class="section section--deep aside">
   <p class="body center measure">
-    {c.asideText} <a href={p('/consult')}>{c.asideLink}</a>
+    {c.asideText} <a href={p('/book')}>{c.asideLink}</a>
   </p>
 </section>
 

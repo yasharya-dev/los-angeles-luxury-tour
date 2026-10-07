@@ -25,9 +25,7 @@ const tierLabel: Record<Tier, string> = {
 
 const copy = {
   en: {
-    kicker: 'Write to us',
-    title: 'The journey starts here',
-    lead: 'Everything is by reservation, so everything starts with a conversation. Required fields are marked',
+    lead: 'Required fields are marked',
     leadAfter: '.',
     name: 'Your name',
     nameErr: 'Please enter your name.',
@@ -65,9 +63,7 @@ const copy = {
   },
 
   ja: {
-    kicker: 'フォームでのご相談',
-    title: '旅の入り口は、ここから',
-    lead: '完全予約制のため、まずはお話から始まります。',
+    lead: '',
     leadAfter: 'は必須項目です。',
     name: 'お名前',
     nameErr: 'お名前をご記入ください。',
@@ -119,9 +115,7 @@ const c = copy[locale];
 
 <section class="section form-section" id="form">
   <div class="measure--cards">
-    <p class="kicker center">{c.kicker}</p>
-    <h2 class="h2 center form__title">{c.title}</h2>
-    <p class="body center form__lead">
+    <p class="caption center form__lead">
       {c.lead} <span class="req" aria-hidden="true">*</span>
       <span class="sr-only">{c.required}</span>{c.leadAfter}
     </p>
@@ -294,11 +288,7 @@ const c = copy[locale];
     padding-top: 0;
   }
 
-  .form__title {
-    margin-block: 22px;
-  }
-
   .form__lead {
-    margin-bottom: clamp(36px, 5vw, 52px);
+    margin-bottom: clamp(28px, 4vw, 40px);
   }
 </style>

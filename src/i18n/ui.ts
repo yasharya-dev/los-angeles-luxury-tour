@@ -35,7 +35,6 @@ export const ui = {
     'cta.journeys': 'View the journeys',
     'cta.days': 'View the days',
     'cta.transport': 'View transport',
-    'cta.enquire': 'Enquire about this journey',
     'cta.back': 'Back to all journeys',
 
     'reservation.title': 'By Reservation Only',
@@ -81,7 +80,6 @@ export const ui = {
     'cta.journeys': 'プランを見る',
     'cta.days': 'プランを見る',
     'cta.transport': 'プランを見る',
-    'cta.enquire': 'このプランを相談する',
     'cta.back': 'プラン一覧へ戻る',
 
     'reservation.title': '完全予約制',

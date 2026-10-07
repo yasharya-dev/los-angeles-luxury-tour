@@ -1,7 +1,7 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
-import { byTier, tierOrder, type Tier, enquiryPath } from '../data/offerings';
+import { byTier, tierOrder, type Tier, bookPath, consultPath } from '../data/offerings';
 import { CONTACT } from '../data/contact';
 import Divider from '../components/Divider.astro';
 import InstagramBlock from '../components/InstagramBlock.astro';
@@ -51,7 +51,7 @@ const copy = {
 
     journeysKicker: 'The journeys',
     journeysTitle: ['Find the shape of your trip'],
-    journeysLead: 'Prices are floors, not fixed fares. Ready to book? Each plan links to its own reservation form.',
+    journeysLead: 'Prices are floors, not fixed fares. Know your plan? Book it from its card. Still deciding? Ask first.',
     journeysAsk: 'Rather talk first?',
     journeysAskLink: 'Write to us',
 
@@ -59,7 +59,6 @@ const copy = {
     detailsLabel: 'Details',
     bookLabel: 'Book this plan',
     askLabel: 'or ask a question first',
-    enquireLabel: 'Enquire about this plan',
 
     requestKicker: 'Arranged on request, quoted individually',
     requestBody: `Shopping and proxy purchasing. Restaurant reservations. In-restaurant accompaniment ${EM} menu help, dish explanations, conversation support, photos.`,
@@ -155,7 +154,7 @@ const copy = {
     journeysKicker: 'プラン一覧',
     journeysTitle: ['あなたの旅のかたちを探す'],
     journeysLead:
-      '料金はすべて「〜」からの目安です。ご予約がお決まりの方は、各プランの予約フォームへお進みください。',
+      '料金はすべて「〜」からの目安です。プランがお決まりの方は「予約する」へ、迷っている方は「まずは相談する」からどうぞ。',
     journeysAsk: 'まずご相談したい方は、',
     journeysAskLink: 'お気軽にどうぞ',
 
@@ -163,7 +162,6 @@ const copy = {
     detailsLabel: '詳細を見る',
     bookLabel: 'このプランを予約する',
     askLabel: 'まずは相談する',
-    enquireLabel: 'このプランについて相談する',
 
     requestKicker: 'ご相談ベースで承ります｜個別お見積り',
     requestBody:
@@ -291,7 +289,7 @@ const tierLabel: Record<Tier, string> = {
     <p class="body">
       {c.journeysLead}{' '}
       {c.journeysAsk}{' '}
-      <a href={p('/contact')}>{c.journeysAskLink}</a>.
+      <a href={p('/consult')}>{c.journeysAskLink}</a>.
     </p>
     {t('price.note') && <p class="caption rate">{t('price.note')}</p>}
   </div>
@@ -331,25 +329,12 @@ const tierLabel: Record<Tier, string> = {
                       {detail && <p class="body">{detail.body}</p>}
                       {detail?.excl && <p class="caption excl">{detail.excl}</p>}
                       <p class="card__actions">
-                        {o.formUrl ? (
-                          <>
-                            <a
-                              class="card__book"
-                              href={o.formUrl}
-                              rel="noopener"
-                              target="_blank"
-                            >
-                              {c.bookLabel}
-                            </a>
-                            <a class="card__ask" href={p(enquiryPath(o))}>
-                              {c.askLabel}
-                            </a>
-                          </>
-                        ) : (
-                          <a class="card__book" href={p(enquiryPath(o))}>
-                            {c.enquireLabel}
-                          </a>
-                        )}
+                        <a class="card__book" href={p(bookPath(o))}>
+                          {c.bookLabel}
+                        </a>
+                        <a class="card__ask" href={p(consultPath(o))}>
+                          {c.askLabel}
+                        </a>
                       </p>
                     </div>
                   </details>
@@ -365,7 +350,7 @@ const tierLabel: Record<Tier, string> = {
   <div class="measure--cards request">
     <p class="kicker request__kicker">{c.requestKicker}</p>
     <p class="body">
-      {c.requestBody} <a href={p('/contact')}>{c.requestLink}</a>.
+      {c.requestBody} <a href={p('/consult')}>{c.requestLink}</a>.
     </p>
   </div>
 </section>

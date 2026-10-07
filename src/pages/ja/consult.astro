@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import Consult from '../../views/Consult.astro';
+
+const locale = 'ja' as const;
+---
+
+<Base
+  locale={locale}
+  title="ご相談｜Los Angeles Luxury Tour"
+  description="プランが未定の方、オーダーメイドをご希望の方へ。ご希望や気になることをお聞かせください。通常24時間以内にご返信いたします。"
+>
+  <Consult locale={locale} />
+</Base>

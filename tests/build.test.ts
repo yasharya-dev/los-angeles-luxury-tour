@@ -16,6 +16,7 @@ const PATHS = [
   '/about',
   '/contact',
   '/book',
+  '/consult',
   '/privacy',
   '/thank-you',
   '/book/received',
@@ -122,19 +123,21 @@ describe('content parity', () => {
 
   // A failed send has to say so and hand over the email address, rather than
   // point at fields that are fine.
-  it('gives the contact form a send-failure message with a way out', () => {
+  it('gives both forms a send-failure message with a way out', () => {
     for (const prefix of ['', '/ja']) {
-      const doc = html(prefix + '/contact');
-      expect(doc, prefix).toContain('data-send-error');
-      expect(doc, prefix).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+      for (const page of ['/consult', '/book']) {
+        const doc = html(prefix + page);
+        expect(doc, prefix + page).toContain('data-send-error');
+        expect(doc, prefix + page).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+      }
     }
   });
 
   // An unanswered "how did you hear about me" must send nothing, not the
   // placeholder text as an answer.
   it('sends nothing for the unanswered heard-about question', () => {
-    expect(html('/contact')).not.toContain('value="Choose one"');
-    expect(html('/ja/contact')).not.toContain('value="選択してください"');
+    expect(html('/consult')).not.toContain('value="Choose one"');
+    expect(html('/ja/consult')).not.toContain('value="選択してください"');
   });
 
   it('renders the same FAQ count in both locales', () => {
@@ -265,33 +268,56 @@ describe('output hygiene', () => {
 describe('every offering has somewhere to go', () => {
   const localized = (path: string, prefix: string) => `${prefix}${path}`;
 
-  // A card with a JotForm shows the booking link; one without goes to the
-  // contact form with the plan pre-selected. Either way, nothing is a dead end.
-  it('gives every card on the experience page an action', () => {
+  // Every plan card offers both paths, with the plan carried through.
+  it('offers booking and consultation on every card', () => {
     for (const prefix of ['', '/ja']) {
       const doc = html(prefix + '/experience');
       for (const o of offerings) {
         if (o.slug) continue; // those cards link to the journey page instead
-        const target = o.formUrl ?? localized(`/contact?service=${o.id}`, prefix);
-        expect(doc, `${prefix} ${o.id}`).toContain(`href="${target}"`);
+        expect(doc, `${prefix} ${o.id} book`).toContain(
+          `href="${localized(`/book?service=${o.id}`, prefix)}"`,
+        );
+        expect(doc, `${prefix} ${o.id} consult`).toContain(
+          `href="${localized(`/consult?service=${o.id}`, prefix)}"`,
+        );
       }
     }
   });
 
-  it('carries the plan from every journey page to the contact form', () => {
+  it('offers both paths from every journey page', () => {
     for (const prefix of ['', '/ja']) {
       for (const j of journeys) {
         const doc = html(`${prefix}/experience/${j.slug}`);
-        expect(doc, `${prefix} ${j.slug}`).toContain(
-          `href="${localized(`/contact?service=${j.slug}`, prefix)}"`,
+        expect(doc, `${prefix} ${j.slug} book`).toContain(
+          `href="${localized(`/book?service=${j.slug}`, prefix)}"`,
         );
+        expect(doc, `${prefix} ${j.slug} consult`).toContain(
+          `href="${localized(`/consult?service=${j.slug}`, prefix)}"`,
+        );
+      }
+    }
+  });
+
+  // The contact page used to be the only destination. It is the chooser now.
+  it('no longer sends anyone to the contact page with a plan', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        expect(html(prefix + p), prefix + p).not.toContain('/contact?service=');
+      }
+    }
+  });
+
+  it('links nothing to a JotForm', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        expect(html(prefix + p), prefix + p).not.toContain('jotform.com');
       }
     }
   });
 
   it('lists every plan in both forms, in the right language', () => {
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
-      for (const page of ['/contact', '/book']) {
+      for (const page of ['/consult', '/book']) {
         const doc = html(prefix + page);
         for (const o of offerings) {
           // Scoped styles put a data-astro-cid attribute between the two.
@@ -300,6 +326,29 @@ describe('every offering has somewhere to go', () => {
         }
       }
     }
+  });
+});
+
+describe('the contact page chooses', () => {
+  it('shows her heading and the two paths, in Japanese', () => {
+    const doc = html('/ja/contact');
+    expect(doc).toContain('ロサンゼルスで、');
+    expect(doc).toContain('どんな時間を過ごしたいですか？');
+    expect(doc).toContain('プランがお決まりの方');
+    expect(doc).toContain('まだプランがお決まりでない方');
+    expect(doc).toContain('href="/ja/book"');
+    expect(doc).toContain('href="/ja/consult"');
+  });
+
+  it('offers the same two paths in English', () => {
+    const doc = html('/contact');
+    expect(doc).toContain('href="/book"');
+    expect(doc).toContain('href="/consult"');
+  });
+
+  it('carries no form of its own any more', () => {
+    expect(html('/contact')).not.toContain('action="/api/inquiry"');
+    expect(html('/consult')).toContain('action="/api/inquiry"');
   });
 });
 

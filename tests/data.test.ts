@@ -6,7 +6,8 @@ import {
   tierOrder,
   byTier,
   bySlug,
-  enquiryPath,
+  bookPath,
+  consultPath,
 } from '../src/data/offerings';
 import { journeys, journeyBySlug } from '../src/data/journeys';
 import { CONTACT } from '../src/data/contact';
@@ -98,22 +99,12 @@ describe('offerings', () => {
     for (const tier of tierOrder) expect(byTier(tier).length).toBeGreaterThan(0);
   });
 
-  // Every offering has somewhere to go: her JotForm where one matches the
-  // plan as published, otherwise the contact form with the plan carried
-  // through. Nothing renders with nothing to click.
-  it('links every booking form to JotForm', () => {
+  // Every plan books and consults on the site, with the plan carried through
+  // so the form opens on it. Nothing renders with nothing to click.
+  it('books and consults on the site, with the plan carried through', () => {
     for (const o of offerings) {
-      if (o.formUrl) {
-        expect(o.formUrl, o.id).toMatch(/^https:\/\/form\.jotform\.com\//);
-      }
-    }
-  });
-
-  it('routes the rest to the contact form with the plan carried through', () => {
-    for (const o of offerings) {
-      if (!o.formUrl) {
-        expect(enquiryPath(o)).toBe(`/contact?service=${o.id}`);
-      }
+      expect(bookPath(o)).toBe(`/book?service=${o.id}`);
+      expect(consultPath(o)).toBe(`/consult?service=${o.id}`);
     }
   });
 
