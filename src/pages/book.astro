@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import Book from '../views/Book.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="Book a plan - Los Angeles Luxury Tour"
+  description="Choose a plan, your preferred date and party size. Bookings are requests: we check availability and confirm, normally within 24 hours."
+>
+  <Book locale={locale} />
+</Base>

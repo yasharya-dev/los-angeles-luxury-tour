@@ -1,0 +1,130 @@
+/* Shared by ContactForm and BookingForm. Imported by both, so it is global
+   rather than scoped; the class names are form-specific enough for that.
+   Page-level layout (section padding, titles) stays in each component. */
+
+.form {
+  display: grid;
+  gap: var(--gap-lg);
+}
+
+/* Off-screen, not display:none - some bots skip the latter. */
+.hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  gap: var(--gap-lg);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 620px) {
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+html[lang='ja'] .label {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: none;
+}
+
+.req {
+  color: var(--gold-text);
+}
+
+.hint {
+  margin: 0;
+}
+
+.input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--card-edge);
+  color: var(--ink);
+  font-family: var(--font-body);
+  /* Below 16px, iOS Safari zooms the page when the field takes focus. */
+  font-size: 16px;
+  line-height: 1.7;
+  padding: 13px 14px;
+  border-radius: 0;
+  transition: border-color 0.3s ease;
+}
+
+.input:focus {
+  border-color: var(--gold-text);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.input--err {
+  border-color: var(--err);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 8em;
+}
+
+/* Native date pickers follow color-scheme on :root, so the calendar icon
+   and popover match the theme without any extra work here. */
+
+.err,
+.form__err {
+  margin: 0;
+  color: var(--err);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* The approval notice on the booking form. A hairline box, not a warning:
+   it is how every booking works, not an exception. */
+.notice {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--hairline-soft);
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-mid);
+}
+
+.form__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-lg);
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.form__reply {
+  margin: 0;
+}
+
+.ok {
+  border: 1px solid var(--hairline);
+  padding: clamp(32px, 5vw, 48px);
+  text-align: center;
+}
+.ok__title {
+  margin-bottom: 14px;
+  color: var(--gold-text);
+}

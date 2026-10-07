@@ -15,9 +15,14 @@ const PATHS = [
   ...journeys.map((j) => `/experience/${j.slug}`),
   '/about',
   '/contact',
+  '/book',
   '/privacy',
   '/thank-you',
+  '/book/received',
 ];
+
+// Form destinations, not pages anyone should land on from search.
+const NOT_IN_SITEMAP = ['/thank-you', '/book/received'];
 
 // build.format is 'file': /about is about.html and /ja is ja.html. Only the
 // site root is an index.html.
@@ -284,14 +289,51 @@ describe('every offering has somewhere to go', () => {
     }
   });
 
-  it('lists every plan in the contact form, in the right language', () => {
+  it('lists every plan in both forms, in the right language', () => {
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
-      const doc = html(prefix + '/contact');
-      for (const o of offerings) {
-        // Scoped styles put a data-astro-cid attribute between the two.
-        expect(doc, `${prefix} ${o.id}`).toContain(`<option value="${o.id}"`);
-        expect(doc, `${prefix} ${o.id}`).toContain(`>${o.name[locale]}</option>`);
+      for (const page of ['/contact', '/book']) {
+        const doc = html(prefix + page);
+        for (const o of offerings) {
+          // Scoped styles put a data-astro-cid attribute between the two.
+          expect(doc, `${prefix}${page} ${o.id}`).toContain(`<option value="${o.id}"`);
+          expect(doc, `${prefix}${page} ${o.id}`).toContain(`>${o.name[locale]}</option>`);
+        }
       }
+    }
+  });
+});
+
+describe('the booking form', () => {
+  // Her instruction, verbatim: a booking is submitted, then she checks
+  // availability, then it is confirmed. The page must never say otherwise.
+  const NOTICE =
+    '※ご予約は送信後、Los Angeles Luxury Tour にて空き状況を確認し、通常24時間以内の承認をもって確定となります。';
+
+  it('posts to its own endpoint', () => {
+    expect(html('/book')).toContain('action="/api/booking"');
+    expect(html('/ja/book')).toContain('action="/api/booking"');
+  });
+
+  it('asks for what she listed: plan, date, guests, name, contact, notes', () => {
+    const doc = html('/book');
+    for (const name of ['service', 'date', 'guests', 'name', 'email', 'line', 'notes']) {
+      expect(doc, name).toContain(`name="${name}"`);
+    }
+    expect(doc).toContain('type="date"');
+  });
+
+  it('shows her approval notice on the form and on the received page', () => {
+    expect(html('/ja/book')).toContain(NOTICE);
+    expect(html('/ja/book/received')).toContain(NOTICE);
+    expect(html('/book')).toMatch(/normally within 24 hours/);
+    expect(html('/book/received')).toMatch(/normally within 24 hours/);
+  });
+
+  it('never calls a submitted booking confirmed', () => {
+    for (const p of ['/book', '/book/received', '/ja/book', '/ja/book/received']) {
+      const doc = html(p);
+      expect(doc, p).not.toMatch(/booking is confirmed|reservation is confirmed\./i);
+      expect(doc, p).not.toMatch(/ご予約が確定しました|予約確定/);
     }
   });
 });
@@ -300,9 +342,16 @@ describe('sitemap', () => {
   const xml = () => readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
 
   it('lists every page in every locale', () => {
-    // /thank-you is deliberately excluded: it is a form destination, not a
-    // page anyone should land on from search.
-    expect(count(xml(), /<loc>/g)).toBe((PATHS.length - 1) * 2);
+    expect(count(xml(), /<loc>/g)).toBe(
+      (PATHS.length - NOT_IN_SITEMAP.length) * 2,
+    );
+  });
+
+  it('leaves the form destinations out', () => {
+    for (const p of NOT_IN_SITEMAP) {
+      expect(xml(), p).not.toContain(`<loc>https://losangelesluxurytour.com${p}</loc>`);
+      expect(xml(), p).not.toContain(`<loc>https://losangelesluxurytour.com/ja${p}</loc>`);
+    }
   });
 
   it('gives each url its alternates', () => {

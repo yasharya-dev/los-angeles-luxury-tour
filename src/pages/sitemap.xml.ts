@@ -13,6 +13,7 @@ const paths = [
   ...journeys.map((j) => `/experience/${j.slug}`),
   '/about',
   '/contact',
+  '/book',
   '/privacy',
 ];
 

@@ -1,0 +1,288 @@
+---
+import '../styles/form.css';
+import { type Locale } from '../i18n/ui';
+import { useTranslations } from '../i18n/utils';
+import { CONTACT } from '../data/contact';
+import { byTier, tierOrder, type Tier } from '../data/offerings';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+// Unset until the widget exists; the Worker skips verification without it.
+const turnstileKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+
+// A booking is a request. Amelia checks availability and confirms, normally
+// within 24 hours. Her notice is verbatim; nothing here may call a submitted
+// booking confirmed.
+const copy = {
+  en: {
+    service: 'Plan',
+    servicePlaceholder: 'Choose a plan',
+    serviceErr: 'Please choose a plan.',
+    date: 'Preferred date',
+    dateHint: 'For plans that run more than a day, the first day.',
+    dateErr: 'Please choose a date.',
+    guests: 'Guests',
+    guestsPlaceholder: 'How many',
+    guestOpts: ['1', '2', '3', '4', '5', '6 or more'],
+    guestsErr: 'Please tell us how many guests.',
+    name: 'Your name',
+    nameErr: 'Please enter your name.',
+    email: 'Email',
+    emailErr: 'Please check the email address.',
+    line: 'LINE ID (optional)',
+    lineHint: 'If you would rather hear back on LINE.',
+    notes: 'Requests or notes (optional)',
+    notesHint:
+      'Hotel, flight times, pickup point, allergies, anything you would like us to know.',
+    notice:
+      'Your booking is a request. Los Angeles Luxury Tour checks availability after you send it, and the reservation is confirmed by our approval, normally within 24 hours.',
+    send: 'Request this booking',
+    sending: 'Sending',
+    formErr: 'A few fields still need attention. See the marks above.',
+    sendErr: 'Something went wrong sending that. Please email us directly at',
+    okTitle: 'Your booking request has been received.',
+    okBody:
+      'We will check availability and reply, normally within 24 hours. The reservation is confirmed once you hear back from us.',
+    required: 'required',
+  },
+
+  ja: {
+    service: 'プラン',
+    servicePlaceholder: 'プランを選択してください',
+    serviceErr: 'プランを選択してください。',
+    date: 'ご希望日',
+    dateHint: '複数日のプランは、初日の日付をご入力ください。',
+    dateErr: 'ご希望日を選択してください。',
+    guests: '人数',
+    guestsPlaceholder: '選択してください',
+    guestOpts: ['1名様', '2名様', '3名様', '4名様', '5名様', '6名様以上'],
+    guestsErr: '人数を選択してください。',
+    name: 'お名前',
+    nameErr: 'お名前をご記入ください。',
+    email: 'メールアドレス',
+    emailErr: 'メールアドレスをご確認ください。',
+    line: 'LINE ID（任意）',
+    lineHint: 'LINEでのご連絡をご希望の方はご記入ください。',
+    notes: 'ご要望・備考（任意）',
+    notesHint:
+      'ご宿泊先、フライトの時間、お迎え場所、アレルギーなど、お知らせいただきたいことがあればご記入ください。',
+    notice:
+      '※ご予約は送信後、Los Angeles Luxury Tour にて空き状況を確認し、通常24時間以内の承認をもって確定となります。',
+    send: '予約をリクエストする',
+    sending: '送信中',
+    formErr: '未記入の項目があります。上の印をご確認ください。',
+    sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
+    okTitle: 'ご予約のリクエストを受け付けました。',
+    okBody:
+      '空き状況を確認のうえ、通常24時間以内にご連絡いたします。弊社からのご連絡をもって、ご予約の確定となります。',
+    required: '必須',
+  },
+} as const;
+
+const c = copy[locale];
+---
+
+<section class="section form-section" id="form">
+  <div class="measure--cards">
+    <form
+      class="form"
+      method="post"
+      action={CONTACT.bookingEndpoint}
+      novalidate
+      data-enhance
+      data-booking-form
+    >
+      <input type="hidden" name="locale" value={locale} />
+
+      {/* Honeypot - the Worker drops anything that arrives with it filled. */}
+      <div class="hp" aria-hidden="true">
+        <label>
+          Company
+          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+        </label>
+      </div>
+
+      {/* A plan card links here with ?service=<id>; the script pre-selects it. */}
+      <div class="field">
+        <label class="label" for="f-service">
+          {c.service} <span class="req" aria-hidden="true">*</span>
+          <span class="sr-only">{c.required}</span>
+        </label>
+        <select
+          class="input"
+          id="f-service"
+          name="service"
+          required
+          aria-describedby="e-service"
+        >
+          <option value="">{c.servicePlaceholder}</option>
+          {tierOrder.map((tier) => (
+            <optgroup label={tierLabel[tier]}>
+              {byTier(tier).map((o) => (
+                <option value={o.id}>{o.name[locale]}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <p class="err" id="e-service" hidden>{c.serviceErr}</p>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="f-date">
+            {c.date} <span class="req" aria-hidden="true">*</span>
+            <span class="sr-only">{c.required}</span>
+          </label>
+          <input
+            class="input"
+            id="f-date"
+            name="date"
+            type="date"
+            required
+            data-min-today
+            aria-describedby="e-date h-date"
+          />
+          <p class="caption hint" id="h-date">{c.dateHint}</p>
+          <p class="err" id="e-date" hidden>{c.dateErr}</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="f-guests">
+            {c.guests} <span class="req" aria-hidden="true">*</span>
+            <span class="sr-only">{c.required}</span>
+          </label>
+          <select
+            class="input"
+            id="f-guests"
+            name="guests"
+            required
+            aria-describedby="e-guests"
+          >
+            <option value="">{c.guestsPlaceholder}</option>
+            {c.guestOpts.map((o) => <option value={o}>{o}</option>)}
+          </select>
+          <p class="err" id="e-guests" hidden>{c.guestsErr}</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-name">
+          {c.name} <span class="req" aria-hidden="true">*</span>
+          <span class="sr-only">{c.required}</span>
+        </label>
+        <input
+          class="input"
+          id="f-name"
+          name="name"
+          type="text"
+          required
+          autocomplete="name"
+          aria-describedby="e-name"
+        />
+        <p class="err" id="e-name" hidden>{c.nameErr}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-email">
+          {c.email} <span class="req" aria-hidden="true">*</span>
+          <span class="sr-only">{c.required}</span>
+        </label>
+        <input
+          class="input"
+          id="f-email"
+          name="email"
+          type="email"
+          required
+          autocomplete="email"
+          inputmode="email"
+          aria-describedby="e-email"
+        />
+        <p class="err" id="e-email" hidden>{c.emailErr}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-line">{c.line}</label>
+        <input
+          class="input"
+          id="f-line"
+          name="line"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-describedby="h-line"
+        />
+        <p class="caption hint" id="h-line">{c.lineHint}</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="f-notes">{c.notes}</label>
+        <textarea
+          class="input textarea"
+          id="f-notes"
+          name="notes"
+          rows="4"
+          aria-describedby="h-notes"></textarea>
+        <p class="caption hint" id="h-notes">{c.notesHint}</p>
+      </div>
+
+      <p class="notice" data-booking-notice>{c.notice}</p>
+
+      {
+        turnstileKey && (
+          <div
+            class="cf-turnstile"
+            data-sitekey={turnstileKey}
+            data-theme="auto"
+          />
+        )
+      }
+
+      <p class="form__err" data-form-error hidden>{c.formErr}</p>
+      {/* A failed send is not the visitor's fault. Say so, and give a way out. */}
+      <p class="form__err" data-send-error hidden>
+        {c.sendErr} <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+      </p>
+
+      <div class="form__foot">
+        <button
+          class="btn"
+          type="submit"
+          data-submit
+          data-label={c.send}
+          data-sending={c.sending}
+        >
+          {c.send}
+        </button>
+      </div>
+    </form>
+
+    <div class="ok" data-form-ok hidden>
+      <p class="h3 ok__title">{c.okTitle}</p>
+      <p class="body">{c.okBody}</p>
+    </div>
+  </div>
+</section>
+
+{turnstileKey && <script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js" />}
+
+<script>
+  import { enhanceForms } from '../scripts/enhance-form';
+  enhanceForms();
+</script>
+
+<style>
+  .form-section {
+    padding-top: 0;
+  }
+</style>

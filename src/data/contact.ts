@@ -13,6 +13,7 @@ export const CONTACT = {
   instagram: 'https://www.instagram.com/losangelesluxurytour/',
   instagramHandle: '@losangelesluxurytour',
   threads: 'https://www.threads.net/@losangelesluxurytour',
-  /** Handled by worker/index.ts. */
+  /** Both handled by worker/index.ts; see SUBMISSIONS there. */
   formEndpoint: '/api/inquiry',
+  bookingEndpoint: '/api/booking',
 } as const;

@@ -5,7 +5,7 @@ import { CONTACT } from '../data/contact';
 
 interface Props {
   locale: Locale;
-  kind: 'notfound' | 'thanks';
+  kind: 'notfound' | 'thanks' | 'booked';
 }
 const { locale, kind } = Astro.props;
 const p = (path: string) => localizePath(path, locale);
@@ -26,6 +26,14 @@ const copy = {
       cta: 'Back to the start',
       href: '/',
     },
+    // A booking is a request until she confirms it. Say so here too.
+    booked: {
+      code: '',
+      title: 'Your booking request has been received.',
+      body: 'We will check availability and reply, normally within 24 hours. The reservation is confirmed once you hear back from us. If it is urgent, LINE is the fastest way to reach us.',
+      cta: 'Back to the start',
+      href: '/',
+    },
   },
   ja: {
     notfound: {
@@ -39,6 +47,13 @@ const copy = {
       code: '',
       title: ['ありがとうございます。', 'メッセージをお送りしました。'],
       body: '通常24時間以内にご返信いたします。お急ぎの場合は、LINEがいちばん早くご連絡いただけます。',
+      cta: 'トップページへ戻る',
+      href: '/',
+    },
+    booked: {
+      code: '',
+      title: ['ご予約のリクエストを', '受け付けました。'],
+      body: '※ご予約は送信後、Los Angeles Luxury Tour にて空き状況を確認し、通常24時間以内の承認をもって確定となります。お急ぎの場合は、LINEがいちばん早くご連絡いただけます。',
       cta: 'トップページへ戻る',
       href: '/',
     },

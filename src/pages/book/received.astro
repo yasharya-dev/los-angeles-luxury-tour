@@ -1,0 +1,15 @@
+---
+import Base from '../../layouts/Base.astro';
+import Message from '../../views/Message.astro';
+
+const locale = 'en' as const;
+---
+
+<Base
+  locale={locale}
+  title="Booking request received - Los Angeles Luxury Tour"
+  description="We will check availability and reply, normally within 24 hours."
+  offerBar={false}
+>
+  <Message locale={locale} kind="booked" />
+</Base>
