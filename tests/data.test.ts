@@ -108,6 +108,19 @@ describe('offerings', () => {
     }
   });
 
+  // Every plan books on the site now. Her JotForms stay live on her Linktree
+  // and in her Instagram CTAs; the website simply does not point at them.
+  it('points at no JotForm', () => {
+    const src = readFileSync(
+      join(process.cwd(), 'src/data/offerings.ts'),
+      'utf8',
+    );
+    expect(src.toLowerCase()).not.toContain('jotform');
+    for (const o of offerings) {
+      expect(o, o.id).not.toHaveProperty('formUrl');
+    }
+  });
+
   it('carries no leftover TODO markers', () => {
     const src = readFileSync(
       join(process.cwd(), 'src/data/offerings.ts'),
