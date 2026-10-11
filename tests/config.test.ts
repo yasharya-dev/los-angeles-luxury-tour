@@ -38,3 +38,13 @@ describe('URL shape', () => {
     expect(wrangler().assets.not_found_handling).toBe('404-page');
   });
 });
+
+// The owner's login can see two Cloudflare accounts. A deploy made with only
+// the wrong one granted creates a same-named Worker there and reports success,
+// which is how the preview served a stale build for three days. Pinning the
+// account turns that into a failure before anything is uploaded.
+describe('deploy target', () => {
+  it('is pinned to the account that owns the zone', () => {
+    expect(wrangler().account_id).toBe('98b3523e748a42e4d73ff2ebd2ec826b');
+  });
+});
