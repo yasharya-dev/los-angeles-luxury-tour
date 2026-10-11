@@ -1,6 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "los-angeles-luxury-tour",
+  // The account that owns the zone. Yash's login can see more than one account;
+  // without this, a login granted only the other one deploys a stray Worker
+  // there and reports success. With it, that login fails before uploading.
+  "account_id": "98b3523e748a42e4d73ff2ebd2ec826b",
   "main": "worker/index.ts",
   "compatibility_date": "2026-07-01",
 
