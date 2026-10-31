@@ -146,7 +146,7 @@ export const plans: Plan[] = [
         },
       },
       {
-        heading: { en: 'Before you book', ja: '【ご利用前にご確認ください】' },
+        heading: { en: 'Important information', ja: '【ご利用前にご確認ください】' },
         paragraphs: {
           en: [
             'On game days, crowds, traffic restrictions and road closures around Dodger Stadium may mean your pickup after the game moves to a designated spot nearby.',

@@ -22,7 +22,7 @@ The Worker exists for one reason: Cloudflare's free tier has no outbound email. 
 
 ```
 src/
-  data/         offerings, journeys, contact details. Content lives here, not in templates
+  data/         offerings, journeys, plans (the owner's plan format), contact details. Content lives here, not in templates
   i18n/         locale list, dictionaries, path helpers
   views/        one component per page, holding both languages' copy
   pages/        thin route files: English at the root, Japanese under /ja/

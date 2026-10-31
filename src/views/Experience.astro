@@ -130,7 +130,6 @@ const copy = {
       'dodgers-game': `Eight hours chartered around the game, with the ticket arranged ${EM} and no rideshare line afterwards.`,
       'airport-transfer': `Met at the terminal, driven both ways ${EM} check-in help and a shopping stop if you want one.`,
       'dodgers-ticket': `Section and seat chosen for you ${EM} stadium and pre-game tours booked the same way.`,
-      'dodgers-transfer': 'Hotel to Dodger Stadium and back, with support in Japanese. One way or round trip, for up to four.',
     } as Record<string, string>,
   },
 
@@ -254,8 +253,6 @@ const copy = {
         'ターミナル出口でお出迎えし、往復とも。チェックインのお手伝いと買い物立ち寄りも。',
       'dodgers-ticket':
         'セクションも座席もご希望のままに。スタジアムツアーの手配も承ります。',
-      'dodgers-transfer':
-        'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     } as Record<string, string>,
   },
 } as const;
@@ -345,7 +342,9 @@ const tierLabel: Record<Tier, string> = {
                   </p>
                 </div>
 
-                <p class="body card__blurb">{c.blurbs[o.id]}</p>
+                {/* Plans in her format carry their own line; the older cards
+                    have a longer one written for this page. */}
+                <p class="body card__blurb">{c.blurbs[o.id] ?? o.blurb[locale]}</p>
 
                 {o.slug ? (
                   <a class="card__link" href={p(`/experience/${o.slug}`)}>

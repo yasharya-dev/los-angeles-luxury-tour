@@ -153,9 +153,10 @@ export const offerings: Offering[] = [
       en: 'Dodgers Game Private Transfer',
       ja: 'ドジャース観戦 プライベート送迎',
     },
+    // Her subtitle, verbatim, doubles as the card line.
     blurb: {
-      en: 'hotel to Dodger Stadium and back, in Japanese · one way or round trip',
-      ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート・片道・往復どちらも',
+      en: 'Hotel to Dodger Stadium and back, with support in Japanese. One way or round trip.',
+      ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     price: { en: 'from ¥49,800', ja: '49,800円〜' },
     priceNote: { en: '/ 1 group', ja: '／1組' },
