@@ -104,7 +104,7 @@ const copy = {
         q: 'Is it alright if I do not speak English?',
         a: [
           'Yes.',
-          'The tour is guided in Japanese, and wherever English is needed along the way, shopping, restaurants, we handle it, so first-time travelers and anyone unsure of their English can relax.',
+          `The tour is guided in Japanese, and wherever English is needed along the way ${EM} shopping, restaurants ${EM} we handle it, so first-time travelers and anyone unsure of their English can relax.`,
         ],
       },
       {
@@ -521,6 +521,7 @@ const c = copy[locale];
     margin-top: 0.7em;
   }
   .faq__list {
+    margin: 0;
     padding-left: 1.4em;
   }
   .faq__list li {
