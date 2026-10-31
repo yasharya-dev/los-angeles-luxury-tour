@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { locales } from '../i18n/ui';
 import { localizePath } from '../i18n/utils';
 import { journeys } from '../data/journeys';
+import { plans } from '../data/plans';
 
 // Hand-rolled over @astrojs/sitemap so every URL declares its locale
 // alternate. Without those, Google reads EN and JA as competing duplicates.
@@ -11,6 +12,7 @@ const paths = [
   '/',
   '/experience',
   ...journeys.map((j) => `/experience/${j.slug}`),
+  ...plans.map((plan) => `/experience/${plan.slug}`),
   '/about',
   '/contact',
   '/book',

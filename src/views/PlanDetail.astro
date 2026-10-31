@@ -1,0 +1,281 @@
+---
+import { type Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { bySlug, bookPath, consultPath, type Tier } from '../data/offerings';
+import { planBySlug, yenAmount } from '../data/plans';
+import Divider from '../components/Divider.astro';
+import Reservation from '../components/Reservation.astro';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+}
+const { locale, slug } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const plan = planBySlug(slug);
+const offering = bySlug(slug);
+if (!plan || !offering) {
+  throw new Error(`No plan data for slug "${slug}"`);
+}
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+
+const labels = {
+  en: {
+    perGroup: 'per group',
+    book: 'Book this plan',
+    ask: 'or ask a question first',
+  },
+  ja: {
+    perGroup: '／1組',
+    book: 'このプランを予約する',
+    ask: 'まずは相談する',
+  },
+}[locale];
+---
+
+{/* Her format: title, subtitle, the price table, then the two actions she
+    asked for near the price. They come again at the bottom. */}
+<section class="section head">
+  <div class="measure measure--wide">
+    <a class="back" href={p('/experience')}>
+      <span aria-hidden="true">&larr;</span> {t('cta.back')}
+    </a>
+    <p class="kicker head__kicker">{tierLabel[offering.tier]}</p>
+    <h1 class="h2 head__title">{plan.title[locale]}</h1>
+    <p class="body head__lead">{plan.subtitle[locale]}</p>
+
+    <ul class="prices">
+      {
+        plan.prices.map((row) => (
+          <li class="price">
+            <span class="price__label">{row.label[locale]}</span>
+            <span class="price__figure">
+              <span class="price__amount">{yenAmount(row.yen, locale)}</span>
+              <span class="price__unit">{labels.perGroup}</span>
+            </span>
+            <span class="price__cap">{row.capacity[locale]}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="actions">
+      <a class="btn btn--solid" href={p(bookPath(offering))}>{labels.book}</a>
+      <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+    </p>
+  </div>
+</section>
+
+<section class="section section--deep">
+  <div class="measure measure--wide">
+    {plan.intro[locale].map((para) => <p class="body stack">{para}</p>)}
+  </div>
+</section>
+
+{/* Her labelled sections, in her order. Bullets where she wrote bullets. */}
+<section class="section">
+  <div class="measure--cards blocks">
+    {
+      plan.sections.map((sec) => (
+        <div class="block">
+          <h2 class="h3 block__title">{sec.heading[locale]}</h2>
+          {sec.bullets && (
+            <ul class="block__list">
+              {sec.bullets[locale].map((item) => (
+                <li class="block__item">{item}</li>
+              ))}
+            </ul>
+          )}
+          {sec.paragraphs &&
+            sec.paragraphs[locale].map((para) => <p class="body stack">{para}</p>)}
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<Divider />
+
+<section class="section">
+  <Reservation locale={locale} />
+  <p class="actions actions--foot">
+    <a class="btn" href={p(bookPath(offering))}>{labels.book}</a>
+    <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+  </p>
+</section>
+
+<style>
+  .head {
+    padding-block: clamp(48px, 7vw, 84px) clamp(40px, 6vw, 60px);
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 30px;
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .back:hover {
+    color: var(--gold-text);
+  }
+  :global(html[lang='ja']) .back {
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: none;
+  }
+
+  .head__title {
+    margin-block: 20px 16px;
+  }
+
+  .head__lead {
+    margin-bottom: 30px;
+  }
+
+  /* One sentence per line is how she writes; .body carries margin: 0. */
+  .stack + .stack {
+    margin-top: 0.7em;
+  }
+
+  /* -------------------------------------------------------------- prices */
+
+  .prices {
+    list-style: none;
+    margin: 0 0 32px;
+    padding: 0;
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  .price {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--gap-md);
+    row-gap: 4px;
+    align-items: baseline;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  .price__label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  :global(html[lang='ja']) .price__label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+
+  .price__figure {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .price__amount {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 3.2vw, 30px);
+    color: var(--gold-text);
+  }
+  :global(html[lang='ja']) .price__amount {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(18px, 2.6vw, 24px);
+  }
+
+  .price__unit,
+  .price__cap {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .price__cap {
+    grid-column: 1 / -1;
+  }
+
+  /* ------------------------------------------------------------- actions */
+
+  .actions {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-lg);
+    flex-wrap: wrap;
+  }
+
+  .actions--foot {
+    justify-content: center;
+    margin-top: clamp(28px, 4vw, 40px);
+  }
+
+  .ask {
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    display: inline-block;
+    padding-block: 4px;
+  }
+  :global(html[lang='ja']) .ask {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+
+  /* -------------------------------------------------------------- blocks */
+
+  .blocks {
+    display: grid;
+    gap: clamp(36px, 5vw, 56px);
+  }
+
+  .block__title {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  .block__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+  }
+
+  .block__item {
+    position: relative;
+    padding-left: 1.4em;
+    font-size: clamp(15px, 1.6vw, 16px);
+    line-height: 1.9;
+    color: var(--ink-mid);
+  }
+
+  /* Her bullet is the katakana middle dot; keep it as a glyph, not a disc. */
+  .block__item::before {
+    content: '・';
+    position: absolute;
+    left: 0;
+    color: var(--gold-text);
+  }
+</style>

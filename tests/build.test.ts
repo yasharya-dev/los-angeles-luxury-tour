@@ -6,6 +6,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
+import { plans } from '../src/data/plans';
 
 const DIST = join(process.cwd(), 'dist');
 
@@ -13,6 +14,7 @@ const PATHS = [
   '/',
   '/experience',
   ...journeys.map((j) => `/experience/${j.slug}`),
+  ...plans.map((plan) => `/experience/${plan.slug}`),
   '/about',
   '/contact',
   '/book',
@@ -328,9 +330,9 @@ describe('every offering has somewhere to go', () => {
     }
   });
 
-  it('offers both paths from every journey page', () => {
+  it('offers both paths from every journey and plan page', () => {
     for (const prefix of ['', '/ja']) {
-      for (const j of journeys) {
+      for (const j of [...journeys, ...plans]) {
         const doc = html(`${prefix}/experience/${j.slug}`);
         expect(doc, `${prefix} ${j.slug} book`).toContain(
           `href="${localized(`/book?service=${j.slug}`, prefix)}"`,
@@ -393,6 +395,45 @@ describe('the contact page chooses', () => {
   it('carries no form of its own any more', () => {
     expect(html('/contact')).not.toContain('action="/api/inquiry"');
     expect(html('/consult')).toContain('action="/api/inquiry"');
+  });
+});
+
+describe('her sample plan, in her format', () => {
+  const page = '/experience/dodgers-transfer';
+
+  it('shows both price rows in yen on the Japanese page', () => {
+    const doc = html('/ja' + page);
+    for (const s of ['片道送迎', '49,800円', '往復送迎', '79,800円', '定員1名〜4名']) {
+      expect(doc, s).toContain(s);
+    }
+  });
+
+  it('shows her sections, labelled as she labelled them', () => {
+    const doc = html('/ja' + page);
+    for (const s of ['【サービス内容】', '【主な送迎エリア】', '【ご利用人数について】', '【料金補足】', '【ご利用前にご確認ください】']) {
+      expect(doc, s).toContain(s);
+    }
+  });
+
+  it('shows the yen prices on the English page without the 円 character', () => {
+    const doc = html(page);
+    expect(doc).toContain('¥49,800');
+    expect(doc).toContain('¥79,800');
+    expect(doc).not.toMatch(/円/);
+  });
+
+  it('puts both actions near the price and again at the bottom', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(prefix + page);
+      expect(count(doc, new RegExp(`href="${prefix}/book\\?service=dodgers-transfer"`, 'g'))).toBe(2);
+      expect(count(doc, new RegExp(`href="${prefix}/consult\\?service=dodgers-transfer"`, 'g'))).toBe(2);
+    }
+  });
+
+  it('is on the list with only its lowest price', () => {
+    expect(html('/ja/experience')).toContain('49,800円〜');
+    expect(html('/ja/experience')).not.toContain('79,800');
+    expect(html('/experience')).toContain('from ¥49,800');
   });
 });
 
