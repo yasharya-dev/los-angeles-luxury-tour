@@ -148,6 +148,17 @@ describe('content parity', () => {
     expect(html('/contact')).toContain('Up to 7 days before: free');
   });
 
+  // Her Experience page copy, and the two links she asked for in the
+  // plan-list intro.
+  it('keeps her Experience wording and links the plan-list intro both ways', () => {
+    const ja = html('/ja/experience');
+    expect(ja).toContain('あなたの旅ができるまで');
+    expect(ja).toContain('その時の気分にも、柔軟に');
+    expect(ja).toMatch(/「<a href="\/ja\/book"[^>]*>予約する<\/a>」/);
+    expect(ja).toMatch(/「<a href="\/ja\/consult"[^>]*>まずは相談する<\/a>」/);
+    expect(html('/experience')).toMatch(/<a href="\/book"[^>]*>Book<\/a>/);
+  });
+
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);
