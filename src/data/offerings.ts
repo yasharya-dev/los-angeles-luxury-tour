@@ -144,6 +144,24 @@ export const offerings: Offering[] = [
     priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
   },
   {
+    // Her sample plan (2026-10-23), in her format. Detail in data/plans.ts.
+    // Prices are hers, fixed, in yen, per group; no dollar figure yet.
+    id: 'dodgers-transfer',
+    tier: 'transport',
+    slug: 'dodgers-transfer',
+    name: {
+      en: 'Dodgers Game Private Transfer',
+      ja: 'ドジャース観戦 プライベート送迎',
+    },
+    // Her subtitle, verbatim, doubles as the card line.
+    blurb: {
+      en: 'Hotel to Dodger Stadium and back, with support in Japanese. One way or round trip.',
+      ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
+    },
+    price: { en: 'from ¥49,800', ja: '49,800円〜' },
+    priceNote: { en: '/ 1 group', ja: '／1組' },
+  },
+  {
     id: 'dodgers-ticket',
     tier: 'transport',
     name: {

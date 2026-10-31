@@ -11,6 +11,7 @@ import {
 } from '../src/data/offerings';
 import { journeys, journeyBySlug } from '../src/data/journeys';
 import { CONTACT } from '../src/data/contact';
+import { plans, lowestPrice } from '../src/data/plans';
 import { locales } from '../src/i18n/ui';
 
 describe('offerings', () => {
@@ -52,10 +53,12 @@ describe('offerings', () => {
   });
 
   // Japanese pages lead in yen, English in USD. Getting this backwards would
-  // read as the wrong currency entirely.
+  // read as the wrong currency entirely. A plan she has priced only in yen so
+  // far (her sample plan) may lead in yen on the English side, with the ¥ sign
+  // and never 円, until she gives the dollar figure.
   it('leads in the right currency for each locale', () => {
     for (const o of offerings) {
-      expect(o.price.en, `${o.id} en`).toMatch(/\$/);
+      expect(o.price.en, `${o.id} en`).toMatch(/\$|¥/);
       expect(o.price.ja, `${o.id} ja`).toMatch(/円/);
       expect(o.price.ja, `${o.id} ja must not lead in USD`).not.toMatch(/^\$/);
     }
@@ -132,6 +135,47 @@ describe('offerings', () => {
   it('looks up by slug', () => {
     expect(bySlug('temecula')?.id).toBe('temecula');
     expect(bySlug('nope')).toBeUndefined();
+  });
+});
+
+// Plans in her format. Each one is a detail page plus a card; the two have
+// to agree, and both languages have to carry the same structure.
+describe('plans', () => {
+  it('each has a card with the same slug and id', () => {
+    for (const plan of plans) {
+      const o = bySlug(plan.slug);
+      expect(o, plan.slug).toBeDefined();
+      expect(o?.id).toBe(plan.slug);
+    }
+  });
+
+  it('puts the lowest price on the card, in each language', () => {
+    for (const plan of plans) {
+      const o = bySlug(plan.slug)!;
+      expect(o.price.ja, plan.slug).toBe(lowestPrice(plan, 'ja'));
+      expect(o.price.en, plan.slug).toBe(lowestPrice(plan, 'en'));
+    }
+  });
+
+  it('carries the same structure in both languages', () => {
+    for (const plan of plans) {
+      for (const locale of locales) {
+        expect(plan.title[locale], `${plan.slug} title`).toBeTruthy();
+        expect(plan.subtitle[locale], `${plan.slug} subtitle`).toBeTruthy();
+      }
+      expect(plan.intro.en.length).toBe(plan.intro.ja.length);
+      for (const row of plan.prices) {
+        expect(row.yen).toBeGreaterThan(0);
+        for (const locale of locales) {
+          expect(row.label[locale]).toBeTruthy();
+          expect(row.capacity[locale]).toBeTruthy();
+        }
+      }
+      for (const sec of plan.sections) {
+        if (sec.bullets) expect(sec.bullets.en.length).toBe(sec.bullets.ja.length);
+        if (sec.paragraphs) expect(sec.paragraphs.en.length).toBe(sec.paragraphs.ja.length);
+      }
+    }
   });
 });
 

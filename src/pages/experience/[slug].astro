@@ -1,21 +1,32 @@
 ---
 import Base from '../../layouts/Base.astro';
 import JourneyDetail from '../../views/JourneyDetail.astro';
+import PlanDetail from '../../views/PlanDetail.astro';
 import { journeys } from '../../data/journeys';
+import { plans } from '../../data/plans';
 
+// Two data shapes share this route: the three original journeys, and plans in
+// Amelia's format (data/plans.ts). The latter is where everything moves once
+// her full list arrives.
 export function getStaticPaths() {
-  return journeys.map((j) => ({ params: { slug: j.slug } }));
+  return [
+    ...journeys.map((j) => ({ params: { slug: j.slug } })),
+    ...plans.map((plan) => ({ params: { slug: plan.slug } })),
+  ];
 }
 
 const locale = 'en' as const;
 const { slug } = Astro.params;
-const journey = journeys.find((j) => j.slug === slug)!;
+const plan = plans.find((x) => x.slug === slug);
+const journey = journeys.find((j) => j.slug === slug);
+if (!plan && !journey) throw new Error(`No data for slug "${slug}"`);
+
+const title = plan
+  ? `${plan.title.en} - Los Angeles Luxury Tour`
+  : `${journey!.title.en.join(' ')} - Los Angeles Luxury Tour`;
+const description = plan ? plan.subtitle.en : journey!.lead.en;
 ---
 
-<Base
-  locale={locale}
-  title={`${journey.title.en.join(' ')} - Los Angeles Luxury Tour`}
-  description={journey.lead.en}
->
-  <JourneyDetail locale={locale} slug={slug!} />
+<Base locale={locale} title={title} description={description}>
+  {plan ? <PlanDetail locale={locale} slug={slug!} /> : <JourneyDetail locale={locale} slug={slug!} />}
 </Base>

@@ -342,7 +342,9 @@ const tierLabel: Record<Tier, string> = {
                   </p>
                 </div>
 
-                <p class="body card__blurb">{c.blurbs[o.id]}</p>
+                {/* Plans in her format carry their own line; the older cards
+                    have a longer one written for this page. */}
+                <p class="body card__blurb">{c.blurbs[o.id] ?? o.blurb[locale]}</p>
 
                 {o.slug ? (
                   <a class="card__link" href={p(`/experience/${o.slug}`)}>
