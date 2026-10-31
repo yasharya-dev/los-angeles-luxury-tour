@@ -140,6 +140,14 @@ describe('content parity', () => {
     expect(html('/ja/consult')).not.toContain('value="選択してください"');
   });
 
+  // The FAQ is her text, verbatim. The cancellation terms are the line a
+  // paraphrase would most plausibly drift on.
+  it('keeps her FAQ wording', () => {
+    expect(html('/ja/contact')).toContain('7日前まで：無料');
+    expect(html('/ja/contact')).toContain('1時間12,000円にて延長が可能です');
+    expect(html('/contact')).toContain('Up to 7 days before: free');
+  });
+
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);

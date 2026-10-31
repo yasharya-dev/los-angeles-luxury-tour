@@ -61,58 +61,70 @@ const copy = {
       },
     ],
 
-    faqKicker: 'Questions, answered',
-    faqTitle: ['Ask until the hesitation is gone'],
+    faqKicker: 'FAQ',
+    faqTitle: ['Questions, answered'],
     faq: [
       {
-        q: 'Can I join alone, with peace of mind?',
-        a: `Yes. Every plan works from one guest, with a Japanese-speaking guide and a dedicated driver supporting you throughout ${EM} any gender, seasoned traveler or first-timer alike.`,
+        q: 'Can I book as a single traveler?',
+        a: [
+          'Yes, from one guest.',
+          'Whether you are traveling alone or visiting Los Angeles for the first time, you are looked after in Japanese, carefully, so you can simply enjoy it.',
+        ],
         open: true,
       },
       {
-        q: 'Is it wheelchair accessible?',
-        a: `Yes ${EM} barrier-free vehicles and venues are arranged. Just mention it when you reserve.`,
-        open: true,
+        q: 'Can you pick me up at the airport, or from my hotel?',
+        a: [
+          'Yes. From Los Angeles International Airport (LAX), your hotel, or wherever you prefer.',
+          'After the tour we can drop you at your hotel, a restaurant, or anywhere else you would like to go.',
+        ],
       },
       {
-        q: 'How do I book a tour?',
-        a: 'If you know the plan, send the booking form; we check availability and confirm, normally within 24 hours. If you are still deciding or have a question, use the consultation form, email, or official LINE.',
+        q: 'Can I choose where we go?',
+        a: [
+          'Yes. It is a private tour, so the plan is built freely around what you want.',
+          'Combine the places you have been wanting to see, or, if nothing is decided yet, we suggest spots and a route to suit your interests and what you came for.',
+        ],
       },
       {
-        q: 'How does payment work?',
-        a: `By card, in advance ${EM} arranged with you after we confirm the plan.`,
+        q: 'Can we sightsee with our suitcases?',
+        a: [
+          'Yes. On the day you land, or after checking out, your luggage rides along in the vehicle while you sightsee.',
+          'Please tell us the number of guests and the number and size of suitcases when you book, since the vehicle we arrange depends on them.',
+        ],
       },
       {
-        q: 'Can I make special requests during the tour?',
-        a: `Yes ${EM} requests are accommodated as far as possible even mid-tour. Anything fixed, let us know when booking or before setting out.`,
+        q: 'Can we change the destinations or the plan on the day?',
+        a: [
+          'Yes, as far as we can.',
+          'We adjust the stops, how long you stay, and the route to the traffic on the day and to what you feel like.',
+        ],
       },
       {
-        q: 'How far ahead should I book transfers?',
-        a: 'You can book after arriving, but popular plans are best reserved ahead. Write as soon as your plans take shape.',
+        q: 'Is it alright if I do not speak English?',
+        a: [
+          'Yes.',
+          `The tour is guided in Japanese, and wherever English is needed along the way ${EM} shopping, restaurants ${EM} we handle it, so first-time travelers and anyone unsure of their English can relax.`,
+        ],
       },
       {
-        q: 'What kind of seats are the game tickets?',
-        a: 'Base plans use the most affordable seats; upgrades are available for a fee.',
+        q: 'Are there costs beyond the tour price?',
+        a: [
+          'The tour price covers the vehicle and guide for the hours stated in the plan.',
+          'Parking, admission fees, meals and tickets are not included as a rule.',
+          'If the number of guests, the amount of luggage or the areas you visit call for a different vehicle or an extra charge, we tell you beforehand.',
+          'Extra time can be added by the hour; the rate is confirmed when you book.',
+        ],
       },
       {
-        q: 'What about dietary restrictions?',
-        a: 'Vegetarian, vegan, and allergy-aware menus are arranged to suit you.',
-      },
-      {
-        q: 'What language are tours offered in?',
-        a: 'Japanese, with other languages possible by prior arrangement.',
-      },
-      {
-        q: 'Can you arrange hotels too?',
-        a: `Yes ${EM} hotel bookings are handled on request.`,
-      },
-      {
-        q: 'Can I change my tour dates?',
-        a: `Yes, subject to availability ${EM} if your new date is busy, the earlier you write, the better.`,
-      },
-      {
-        q: 'Can you help with souvenirs?',
-        a: `Yes ${EM} purchase and shipping arrangements are both possible.`,
+        q: 'Is there a cancellation fee?',
+        a: ['Depending on when you cancel:'],
+        list: [
+          'Up to 7 days before: free',
+          'Up to 4 days before: 30%',
+          'After that: 100%',
+        ],
+        after: 'The full cancellation policy comes with your booking.',
       },
     ],
   },
@@ -165,58 +177,67 @@ const copy = {
       },
     ],
 
-    faqKicker: 'よくあるご質問',
-    faqTitle: ['ためらいが消えるまで、どうぞ'],
+    faqKicker: 'FAQ',
+    faqTitle: ['よくあるご質問'],
     faq: [
       {
-        q: '1人でも安心して参加できますか？',
-        a: 'はい。本プランは1名様から安心してご利用いただけるよう、日本人ガイドと専属ドライバーが丁寧にサポートいたします。男性女性問わず、旅慣れた方にも初めての方にもご満足いただける内容です。',
+        q: '1名でも利用できますか？',
+        a: [
+          'はい、1名様からご利用いただけます。',
+          'お一人旅はもちろん、初めてロサンゼルスを訪れる方にも安心してお楽しみいただけるよう、日本語で丁寧にサポートいたします。',
+        ],
         open: true,
       },
       {
-        q: '車椅子利用者でも参加できますか？',
-        a: 'はい、バリアフリー対応の車両や施設を手配いたしますので、ご予約時にお知らせください。',
-        open: true,
+        q: '空港到着後やホテル出発でも利用できますか？',
+        a: [
+          'はい、ロサンゼルス国際空港（LAX）・ご宿泊先ホテルなど、ご希望の場所からご利用いただけます。',
+          '観光終了後も、ホテルやレストランなど、ご希望の場所までお送りすることが可能です。',
+        ],
       },
       {
-        q: 'ツアーの予約方法は？',
-        a: 'プランがお決まりの場合は、ご予約フォームからお申し込みください。送信後、空き状況を確認し、通常24時間以内にご連絡いたします。プランが未定の方やご質問は、ご相談フォーム、メール、公式LINEからどうぞ。',
+        q: '行き先は自由に決められますか？',
+        a: [
+          'はい。貸切プライベートツアーのため、ご希望に合わせて自由にプランを組むことができます。',
+          '行ってみたい場所を組み合わせることはもちろん、まだ具体的に決まっていない場合は、お客様の興味や目的に合わせておすすめのスポットやルートをご提案いたします。',
+        ],
       },
       {
-        q: '支払い方法は？',
-        a: '事前にカード決済にて承ります。',
+        q: 'スーツケースを持ったまま観光できますか？',
+        a: [
+          'はい、可能です。空港到着日やホテルチェックアウト後も、お荷物を車に積んだまま観光をお楽しみいただけます。',
+          '※ご利用人数やスーツケースの個数・サイズによって手配する車両が異なるため、ご予約時にお知らせください。',
+        ],
       },
       {
-        q: 'ツアー中に特別なリクエストがある場合、対応してもらえますか？',
-        a: 'はい、ツアー最中もお客様のご要望にできる限りお応えいたします。確定希望事項はご予約時またはツアー開始前にお知らせください。',
+        q: '当日に行き先やプランを変更できますか？',
+        a: [
+          'はい、可能な範囲で柔軟に対応いたします。',
+          '当日の交通状況やお客様のご希望に合わせて、訪問先や滞在時間、ルートなどを調整いたします。',
+        ],
       },
       {
-        q: '空港送迎やドジャース送迎の申込はいつまでに必要ですか？',
-        a: 'いずれのプランも現地到着後でもお申し込みいただけますが、人気のプランは事前予約をおすすめしております。ご希望の内容が決まり次第、お早めにご相談ください。',
+        q: '英語が話せなくても大丈夫ですか？',
+        a: [
+          'はい、大丈夫です。',
+          'ツアーは日本語でご案内いたします。',
+          '観光中のお買い物やレストランなど、現地で英語が必要な場面もサポートいたしますので、海外旅行が初めての方や英語に不安がある方も安心してご利用ください。',
+        ],
       },
       {
-        q: '野球観戦チケットはどのような席ですか？',
-        a: '基本プランでは最安値の席をご用意しております。追加料金にてアップグレード対応も可能です。',
+        q: 'ツアー料金以外にかかる費用はありますか？',
+        a: [
+          'ツアー料金には、プランに記載された時間内の車両・ガイドサービスが含まれます。',
+          '駐車場代、各施設の入場料、お食事代、チケット代などは、原則としてツアー料金には含まれておりません。',
+          'また、ご利用人数・お荷物の量・訪問エリアなどにより、車両変更や追加料金が必要となる場合は事前にご案内いたします。',
+          '規定時間を超える場合は、1時間12,000円にて延長が可能です。',
+        ],
       },
       {
-        q: '特別な食事制限がある場合は？',
-        a: 'ベジタリアン、ヴィーガン、アレルギー対応など、お客様の食事制限に応じたメニューをご用意いたします。',
-      },
-      {
-        q: 'ツアーはどの言語で提供されますか？',
-        a: 'ツアーは日本語で提供しております。その他の言語をご希望の場合は、事前にご相談ください。',
-      },
-      {
-        q: 'ホテルの手配もお願いできますか？',
-        a: 'はい、ホテルのご予約も希望に応じて承ります。',
-      },
-      {
-        q: 'ツアーの日程を変更することはできますか？',
-        a: 'はい、空き状況により変更を承ります。ご希望日が満席の場合もございますので、お早めにご相談ください。',
-      },
-      {
-        q: 'お土産の手配もお願いできますか？',
-        a: 'はい、お土産の購入や配送の手配も承ります。',
+        q: 'キャンセル料はかかりますか？',
+        a: ['キャンセル時期に応じて、以下のキャンセル料が発生いたします。'],
+        list: ['7日前まで：無料', '4日前まで：30%', 'それ以降：100%'],
+        after: '詳細は、ご予約時にご案内するキャンセルポリシーをご確認ください。',
       },
     ],
   },
@@ -290,7 +311,15 @@ const c = copy[locale];
       c.faq.map((item) => (
         <details class="faq__item" open={'open' in item && item.open}>
           <summary class="faq__q">{item.q}</summary>
-          <p class="body faq__a">{item.a}</p>
+          <div class="faq__a">
+            {item.a.map((para) => <p class="body">{para}</p>)}
+            {'list' in item && item.list && (
+              <ul class="faq__list">
+                {item.list.map((line) => <li class="body">{line}</li>)}
+              </ul>
+            )}
+            {'after' in item && item.after && <p class="body">{item.after}</p>}
+          </div>
         </details>
       ))
     }
@@ -485,8 +514,17 @@ const c = copy[locale];
   }
 
   .faq__a {
-    margin: 0;
     padding: 0 0 24px;
     max-width: 60ch;
+  }
+  .faq__a > * + * {
+    margin-top: 0.7em;
+  }
+  .faq__list {
+    margin: 0;
+    padding-left: 1.4em;
+  }
+  .faq__list li {
+    padding-left: 0.2em;
   }
 </style>
