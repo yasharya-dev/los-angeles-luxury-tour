@@ -258,6 +258,17 @@ describe('output hygiene', () => {
     expect(html('/contact')).not.toContain('@153CQWQP');
   });
 
+  // Her California Seller of Travel registration, a compliance line on
+  // advertising, which every page of this site is.
+  it('carries the seller of travel registration on every page', () => {
+    // The 404 pages too: they share the footer and are not in PATHS.
+    for (const p of [...PATHS, '/404']) {
+      for (const prefix of ['', '/ja']) {
+        expect(html(prefix + p), prefix + p).toContain('2175215-50');
+      }
+    }
+  });
+
   it('publishes no phone number', () => {
     for (const p of PATHS) {
       expect(html(p), p).not.toContain('808) 304-5451');
