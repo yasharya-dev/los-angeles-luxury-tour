@@ -159,6 +159,20 @@ describe('content parity', () => {
     expect(html('/experience')).toMatch(/<a href="\/book"[^>]*>Book<\/a>/);
   });
 
+  // Her About page: a brand page with a founder section, her headings, the
+  // interview link without its tracking parameter, and the nav renamed.
+  it('rebuilds the About page to her structure', () => {
+    const ja = html('/ja/about');
+    for (const s of ['ABOUT US｜私たちについて', 'FOUNDER｜代表紹介', 'OUR STORY｜', 'THE EXPERIENCE｜', 'MEDIA &amp; PRESS｜', 'PARTNERSHIP｜', '次は、あなたのロサンゼルスを。']) {
+      expect(ja, s).toContain(s);
+    }
+    expect(ja).toContain('href="https://boldjourney.com/meet-amelia-perrin/"');
+    expect(ja).not.toContain('fbclid');
+    expect(ja).toContain('>私たちについて<');
+    expect(ja).not.toContain('アメリアについて');
+    expect(html('/about')).toContain('>About us<');
+  });
+
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);

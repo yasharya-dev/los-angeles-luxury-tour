@@ -20,7 +20,7 @@ export const ui = {
     'site.tagline': 'Private tours and transfers, by reservation only',
 
     'nav.experience': 'Experience',
-    'nav.about': 'About',
+    'nav.about': 'About us',
     'nav.contact': 'Contact',
     'nav.home': 'Los Angeles Luxury Tour, home',
     'nav.main': 'Main',
@@ -67,7 +67,7 @@ export const ui = {
     'site.tagline': '完全予約制｜VIP送迎＆貸切プライベートツアー',
 
     'nav.experience': '旅のプラン',
-    'nav.about': 'アメリアについて',
+    'nav.about': '私たちについて',
     'nav.contact': 'お問い合わせ',
     'nav.home': 'ロサンゼルス ラグジュアリーツアー ホーム',
     'nav.main': 'メインメニュー',
