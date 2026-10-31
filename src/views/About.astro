@@ -1,6 +1,6 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { useTranslations, localizePath } from '../i18n/utils';
+import { localizePath } from '../i18n/utils';
 import Divider from '../components/Divider.astro';
 import portrait from '../assets/portrait.jpg';
 
@@ -8,237 +8,277 @@ interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
-const EM = String.fromCharCode(0x2014);
 const RSQ = String.fromCharCode(0x2019);
-const LDQ = String.fromCharCode(0x201c);
-const RDQ = String.fromCharCode(0x201d);
 
-// The design handoff had 「observする人の目線」 here, an English verb left
-// inside a Japanese sentence. Corrected to 「観る人の目線」.
+// Amelia's structure and Japanese from her review of 2026-10-22: a brand page
+// with a founder section inside it, in her order. English derived from it.
+// Her small headings are bilingual lockups; the Japanese page shows them as
+// she wrote them, the English page shows the English half.
+const BOLD_JOURNEY = 'https://boldjourney.com/meet-amelia-perrin/';
+
 const copy = {
   en: {
-    kicker: 'About',
-    title: ['Raised in Japan. At home in Los Angeles.'],
-    intro: [
-      `I${RSQ}m Amelia. I design and personally guide private journeys across Los Angeles and Orange County ${EM} every one of them, from the first message to the last drive.`,
-      `Half Japanese, half American, I grew up in Japan and live here now ${EM} working between two languages and two ideas of hospitality.`,
+    aboutKicker: 'About us',
+    aboutTitle: ['We believe luxury is an experience that enriches your life.'],
+    aboutSub: '',
+    about: [
+      'Luxury, to us, is not only what is lavish. It is time, freedom, room to breathe, and enjoying things in a way that is yours.',
+      'A place that moves you because of who you are. Time that exists because of the day it is. An experience that stays with you after the trip is over. Those are the luxuries we care about.',
+      `Los Angeles Luxury Tour brings together a local view of Los Angeles and each guest${RSQ}s interests and sensibility, and proposes time that is yours alone.`,
+    ],
+
+    founderKicker: 'Founder',
+    founderTitle: ['Raised in Japan. At home in Southern California.'],
+    founder: [
+      'Raised in Japan by a Japanese mother and an American father, now based in Southern California.',
+      'The careful attention Japan is known for, and the easy freedom of America.',
+      'Drawing on a life lived close to both cultures and on the view of someone who lives here, she proposes time in Los Angeles shaped to each guest.',
     ],
     portraitAlt: 'Amelia Kay Perrin',
 
-    storyTitle: ['The long way here'],
+    storyKicker: 'Our story',
+    storyTitle: ['The moments that make people happy, turned into a life in travel.'],
     story: [
-      `As a child I lived for ballet and musical theater. What the stage taught me, I think, was to imagine the person watching ${EM} what they were feeling, what they might need next.`,
-      `As an adult I tried plenty of things that didn${RSQ}t work ${EM} ideas that never took shape, work that didn${RSQ}t last. When I found this work, everything finally connected: both languages, both cultures, an eye for detail, and the joy of sharing a place I love. All of me is useful here.`,
-      `Beautiful places, restaurants that make you feel something, thoughtful design and architecture ${EM} I collect them from everyday life, and every time I ask myself: who would love this? That collection becomes your journey.`,
+      'As a child, the ballet and musical stage was everything.',
+      'What came naturally there was to think not only about how I looked, but about what the person watching was feeling right then.',
+      'That never changed as an adult: thinking about what would make someone happy, noticing the small things, and sharing the places I love.',
+      'When I began running tours in Los Angeles, everything I had done until then came together.',
+      'Not simply showing people places, but making experiences they could only have met on this trip.',
+      'And letting that time become the memory that coming to Los Angeles was worth it.',
+      'That is where Los Angeles Luxury Tour began.',
     ],
 
-    homesKicker: 'From two homes',
-    homesTitle: ['What each place taught me'],
-    homes: [
+    expKicker: 'The experience',
+    expTitle: ['Time that stays with you after the trip is over.'],
+    expLines: [
+      'The view you met because of the day it was.',
+      'The place you had always wanted to go.',
+      'The little shop you found by chance and loved.',
+      'The time you laughed with someone.',
+      'Time you find yourself remembering long after the trip is over.',
+    ],
+    exp: [
+      'From the classic sights of Los Angeles to the places and experiences only someone who lives here could suggest.',
+      `Shaped to each guest${RSQ}s interests and what they came for, we make time that is theirs alone.`,
+    ],
+
+    pressKicker: 'Media & press',
+    pressTitle: ['Press and appearances'],
+    press: [
       {
-        label: 'From Japan',
-        body: `Thoughtfulness. Noticing before being asked. Caring for people in ways they never have to say out loud ${EM} the root of how I was raised.`,
+        name: 'Bold Journey',
+        label: 'Founder Interview: Meet Amelia Perrin',
+        body: 'An interview on how Los Angeles Luxury Tour began, the road to it, and how she thinks about travel and hospitality.',
+        link: 'Read the article',
+        href: BOLD_JOURNEY,
       },
       {
-        label: 'From America',
-        body: `Confidence, flexibility, optimism ${EM} and the generosity of letting everyone enjoy things in their own way. This city${RSQ}s gift to me.`,
+        name: 'Nippon TV',
+        label: 'Joho Live Miyaneya',
+        body: 'Appeared live from Dodger Stadium, alongside a guest.',
       },
     ],
-    creed: [
-      'Polished without being formal.',
-      'Thoughtful without being restrictive.',
-      'Personal without ever feeling forced.',
+
+    partnerKicker: 'Partnership',
+    partnerTitle: ['New experiences in Los Angeles, together.'],
+    partner: [
+      'Los Angeles Luxury Tour welcomes partners who can bring new experiences to our guests: hotels, restaurants, attractions, sports and entertainment, brands, media.',
+      `We value building, on each other${RSQ}s strengths, experiences that could only come from here.`,
     ],
-    creedAttr: `${EM} my own shape of hospitality.`,
+    partnerCta: 'Partnership enquiries',
 
-    staysKicker: 'What guests carry home',
-    staysTitle: ['What stays, after the trip'],
-    staysBody: `Guests have told me, mid-journey, that they suddenly understood what truly mattered to them. Others said a belief they had carried for years quietly looked different. The best souvenir, it turns out, doesn${RSQ}t fit in a suitcase.`,
-    quote: `${LDQ}I${RSQ}ve shared moments with guests that were so moving, we both had goosebumps.${RDQ}`,
-    quoteAttr: 'Amelia',
-    testimonialsSoon: `One day, this space will hold her guests${RSQ} own words.`,
-
-    mediaKicker: 'As seen on',
-    mediaName: 'ミヤネ屋',
-    mediaBody: `Japan${RSQ}s national daytime programme ${EM} live from Dodger Stadium, alongside a guest, on taking the worry out of game-day transport.`,
-
-    partnerKicker: 'Partnerships',
-    partnerTitle: ['Work with Amelia'],
-    partnerBody: `Hotels, restaurants, sporting organizations, tourism boards, travel advisors, and lifestyle brands ${EM} I welcome partners who care about the quality of the experience, communicate honestly, and value long-term relationships over quick transactions.`,
-
-    closingKicker: 'Get in touch',
-    closingTitle: ['How would you like to spend your time in Los Angeles?'],
-    closingBody:
-      'Write in Japanese or English. You will usually hear back within 24 hours.',
+    closingTitle: ['Next, your Los Angeles.'],
+    closing: [
+      'Where you want to go and how you want to spend it can be different for everyone.',
+      'Your next special time, in Los Angeles.',
+    ],
+    closingPlans: 'See the plans',
+    closingConsult: 'Consult',
   },
 
   ja: {
-    kicker: 'アメリアについて',
-    title: ['日本で育ち、', 'ロサンゼルスに暮らして。'],
-    intro: [
-      'はじめまして。アメリアです。ロサンゼルスとオレンジカウンティで、旅の設計から当日のご案内まで、すべてを私自身が担当しています。',
-      '日本人の母とアメリカ人の父のもと、日本で育ちました。いまはこの街に暮らし、日本語と英語、ふたつの文化のあいだで旅をお仕立てしています。',
+    aboutKicker: 'ABOUT US｜私たちについて',
+    aboutTitle: ['私たちが考えるLuxuryとは、', '人生の価値になる体験です。'],
+    aboutSub: 'We believe luxury is an experience that enriches your life.',
+    about: [
+      '贅沢とは、豪華さだけではなく、時間、自由、心の余裕、そして自分らしく楽しめること。',
+      'その人だから心が動く場所、その日だから生まれる時間、旅が終わったあとも心に残る体験も、私たちにとって大切なLuxuryです。',
+      'Los Angeles Luxury Tourは、ロサンゼルスを知る現地の視点と、一人ひとりの興味や感性を掛け合わせ、その方だけの時間をご提案します。',
+    ],
+
+    founderKicker: 'FOUNDER｜代表紹介',
+    founderTitle: ['日本で育ち、', '南カリフォルニアに暮らして。'],
+    founder: [
+      '日本人の母とアメリカ人の父のもと日本で育ち、現在は南カリフォルニアを拠点にしています。',
+      '日本ならではの細やかな心配りと、アメリカらしい自由な感覚。',
+      '二つの文化を身近に感じてきた経験と、現地で暮らす視点を活かしながら、一人ひとりに合わせたロサンゼルスでの時間をご提案しています。',
     ],
     portraitAlt: 'アメリア・ケイ・ペリン',
 
-    storyTitle: ['この仕事に、たどり着くまで'],
+    storyKicker: 'OUR STORY｜Los Angeles Luxury Tourを始めた理由',
+    storyTitle: ['人が喜ぶ瞬間を、', '旅の仕事に。'],
     story: [
-      '子どもの頃は、バレエとミュージカルに夢中でした。舞台の上で学んだのは、観る人の目線。観てくださる方が、いま何を感じているかを想像することだったように思います。',
-      '大人になってからは、うまくいかなかった挑戦もたくさんあります。かたちにならなかったアイデアも、続かなかった仕事も。それでも、この仕事に出会ったとき、初めて全部がつながった気がしました。ふたつの言葉、ふたつの文化、細部への目、大好きな場所を誰かと分かち合うこと。私のすべてが、ここでは役に立つのです。',
-      '美しい場所、心が動くレストラン、素敵なデザインや建築。日々の暮らしの中で出会うたび、いつも考えます。「これを、誰が喜んでくれるだろう？」その積み重ねが、あなたの旅になります。',
+      '子どもの頃は、バレエやミュージカルの舞台に夢中でした。',
+      'そこで自然と考えていたのは、自分がどう見えるかだけではなく、「見てくれている人は、今どんなことを感じているだろう」ということ。',
+      '大人になってからも、人が喜ぶことを考えること、細かなことに気づくこと、そして大好きな場所を誰かと分かち合うことは変わりませんでした。',
+      'ロサンゼルスでツアーを始めたとき、それまでの経験がひとつにつながりました。',
+      'ただ場所をご案内するのではなく、「この旅だったから出会えた」と思える体験をつくる。',
+      'そして、その時間が「ロサンゼルスに来てよかった」という記憶につながっていく。',
+      'それが、Los Angeles Luxury Tourの原点です。',
     ],
 
-    homesKicker: 'ふたつの故郷から',
-    homesTitle: ['それぞれの国が、', '教えてくれたこと'],
-    homes: [
+    expKicker: 'THE EXPERIENCE｜旅のあとにも残るもの',
+    expTitle: ['旅が終わったあとも、', '心に残る時間を。'],
+    expLines: [
+      'その日だから出会えた景色。',
+      'ずっと行ってみたかった場所。',
+      '偶然見つけたお気に入りのお店。',
+      '誰かと笑った時間。',
+      '旅が終わったあとも、ふとした瞬間に思い出したくなる時間。',
+    ],
+    exp: [
+      '定番のロサンゼルス観光から、現地を知るからこそご提案できる場所や体験まで。',
+      '一人ひとりの興味や目的に合わせ、その方だけの時間をつくります。',
+    ],
+
+    pressKicker: 'MEDIA & PRESS｜メディア掲載・出演実績',
+    pressTitle: ['メディア掲載・出演実績'],
+    press: [
       {
-        label: '日本から',
-        body: '細やかな気配り。頼まれる前に気づくこと。そして、ディテールを大切にすること。言葉にされない想いを汲むことは、日本で育った私の根っこです。',
+        name: 'Bold Journey',
+        label: 'Founder Interview｜Meet Amelia Perrin',
+        body: 'Los Angeles Luxury Tourを始めた背景やこれまでの歩み、旅とおもてなしに対する考えについてインタビューいただきました。',
+        link: '記事を読む ※英語記事',
+        href: BOLD_JOURNEY,
       },
       {
-        label: 'アメリカから',
-        body: '自信と、柔軟さと、楽観。そして「楽しみ方は人それぞれでいい」というおおらかさ。この街が、私に教えてくれたことです。',
+        name: '日本テレビ系',
+        label: '『情報ライブ ミヤネ屋』',
+        body: 'ドジャースタジアムからの生中継に、お客様とともに出演。',
       },
     ],
-    creed: [
-      'かしこまりすぎず、丁寧に。',
-      '決めつけずに、心を配って。',
-      '押しつけずに、その人らしく。',
+
+    partnerKicker: 'PARTNERSHIP｜パートナーシップ',
+    partnerTitle: ['ロサンゼルスで、', '新しい体験を一緒に。'],
+    partner: [
+      'Los Angeles Luxury Tourでは、ホテル、レストラン、観光施設、スポーツ・エンターテインメント、ブランド、メディアなど、お客様に新しい体験を届けられるパートナーとの協業を歓迎しています。',
+      '互いの強みを活かしながら、ここでしか生まれない体験を一緒につくることを大切にしています。',
     ],
-    creedAttr: 'おもてなしの、私なりのかたち。',
+    partnerCta: 'パートナーシップのお問い合わせ',
 
-    staysKicker: 'お客様が持ち帰るもの',
-    staysTitle: ['旅の終わりに、残るもの'],
-    staysBody:
-      '旅の途中で「本当に大切なものに気づいた気がする」と話してくださった方がいます。長年抱えていた考えが、ふっと違って見えた。そう教えてくださった方も。旅の一番のお土産は、荷物には入らないのかもしれません。',
-    quote: '「鳥肌が立つような瞬間を、お客様と何度もご一緒してきました。」',
-    quoteAttr: 'アメリア',
-    testimonialsSoon:
-      'いつかこの場所に、お客様ご自身の言葉を並べられますように。',
-
-    mediaKicker: 'メディア出演',
-    mediaName: '日本テレビ系『ミヤネ屋』',
-    mediaBody:
-      'ドジャースタジアムから、お客様とともに生中継で出演しました。観戦時の送迎の不安を解消したい。その想いをお話ししています。',
-
-    partnerKicker: 'パートナーシップ',
-    partnerTitle: ['ご一緒しませんか'],
-    partnerBody:
-      'ホテル、レストラン、スポーツ団体、観光局、トラベルアドバイザー、ライフスタイルブランドの皆様。体験の質を大切にし、誠実に対話し、長いお付き合いを重んじる方々とのご縁を、いつでも歓迎しています。',
-
-    closingKicker: 'お問い合わせ',
-    closingTitle: ['ロサンゼルスで、', 'どんな時間を過ごしたいですか？'],
-    closingBody: '日本語でお気軽にどうぞ。通常24時間以内にご返信いたします。',
+    closingTitle: ['次は、あなたのロサンゼルスを。'],
+    closing: [
+      '行きたい場所も、過ごし方も、一人ひとり違っていい。',
+      '次の特別な時間を、ロサンゼルスで。',
+    ],
+    closingPlans: 'プランを見る',
+    closingConsult: '相談する',
   },
 } as const;
 
 const c = copy[locale];
 ---
 
-<section class="section intro">
-  <div class="intro__grid measure--grid">
-    <div class="intro__portrait">
+{/* 1. About us */}
+<section class="section about">
+  <div class="measure measure--wide center">
+    <p class="kicker">{c.aboutKicker}</p>
+    <h1 class="h2 section__title">{c.aboutTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h1>
+    {c.aboutSub && <p class="about__en">{c.aboutSub}</p>}
+    {c.about.map((para) => <p class="body stack">{para}</p>)}
+  </div>
+</section>
+
+{/* 2. Founder: the portrait smaller, set beside the introduction, as she asked. */}
+<section class="section section--deep">
+  <div class="founder measure--grid">
+    <div class="founder__portrait">
       <img
         src={portrait.src}
         alt={c.portraitAlt}
         width={portrait.width}
         height={portrait.height}
+        loading="lazy"
       />
     </div>
-    <div class="intro__text">
-      <p class="kicker">{c.kicker}</p>
-      <h1 class="h2 intro__title">
-        {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-      </h1>
-      {c.intro.map((para) => <p class="body intro__para">{para}</p>)}
+    <div class="founder__text">
+      <p class="kicker">{c.founderKicker}</p>
+      <h2 class="h2 section__title">{c.founderTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+      {c.founder.map((para) => <p class="body stack">{para}</p>)}
     </div>
-  </div>
-</section>
-
-<section class="section section--deep">
-  <div class="measure measure--wide">
-    <h2 class="h2 story__title">
-      {c.storyTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    {c.story.map((para) => <p class="body story__para">{para}</p>)}
   </div>
 </section>
 
 <Divider />
 
+{/* 3. Our story */}
 <section class="section">
-  <div class="measure measure--wide center homes__head">
-    <p class="kicker">{c.homesKicker}</p>
-    <h2 class="h2 section__title">
-      {c.homesTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
+  <div class="measure measure--wide">
+    <p class="kicker">{c.storyKicker}</p>
+    <h2 class="h2 section__title">{c.storyTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+    {c.story.map((para) => <p class="body stack">{para}</p>)}
   </div>
+</section>
 
-  <ul class="homes measure--cards">
+{/* 4. The experience: five fragments she wrote as a stack, then two lines. */}
+<section class="section section--deep section--wedged">
+  <div class="measure measure--wide center">
+    <p class="kicker">{c.expKicker}</p>
+    <h2 class="h2 section__title">{c.expTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+    <div class="exp__lines">
+      {c.expLines.map((line) => <p class="exp__line">{line}</p>)}
+    </div>
+    {c.exp.map((para) => <p class="body stack">{para}</p>)}
+  </div>
+</section>
+
+{/* 5. Media & press */}
+<section class="section">
+  <div class="measure measure--wide center press__head">
+    <p class="kicker">{c.pressKicker}</p>
+    <h2 class="h2 section__title">{c.pressTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+  </div>
+  <ul class="press measure--cards">
     {
-      c.homes.map((home) => (
-        <li class="home">
-          <p class="home__label">{home.label}</p>
-          <p class="body home__body">{home.body}</p>
+      c.press.map((item) => (
+        <li class="press__item">
+          <p class="press__name">{item.name}</p>
+          <p class="press__label">{item.label}</p>
+          <p class="body press__body">{item.body}</p>
+          {'href' in item && item.href && (
+            <a class="press__link" href={item.href} rel="noopener" target="_blank">
+              {item.link} <span aria-hidden="true">&rarr;</span>
+            </a>
+          )}
         </li>
       ))
     }
   </ul>
-
-  <blockquote class="creed measure">
-    {c.creed.map((line) => <p class="creed__line">{line}</p>)}
-    <footer class="creed__attr">{c.creedAttr}</footer>
-  </blockquote>
 </section>
 
-<section class="section section--deep section--wedged">
-  <div class="measure measure--wide center">
-    <p class="kicker">{c.staysKicker}</p>
-    <h2 class="h2 section__title">
-      {c.staysTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    <p class="body">{c.staysBody}</p>
-  </div>
+<Divider />
 
-  <blockquote class="pullquote measure">
-    <p class="pullquote__text">{c.quote}</p>
-    <footer class="pullquote__attr">{c.quoteAttr}</footer>
-  </blockquote>
-
-  {/* Testimonials are v2. Holding the space rather than faking it. */}
-  <p class="caption center soon">{c.testimonialsSoon}</p>
-</section>
-
+{/* 6. Partnership */}
 <section class="section">
-  <div class="measure center">
-    <p class="kicker">{c.mediaKicker}</p>
-    <p class="media__name">{c.mediaName}</p>
-    <p class="caption media__body">{c.mediaBody}</p>
-  </div>
-</section>
-
-<section class="section section--deep">
   <div class="measure measure--wide center">
     <p class="kicker">{c.partnerKicker}</p>
-    <h2 class="h2 section__title">
-      {c.partnerTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    <p class="body partner__body">{c.partnerBody}</p>
-    <a class="btn" href={p('/contact')}>{t('cta.start')}</a>
+    <h2 class="h2 section__title">{c.partnerTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+    {c.partner.map((para) => <p class="body stack">{para}</p>)}
+    <a class="btn partner__cta" href={p('/consult')}>{c.partnerCta}</a>
   </div>
 </section>
 
-<section class="section">
+{/* 7. Final CTA */}
+<section class="section section--deep">
   <div class="measure measure--wide center">
-    <p class="kicker">{c.closingKicker}</p>
-    <h2 class="h2 section__title">
-      {c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    <p class="body closing__body">{c.closingBody}</p>
-    <a class="btn" href={p('/contact')}>{t('cta.start')}</a>
+    <h2 class="h2 section__title">{c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+    {c.closing.map((para) => <p class="body stack">{para}</p>)}
+    <div class="closing__actions">
+      <a class="btn btn--solid" href={p('/experience')}>{c.closingPlans}</a>
+      <a class="btn" href={p('/consult')}>{c.closingConsult}</a>
+    </div>
   </div>
 </section>
 
@@ -247,76 +287,111 @@ const c = copy[locale];
     margin-block: 26px;
   }
 
-  /* ------------------------------------------------------------- intro */
-
-  .intro__grid {
-    margin-inline: auto;
-    display: grid;
-    gap: clamp(32px, 6vw, 64px);
-    align-items: center;
-    grid-template-columns: 1fr;
+  /* One sentence per line is how she writes; .body carries margin: 0. */
+  .stack + .stack {
+    margin-top: 0.7em;
   }
 
-  @media (min-width: 820px) {
-    .intro__grid {
-      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  /* ------------------------------------------------------------- about */
+
+  .about__en {
+    margin: 0 0 28px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(16px, 2.2vw, 19px);
+    color: var(--gold-text);
+  }
+
+  /* ----------------------------------------------------------- founder */
+
+  /* The portrait sits beside the introduction at a fixed small width, on a
+     phone too, rather than filling the viewport the way it used to. */
+  .founder {
+    margin-inline: auto;
+    display: grid;
+    gap: clamp(20px, 4vw, 48px);
+    grid-template-columns: 128px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  @media (min-width: 720px) {
+    .founder {
+      grid-template-columns: 220px minmax(0, 1fr);
+      align-items: center;
     }
   }
 
-  .intro__portrait img {
+  .founder__portrait img {
     width: 100%;
     height: auto;
     border: 1px solid var(--card-edge);
   }
 
-  .intro__title {
-    margin-block: 22px;
-  }
-
-  .intro__para + .intro__para {
-    margin-top: 18px;
-  }
-
-  /* -------------------------------------------------------------- story */
-
-  .story__title {
-    margin-bottom: 32px;
-  }
-
-  .story__para + .story__para {
-    margin-top: 20px;
-  }
-
-  /* -------------------------------------------------------------- homes */
-
-  .homes__head {
-    margin-inline: auto;
-    margin-bottom: clamp(40px, 6vw, 60px);
-  }
-
-  .homes {
-    list-style: none;
-    margin: 0 auto clamp(56px, 8vw, 88px);
-    padding: 0;
-    display: grid;
-    gap: clamp(36px, 5vw, 56px);
-    grid-template-columns: 1fr;
+  .founder__text .section__title {
+    margin-block: 14px 18px;
   }
 
   @media (min-width: 720px) {
-    .homes {
-      grid-template-columns: repeat(2, 1fr);
+    .founder__text .section__title {
+      margin-block: 20px 22px;
+    }
+  }
+
+  /* --------------------------------------------------------- experience */
+
+  .exp__lines {
+    margin: 0 auto clamp(28px, 4vw, 40px);
+    padding-block: clamp(28px, 4vw, 40px);
+    border-top: 1px solid var(--hairline-soft);
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+
+  .exp__line {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2.6vw, 24px);
+    line-height: 1.8;
+    color: var(--ink);
+  }
+
+  :global(html[lang='ja']) .exp__line {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(15.5px, 2.2vw, 20px);
+    line-height: 2;
+  }
+
+  /* -------------------------------------------------------------- press */
+
+  .press__head {
+    margin-inline: auto;
+    margin-bottom: clamp(32px, 5vw, 46px);
+  }
+
+  .press {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    display: grid;
+    gap: var(--gap-md);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 760px) {
+    .press {
+      grid-template-columns: 1fr 1fr;
       align-items: start;
     }
   }
 
-  .home {
-    border-top: 1px solid var(--hairline-soft);
-    padding-top: 22px;
+  .press__item {
+    border: 1px solid var(--card-edge);
+    background: var(--card);
+    padding: clamp(24px, 3.5vw, 34px);
   }
 
-  .home__label {
-    margin: 0 0 14px;
+  .press__name {
+    margin: 0 0 8px;
     font-family: var(--font-label);
     font-size: 10.5px;
     font-weight: 600;
@@ -325,117 +400,60 @@ const c = copy[locale];
     color: var(--gold-text);
   }
 
-  :global(html[lang='ja']) .home__label {
+  :global(html[lang='ja']) .press__name {
     font-family: var(--font-body);
     font-size: 13px;
-    letter-spacing: 0.22em;
-    text-transform: none;
-  }
-
-  /* -------------------------------------------------------------- creed */
-
-  .creed {
-    margin-inline: auto;
-    padding: 0;
-    text-align: center;
-    border-top: 1px solid var(--hairline-soft);
-    border-bottom: 1px solid var(--hairline-soft);
-    padding-block: clamp(40px, 6vw, 60px);
-  }
-
-  .creed__line {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(19px, 2.8vw, 26px);
-    line-height: 1.75;
-    color: var(--ink);
-  }
-
-  :global(html[lang='ja']) .creed__line {
-    font-family: var(--font-body);
-    font-size: clamp(16px, 2.3vw, 21px);
-    line-height: 2;
-    letter-spacing: 0.04em;
-  }
-
-  .creed__attr {
-    margin-top: 22px;
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 15px;
-    color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .creed__attr {
-    font-family: var(--font-body);
-    font-style: normal;
-    font-weight: 500;
-  }
-
-  /* ---------------------------------------------------------- pullquote */
-
-  .pullquote {
-    margin: clamp(48px, 7vw, 72px) auto 0;
-    padding: 0;
-    text-align: center;
-  }
-
-  .pullquote__text {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(20px, 3vw, 28px);
-    font-style: italic;
-    line-height: 1.6;
-    color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .pullquote__text {
-    font-family: var(--font-body);
-    font-style: normal;
-    font-weight: 500;
-    font-size: clamp(16px, 2.4vw, 22px);
-    line-height: 2;
-  }
-
-  .pullquote__attr {
-    margin-top: 18px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-
-  :global(html[lang='ja']) .pullquote__attr {
-    font-family: var(--font-body);
-    font-size: 12px;
     letter-spacing: 0.2em;
     text-transform: none;
   }
 
-  .soon {
-    margin-top: clamp(32px, 5vw, 44px);
-  }
-
-  /* -------------------------------------------------------------- media */
-
-  .media__name {
-    margin: 20px 0 14px;
-    font-family: var(--font-body);
-    font-size: clamp(19px, 2.6vw, 24px);
-    font-weight: 500;
+  .press__label {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2.4vw, 22px);
+    line-height: 1.4;
     color: var(--ink);
   }
 
-  .media__body {
-    max-width: 46ch;
-    margin-inline: auto;
+  :global(html[lang='ja']) .press__label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: clamp(15.5px, 2vw, 18px);
+    line-height: 1.7;
   }
 
-  /* ------------------------------------------------------------ closing */
+  .press__body {
+    margin-bottom: 16px;
+  }
 
-  .partner__body,
-  .closing__body {
-    margin-bottom: 38px;
+  .press__link {
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    display: inline-block;
+    padding-block: 4px;
+  }
+
+  :global(html[lang='ja']) .press__link {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+
+  /* ------------------------------------------------- partner + closing */
+
+  .partner__cta {
+    margin-top: 36px;
+  }
+
+  .closing__actions {
+    margin-top: 36px;
+    display: flex;
+    justify-content: center;
+    gap: var(--gap-md);
+    flex-wrap: wrap;
   }
 </style>
