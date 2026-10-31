@@ -203,8 +203,8 @@ const c = copy[locale];
         loading="lazy"
       />
     </div>
+    <p class="kicker founder__kicker">{c.founderKicker}</p>
     <div class="founder__text">
-      <p class="kicker">{c.founderKicker}</p>
       <h2 class="h2 section__title">{c.founderTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
       {c.founder.map((para) => <p class="body stack">{para}</p>)}
     </div>
@@ -304,20 +304,47 @@ const c = copy[locale];
 
   /* ----------------------------------------------------------- founder */
 
-  /* The portrait sits beside the introduction at a fixed small width, on a
-     phone too, rather than filling the viewport the way it used to. */
+  /* The portrait sits at a fixed small width beside the introduction, as she
+     asked, rather than filling the viewport the way it used to. On a phone the
+     kicker sits beside the photo and the heading and text run full width
+     underneath: a Japanese heading cannot wrap inside a 180px column without
+     breaking mid-word. From 720px the text column takes both. */
   .founder {
     margin-inline: auto;
     display: grid;
-    gap: clamp(20px, 4vw, 48px);
     grid-template-columns: 128px minmax(0, 1fr);
-    align-items: start;
+    column-gap: clamp(20px, 4vw, 48px);
+    row-gap: 22px;
+    align-items: center;
+  }
+
+  .founder__portrait {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .founder__kicker {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .founder__text {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   @media (min-width: 720px) {
     .founder {
       grid-template-columns: 220px minmax(0, 1fr);
-      align-items: center;
+      row-gap: 0;
+      align-items: start;
+    }
+    .founder__portrait {
+      grid-row: 1 / span 2;
+      align-self: center;
+    }
+    .founder__text {
+      grid-column: 2;
     }
   }
 
@@ -328,7 +355,7 @@ const c = copy[locale];
   }
 
   .founder__text .section__title {
-    margin-block: 14px 18px;
+    margin-block: 0 18px;
   }
 
   @media (min-width: 720px) {
