@@ -127,8 +127,10 @@ const p = (path: string) => localizePath(path, locale);
   }
 
   /* A registration number is an identifier: never uppercased, never tracked
-     apart, so it reads back exactly as issued. */
-  .site-footer__registration {
+     apart, so it reads back exactly as issued. The lang-scoped selector is
+     needed too, or the Japanese meta rule above outranks this one. */
+  .site-footer__registration,
+  :global(html[lang='ja']) .site-footer__registration {
     margin: 14px 0 0;
     text-transform: none;
     letter-spacing: 0.06em;

@@ -261,7 +261,8 @@ describe('output hygiene', () => {
   // Her California Seller of Travel registration, a compliance line on
   // advertising, which every page of this site is.
   it('carries the seller of travel registration on every page', () => {
-    for (const p of PATHS) {
+    // The 404 pages too: they share the footer and are not in PATHS.
+    for (const p of [...PATHS, '/404']) {
       for (const prefix of ['', '/ja']) {
         expect(html(prefix + p), prefix + p).toContain('2175215-50');
       }
