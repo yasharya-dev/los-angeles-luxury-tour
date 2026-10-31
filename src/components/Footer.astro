@@ -29,6 +29,12 @@ const p = (path: string) => localizePath(path, locale);
     <a href={p('/privacy')}>{t('footer.privacy')}</a>
     <span>{t('footer.rights')}</span>
   </div>
+
+  {/* Her registration as a California seller of travel. A legal line, on its
+      own row so the meta row stays readable on a phone. */}
+  <p class="site-footer__meta site-footer__registration">
+    {t('footer.registration')}
+  </p>
 </footer>
 
 <style>
@@ -118,5 +124,13 @@ const p = (path: string) => localizePath(path, locale);
     font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: none;
+  }
+
+  /* A registration number is an identifier: never uppercased, never tracked
+     apart, so it reads back exactly as issued. */
+  .site-footer__registration {
+    margin: 14px 0 0;
+    text-transform: none;
+    letter-spacing: 0.06em;
   }
 </style>

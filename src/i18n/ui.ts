@@ -58,6 +58,8 @@ export const ui = {
     'footer.location': 'Los Angeles',
     'footer.privacy': 'Privacy',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
+    // California requires sellers of travel to show this on advertising.
+    'footer.registration': 'California Seller of Travel Registration No. 2175215-50',
   },
 
   ja: {
@@ -103,6 +105,7 @@ export const ui = {
     'footer.location': 'ロサンゼルス',
     'footer.privacy': 'プライバシーポリシー',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
+    'footer.registration': 'California Seller of Travel 登録番号 2175215-50',
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 
