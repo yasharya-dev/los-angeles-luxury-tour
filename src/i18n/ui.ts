@@ -52,7 +52,6 @@ export const ui = {
     'footer.email': 'Email',
     'footer.instagram': 'Instagram',
     'footer.facebook': 'Facebook',
-    'footer.location': 'Los Angeles',
     'footer.privacy': 'Privacy',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
     // California requires sellers of travel to show this on advertising. The
@@ -91,7 +90,6 @@ export const ui = {
     'footer.email': 'メール',
     'footer.instagram': 'Instagram',
     'footer.facebook': 'Facebook',
-    'footer.location': 'ロサンゼルス',
     'footer.privacy': 'プライバシーポリシー',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
     'footer.sellerOfTravel': 'California Seller of Travel',

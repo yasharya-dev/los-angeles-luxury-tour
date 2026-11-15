@@ -201,8 +201,8 @@ const links = [
     min-height: var(--tap);
     padding-inline: 4px;
     font-family: var(--font-label);
-    font-size: 13px;
-    letter-spacing: 0.18em;
+    font-size: 14px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--ink-mid);
     /* Japanese has no spaces, so without this a label breaks mid-word. */
@@ -317,6 +317,21 @@ const links = [
     }
     .brand__sub {
       letter-spacing: 0.36em;
+    }
+  }
+
+  /* A 320px screen (an iPhone in Display Zoom) is 14px short for the English
+     page's row, whose language link reads 日本語. The lettering and the gap
+     give it back, with room to spare. */
+  @media (max-width: 345px) {
+    .site-header {
+      gap: var(--gap-xs);
+    }
+    .brand__name {
+      letter-spacing: 0.12em;
+    }
+    .brand__sub {
+      letter-spacing: 0.24em;
     }
   }
 

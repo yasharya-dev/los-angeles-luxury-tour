@@ -536,6 +536,23 @@ describe('the default theme', () => {
     expect(css()).not.toContain('prefers-color-scheme');
   });
 
+  // A phone set to force every page dark (Chrome on Android does it) leaves a
+  // page alone when its scheme says "only". Dark stays the visitor's choice.
+  it('opts the cream theme out of a forced dark mode', () => {
+    // The keyword may sit on either side; the minifier writes it second.
+    expect(cream()).toMatch(/(?:^|;)color-scheme:(?:only light|light only)(?:;|$)/);
+    expect(dark()).toMatch(/(?:^|;)color-scheme:dark(?:;|$)/);
+  });
+
+  // Pulled past its top or its end, a phone shows the canvas behind the page.
+  // It is the black of the bars, so the header and the footer run to the edge
+  // of the screen, and the body lays the cream over it.
+  it('paints the canvas in the black of the bars, and the page over it', () => {
+    expect(block('html')).toMatch(/(?:^|;)background:var\(--bar\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)background:var\(--bg\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)min-height:100svh(?:;|$)/);
+  });
+
   // The toggle is a script. Without one it is hidden rather than left dead.
   it('hides the theme toggle when there is no JavaScript', () => {
     expect(html('/ja')).toMatch(
@@ -629,6 +646,22 @@ describe('the header and footer', () => {
       expect(links).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
       expect(footer(route)).not.toContain('line.me');
       expect(footer(route)).not.toContain('threads.net');
+    }
+  });
+
+  // Her footer, in her order: the wish, the icons, the privacy link on a row
+  // of its own, then the two legal lines and nothing else.
+  it('ends the footer with the privacy link and the two legal lines', () => {
+    for (const [route, privacy] of [
+      ['/', '/privacy'],
+      ['/ja', '/ja/privacy'],
+    ]) {
+      const tail = footer(route).split('</nav>')[1] ?? '';
+      const lines = [...tail.matchAll(/<p class="site-footer__(\w+)[^>]*>([\s\S]*?)<\/p>/g)];
+      expect(lines.map(([, kind]) => kind), route).toEqual(['privacy', 'meta', 'meta']);
+      expect(lines[0][2], route).toContain(`href="${privacy}"`);
+      expect(lines[1][2].trim(), route).toBe('© 2026 Los Angeles Luxury Tour');
+      expect(lines[2][2], route).toContain('California Seller of Travel');
     }
   });
 
