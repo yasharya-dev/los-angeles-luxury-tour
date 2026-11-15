@@ -215,8 +215,8 @@ describe('content parity', () => {
   // The FAQ is her text, verbatim. The cancellation terms are the line a
   // paraphrase would most plausibly drift on.
   it('keeps her FAQ wording', () => {
-    expect(html('/ja/contact')).toContain('7日前まで：無料');
-    expect(html('/ja/contact')).toContain('1時間12,000円にて延長が可能です');
+    expect(bare('/ja/contact')).toContain('7日前まで：無料');
+    expect(bare('/ja/contact')).toContain('1時間12,000円にて延長が可能です');
     expect(html('/contact')).toContain('Up to 7 days before: free');
   });
 
@@ -793,11 +793,11 @@ describe('every offering has somewhere to go', () => {
 
 describe('the contact page chooses', () => {
   it('shows her heading and the two paths, in Japanese', () => {
+    const page = bare('/ja/contact');
     const doc = html('/ja/contact');
-    expect(doc).toContain('ロサンゼルスで、');
-    expect(doc).toContain('どんな時間を過ごしたいですか？');
-    expect(doc).toContain('プランがお決まりの方');
-    expect(doc).toContain('まだプランがお決まりでない方');
+    expect(page).toContain('ロサンゼルスで、どんな時間を過ごしたいですか？');
+    expect(page).toContain('プランがお決まりの方');
+    expect(page).toContain('まだプランがお決まりでない方');
     expect(doc).toContain('href="/ja/book"');
     expect(doc).toContain('href="/ja/consult"');
   });
@@ -811,6 +811,45 @@ describe('the contact page chooses', () => {
   it('carries no form of its own any more', () => {
     expect(html('/contact')).not.toContain('action="/api/inquiry"');
     expect(html('/consult')).toContain('action="/api/inquiry"');
+  });
+
+  // Her brief, section 07: the booking and consultation choices and the FAQ
+  // stay exactly as she wrote them. Only the layout around them changed.
+  it('leaves her path copy and her eight questions as she wrote them', () => {
+    const page = bare('/ja/contact');
+    for (const line of [
+      'ご旅行の予定がまだ固まっていなくても大丈夫です。ご希望や気になることから、お気軽にご相談ください。通常24時間以内にご返信いたします。',
+      'ご希望の日程・人数などを入力してお申し込みください。',
+      'オーダーメイドのご希望や、プランについてのご相談はこちらから。',
+      '1名でも利用できますか？',
+      '空港到着後やホテル出発でも利用できますか？',
+      '行き先は自由に決められますか？',
+      'スーツケースを持ったまま観光できますか？',
+      '当日に行き先やプランを変更できますか？',
+      '英語が話せなくても大丈夫ですか？',
+      'ツアー料金以外にかかる費用はありますか？',
+      'キャンセル料はかかりますか？',
+    ]) {
+      expect(page, line).toContain(line.replace(/\s+/g, ''));
+    }
+    expect(count(html('/ja/contact'), /<details class="faq__item/g)).toBe(8);
+  });
+
+  // The three stacked cards became one row of three links. All three ways to
+  // write are still there, each going where it went before, each with a name.
+  it('offers LINE, email and Instagram in one compact row', () => {
+    for (const route of ['/contact', '/ja/contact']) {
+      const doc = html(route);
+      const row = doc.match(/<ul class="direct__list"[^]*?<\/ul>/)?.[0] ?? '';
+      const links = row.match(/<a [^>]*>/g) ?? [];
+      expect(links.length, route).toBe(3);
+      expect(links[0], route).toContain('href="https://line.me/R/ti/p/@153cqwqp"');
+      expect(links[1], route).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+      expect(links[2], route).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
+      for (const link of links) expect(link, route).toMatch(/aria-label="[^"]+"/);
+      expect(doc, route).not.toContain('class="channel');
+    }
+    expect(bare('/ja/contact')).toContain('直接ご連絡をご希望の方へ');
   });
 });
 

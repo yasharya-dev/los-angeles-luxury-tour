@@ -1,13 +1,16 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { useTranslations, localizePath } from '../i18n/utils';
+import { BR } from '../i18n/text';
+import { localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
+import type { IconName } from '../data/icons';
+import Icon from '../components/Icon.astro';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
 const EM = String.fromCharCode(0x2014);
@@ -15,7 +18,7 @@ const EM = String.fromCharCode(0x2014);
 const copy = {
   en: {
     kicker: 'Contact',
-    title: ['How would you like to spend your time in Los Angeles?'],
+    title: 'How would you like to spend your time in Los Angeles?',
     lead: 'Your plans do not need to be fixed yet. Start from what you want, or what you are wondering about, and write to us. You will usually hear back within 24 hours.',
 
     pathsTitle: 'Book, or talk first',
@@ -26,6 +29,7 @@ const copy = {
         cta: 'Book',
         href: '/book',
         primary: true,
+        icon: 'calendar',
       },
       {
         title: 'Your plan is not decided yet',
@@ -33,36 +37,14 @@ const copy = {
         cta: 'Consult',
         href: '/consult',
         primary: false,
+        icon: 'chat',
       },
     ],
 
-    channelsKicker: 'Prefer to write directly?',
-    channels: [
-      {
-        label: 'LINE',
-        note: 'The fastest reply, if LINE is already on your phone.',
-        value: CONTACT.lineId,
-        href: CONTACT.lineUrl,
-        action: 'Open LINE',
-      },
-      {
-        label: 'Email',
-        note: `The unhurried way ${EM} write as much or as little as you like.`,
-        value: CONTACT.email,
-        href: `mailto:${CONTACT.email}`,
-        action: 'Write an email',
-      },
-      {
-        label: 'Instagram',
-        note: `The day-to-day lives here ${EM} DMs are welcome.`,
-        value: CONTACT.instagramHandle,
-        href: CONTACT.instagram,
-        action: 'Open the profile',
-      },
-    ],
+    channelsTitle: 'Prefer to write directly?',
 
     faqKicker: 'FAQ',
-    faqTitle: ['Questions, answered'],
+    faqTitle: 'Questions, answered',
     faq: [
       {
         q: 'Can I book as a single traveler?',
@@ -131,7 +113,7 @@ const copy = {
 
   ja: {
     kicker: 'お問い合わせ',
-    title: ['ロサンゼルスで、', 'どんな時間を過ごしたいですか？'],
+    title: ['ロサンゼルスで、', BR, 'どんな時間を', '過ごしたいですか？'],
     lead: 'ご旅行の予定がまだ固まっていなくても大丈夫です。ご希望や気になることから、お気軽にご相談ください。通常24時間以内にご返信いたします。',
 
     pathsTitle: 'ご予約・ご相談',
@@ -142,6 +124,7 @@ const copy = {
         cta: '予約する',
         href: '/book',
         primary: true,
+        icon: 'calendar',
       },
       {
         title: 'まだプランがお決まりでない方',
@@ -149,36 +132,14 @@ const copy = {
         cta: '相談する',
         href: '/consult',
         primary: false,
+        icon: 'chat',
       },
     ],
 
-    channelsKicker: '直接ご連絡をご希望の方へ',
-    channels: [
-      {
-        label: 'LINE',
-        note: 'いちばん早いご連絡方法です。ID検索でも、下のボタンからでも。',
-        value: CONTACT.lineId,
-        href: CONTACT.lineUrl,
-        action: 'LINEで相談する',
-      },
-      {
-        label: 'メール',
-        note: 'ゆっくり書きたい方はこちらへ。',
-        value: CONTACT.email,
-        href: `mailto:${CONTACT.email}`,
-        action: 'メールを書く',
-      },
-      {
-        label: 'Instagram',
-        note: '日々の様子はこちら。DMもどうぞ。',
-        value: CONTACT.instagramHandle,
-        href: CONTACT.instagram,
-        action: 'プロフィールを見る',
-      },
-    ],
+    channelsTitle: '直接ご連絡をご希望の方へ',
 
     faqKicker: 'FAQ',
-    faqTitle: ['よくあるご質問'],
+    faqTitle: 'よくあるご質問',
     faq: [
       {
         q: '1名でも利用できますか？',
@@ -244,81 +205,107 @@ const copy = {
 } as const;
 
 const c = copy[locale];
+
+// The same three ways to write directly, in both languages. LINE first: it is
+// what most of her guests already have open. Each link's name starts with its
+// visible label and adds the handle, for anyone who needs to type it.
+const channels: { icon: IconName; label: string; name: string; href: string }[] = [
+  { icon: 'line', label: 'LINE', name: `LINE ${CONTACT.lineId}`, href: CONTACT.lineUrl },
+  {
+    icon: 'mail',
+    label: locale === 'ja' ? 'メール' : 'Email',
+    name: `${locale === 'ja' ? 'メール' : 'Email'} ${CONTACT.email}`,
+    href: `mailto:${CONTACT.email}`,
+  },
+  {
+    icon: 'instagram',
+    label: 'Instagram',
+    name: `Instagram ${CONTACT.instagramHandle}`,
+    href: CONTACT.instagram,
+  },
+];
 ---
 
 <section class="section head">
   <div class="measure measure--wide center">
     <p class="kicker">{c.kicker}</p>
-    <h1 class="h2 head__title">
-      {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h1>
-    <p class="body">{c.lead}</p>
+    <span class="rule"></span>
+    <h1 class="h2"><Phrases text={c.title} /></h1>
+    <p class="body head__lead"><Phrases text={c.lead} /></p>
   </div>
 </section>
 
-{/* Two paths, visually separate, as she asked. The top of the page already
-    says plans need not be fixed; this section only does the choosing. */}
-<section class="section paths-section">
+{/* Two paths, visually separate, as she asked: her copy, unchanged. Then the
+    three direct ways in one compact row (her brief, section 07), where there
+    used to be three stacked cards. */}
+<section class="section section--deep">
   <div class="measure--cards">
     <h2 class="h2 center paths__title">{c.pathsTitle}</h2>
     <ul class="paths">
       {
         c.paths.map((path) => (
-          <li class="path">
-            <h3 class="h3 path__title">{path.title}</h3>
-            <p class="body path__body">{path.body}</p>
-            <a class:list={['btn', { 'btn--solid': path.primary }]} href={p(path.href)}>
+          <li class="path panel">
+            <span class="path__icon">
+              <Icon name={path.icon} size={26} />
+            </span>
+            <div class="path__text">
+              <h3 class="h3 path__title"><Phrases text={path.title} /></h3>
+              <p class="body path__body"><Phrases text={path.body} /></p>
+            </div>
+            <a class:list={['btn', 'path__cta', { 'btn--solid': path.primary }]} href={p(path.href)}>
               {path.cta}
+              <Icon name="chevron-right" size={18} />
             </a>
           </li>
         ))
       }
     </ul>
-  </div>
-</section>
 
-{/* Below the form but full weight: many of her customers prefer LINE. */}
-<section class="section section--deep">
-  <div class="measure--cards">
-    <p class="kicker center channels__kicker">{c.channelsKicker}</p>
-    <ul class="channels">
-      {
-        c.channels.map((ch) => (
-          <li class="channel">
-            <p class="channel__label">{ch.label}</p>
-            <p class="caption channel__note">{ch.note}</p>
-            <p class="channel__value">{ch.value}</p>
-            <a class="channel__action" href={ch.href} rel="noopener">
-              {ch.action}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+    <div class="direct">
+      <h2 class="direct__title">
+        <span class="direct__line" aria-hidden="true"></span>
+        <span class="direct__words">{c.channelsTitle}</span>
+        <span class="direct__line" aria-hidden="true"></span>
+      </h2>
+      <ul class="direct__list">
+        {
+          channels.map((ch) => (
+            <li>
+              <a class="direct__link" href={ch.href} rel="noopener" aria-label={ch.name} title={ch.name}>
+                <Icon name={ch.icon} size={26} class="direct__icon" />
+                <span class="direct__label">{ch.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
   </div>
 </section>
 
 <section class="section">
   <div class="measure measure--wide center faq__head">
     <p class="kicker">{c.faqKicker}</p>
-    <h2 class="h2 head__title">
-      {c.faqTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
+    <span class="rule"></span>
+    <h2 class="h2">{c.faqTitle}</h2>
   </div>
 
-  <div class="faq measure--cards">
+  <div class="faq panel measure--cards">
     {
       c.faq.map((item) => (
         <details class="faq__item" open={'open' in item && item.open}>
-          <summary class="faq__q">{item.q}</summary>
+          <summary class="faq__q">
+            <span><Phrases text={item.q} /></span>
+            <Icon name="chevron-down" size={20} class="faq__chevron" />
+          </summary>
           <div class="faq__a">
-            {item.a.map((para) => <p class="body">{para}</p>)}
+            {item.a.map((para) => <p class="body"><Phrases text={para} /></p>)}
             {'list' in item && item.list && (
               <ul class="faq__list">
                 {item.list.map((line) => <li class="body">{line}</li>)}
               </ul>
             )}
-            {'after' in item && item.after && <p class="body">{item.after}</p>}
+            {'after' in item && item.after && <p class="body"><Phrases text={item.after} /></p>}
           </div>
         </details>
       ))
@@ -327,21 +314,19 @@ const c = copy[locale];
 </section>
 
 <style>
-  .head {
-    padding-block: clamp(64px, 9vw, 110px) clamp(40px, 6vw, 64px);
+  .head .rule,
+  .faq__head .rule {
+    margin-block: 14px 18px;
   }
-  .head__title {
-    margin-block: 26px;
+
+  .head__lead {
+    margin-top: 16px;
   }
 
   /* -------------------------------------------------------------- paths */
 
-  .paths-section {
-    padding-top: 0;
-  }
-
   .paths__title {
-    margin-bottom: clamp(32px, 5vw, 46px);
+    margin-bottom: clamp(20px, 3vw, 30px);
   }
 
   .paths {
@@ -349,135 +334,138 @@ const c = copy[locale];
     margin: 0;
     padding: 0;
     display: grid;
-    gap: var(--gap-md);
+    gap: 12px;
     grid-template-columns: 1fr;
   }
 
   @media (min-width: 760px) {
     .paths {
       grid-template-columns: 1fr 1fr;
-      align-items: stretch;
+      gap: 16px;
     }
   }
 
-  /* A column, so the two buttons sit on the same line however long the
-     Japanese and English bodies turn out. */
+  /* Icon beside the words, the button under them, full width: the two
+     buttons line up however long the two bodies turn out. */
   .path {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    border: 1px solid var(--card-edge);
-    background: var(--card);
-    padding: clamp(28px, 4vw, 40px) clamp(22px, 3vw, 32px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    gap: 14px 16px;
+    align-items: start;
+    padding: clamp(18px, 3vw, 26px);
+  }
+
+  .path__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--bg-deep);
+    color: var(--gold-text);
   }
 
   .path__title {
-    margin: 0 0 14px;
+    margin: 0 0 4px;
   }
 
-  .path__body {
-    margin-bottom: 26px;
-    max-width: 34ch;
+  .path__cta {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
   }
 
-  .path .btn {
-    margin-top: auto;
+  /* ------------------------------------------------------------- direct */
+
+  .direct {
+    margin-top: clamp(28px, 4vw, 40px);
   }
 
-  /* ----------------------------------------------------------- channels */
-
-  .channels__kicker {
-    margin-bottom: clamp(32px, 5vw, 46px);
+  /* Her heading, with a hairline either side. */
+  .direct__title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 6px;
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  :global(html[lang='ja']) .direct__title {
+    font-family: var(--font-body);
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    text-transform: none;
+  }
+  .direct__words {
+    flex: none;
+    max-width: 100%;
+  }
+  .direct__line {
+    flex: 1;
+    height: 1px;
+    background: var(--hairline);
   }
 
-  .channels {
+  /* One row of three, at every width. */
+  .direct__list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: var(--gap-md);
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .direct__list li + li {
+    border-left: 1px solid var(--hairline-soft);
   }
 
-  @media (min-width: 760px) {
-    .channels {
-      grid-template-columns: repeat(3, 1fr);
-      align-items: start;
-    }
-  }
-
-  .channel {
-    border: 1px solid var(--card-edge);
-    background: var(--card);
-    padding: clamp(22px, 3vw, 30px);
-    text-align: center;
-  }
-
-  .channel__label {
-    margin: 0 0 12px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
+  /* Icon over the word on a phone, where a third of the screen is too narrow
+     for "Instagram" beside an icon; side by side from 480px. */
+  .direct__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 68px;
+    padding: 8px 4px;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .direct__link :global(.direct__icon) {
+    color: var(--gold-text);
+  }
+  .direct__link:hover {
     color: var(--gold-text);
   }
 
-  :global(html[lang='ja']) .channel__label {
-    font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    text-transform: none;
-  }
-
-  .channel__note {
-    margin-bottom: 18px;
-    min-height: 3.2em;
-  }
-
-  /* Never uppercase an identifier someone has to type. */
-  .channel__value {
-    margin: 0 0 18px;
-    font-family: var(--font-body);
-    font-size: 14px;
-    text-transform: none;
-    color: var(--ink);
-    word-break: break-word;
-  }
-
-  .channel__action {
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    display: inline-block;
-    padding-block: 4px;
-  }
-
-  :global(html[lang='ja']) .channel__action {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: none;
+  @media (min-width: 480px) {
+    .direct__link {
+      flex-direction: row;
+      gap: 10px;
+      min-height: 56px;
+      font-size: 15px;
+    }
   }
 
   /* ---------------------------------------------------------------- faq */
 
   .faq__head {
-    margin-inline: auto;
-    margin-bottom: clamp(36px, 5vw, 52px);
+    margin-bottom: clamp(20px, 3vw, 30px);
   }
 
   .faq {
-    margin-inline: auto;
+    padding-inline: clamp(16px, 3vw, 28px);
   }
 
-  .faq__item {
-    border-bottom: 1px solid var(--hairline-soft);
-  }
-  .faq__item:first-child {
+  .faq__item + .faq__item {
     border-top: 1px solid var(--hairline-soft);
   }
 
@@ -488,37 +476,37 @@ const c = copy[locale];
     align-items: center;
     justify-content: space-between;
     gap: var(--gap-md);
-    padding: 20px 0;
+    min-height: 56px;
+    padding: 12px 0;
     font-family: var(--font-display);
-    font-size: clamp(16px, 2vw, 19px);
+    font-size: clamp(18px, 2.2vw, 20px);
+    font-weight: 600;
+    line-height: 1.5;
     color: var(--ink);
   }
   .faq__q::-webkit-details-marker {
     display: none;
   }
-  .faq__q::after {
-    content: '+';
-    flex: none;
+  .faq__q :global(.faq__chevron) {
     color: var(--gold-text);
-    font-size: 16px;
+    transition: transform 0.25s ease;
   }
-  .faq__item[open] .faq__q::after {
-    content: '\2212';
+  .faq__item[open] .faq__q :global(.faq__chevron) {
+    transform: rotate(180deg);
   }
 
   :global(html[lang='ja']) .faq__q {
     font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(14.5px, 1.8vw, 16.5px);
-    line-height: 1.7;
+    font-size: 16px;
+    line-height: 1.6;
   }
 
   .faq__a {
-    padding: 0 0 24px;
-    max-width: 60ch;
+    padding: 0 0 20px;
+    max-width: 62ch;
   }
   .faq__a > * + * {
-    margin-top: 0.7em;
+    margin-top: 0.6em;
   }
   .faq__list {
     margin: 0;
