@@ -142,7 +142,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       <p class="pick__name"><Phrases text={offering.name[locale]} /></p>
       <p class="pick__price">
         <span class="pick__amount" data-selected-price>{fromPrice}</span>{' '}
-        <span class="pick__unit">{unit}</span>
+        <span class="pick__unit"><Phrases text={unit} /></span>
       </p>
     </div>
   </div>
