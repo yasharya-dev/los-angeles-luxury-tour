@@ -83,7 +83,7 @@ const copy = {
         ],
       },
       {
-        q: 'Is it alright if I do not speak English?',
+        q: 'Do I need to speak English?',
         a: [
           'Yes.',
           `The tour is guided in Japanese, and wherever English is needed along the way ${EM} shopping, restaurants ${EM} we handle it, so first-time travelers and anyone unsure of their English can relax.`,
@@ -237,7 +237,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
 <section class="section section--deep">
   <div class="measure--cards">
     <h2 class="h2 center paths__title">{c.pathsTitle}</h2>
-    <ul class="paths">
+    <ul class="paths" role="list">
       {
         c.paths.map((path) => (
           <li class="path panel">
@@ -263,7 +263,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
         <span class="direct__words">{c.channelsTitle}</span>
         <span class="direct__line" aria-hidden="true"></span>
       </h2>
-      <ul class="direct__list">
+      <ul class="direct__list" role="list">
         {
           channels.map((ch) => (
             <li>
@@ -524,9 +524,15 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     font-weight: 600;
     line-height: 1.5;
     color: var(--ink);
+    /* A long question folds into even lines, not one line and a word. */
+    text-wrap: balance;
+    transition: color 0.3s ease;
   }
   .faq__q::-webkit-details-marker {
     display: none;
+  }
+  .faq__q:hover {
+    color: var(--gold-text);
   }
   .faq__q :global(.faq__chevron) {
     color: var(--gold-text);

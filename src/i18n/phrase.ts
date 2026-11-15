@@ -14,7 +14,8 @@
 // is always a fair place too, which is what lets a card line written as
 // "A・B・C" fold item by item. A slash before a figure is not a list mark but
 // "per" (／1名様), so there the fold goes before the slash and the unit
-// stays whole.
+// stays whole. And a middle dot with a katakana run of one or two characters
+// beside it is inside a name (ラ・ラ・ランド), not between two items.
 //
 // Neither source knows a compound verb: 申し受けます comes back as 申し|受けます.
 // A fold is never placed between a verb's one-kana ending and the kanji that
@@ -54,6 +55,10 @@ const NO_START = /^[、。，．・：；？！）」』】〉》〕｝ー〜…
 const MARKS = /[、。，．・：；？！（）「」『』【】〈〉《》〔〕｛｝／〜…⇔]/g;
 /** A phrase longer than this may fold inside, between its words. */
 const LONG = 10;
+
+/** What a reader counts as its characters: marks and spaces aside, and an
+    emoji or a rare kanji as one, though it takes two units of the string. */
+const size = (piece: string) => [...piece.replace(MARKS, '').trim()].length;
 
 const KANJI = /[一-鿿々]/;
 // The one-kana endings that join two verb stems. No particles among them.
@@ -109,9 +114,8 @@ export function phrases(text: string): string[] {
   const out: string[] = [];
   for (const piece of pieces) {
     if (!piece) continue;
-    const tiny = piece.replace(MARKS, '').trim().length <= 1;
-    if (tiny && out.length > 0) out[out.length - 1] += piece;
-    else if (out.length === 1 && out[0].replace(MARKS, '').trim().length <= 1) out[0] += piece;
+    if (size(piece) <= 1 && out.length > 0) out[out.length - 1] += piece;
+    else if (out.length === 1 && size(out[0]) <= 1) out[0] += piece;
     else out.push(piece);
   }
   return out;
@@ -130,11 +134,19 @@ function cut(text: string): string[] {
     at += chunk.length;
     if (at < text.length && wordStarts.has(at)) cuts.add(at);
   }
+  // How many katakana run on from `at`, one way or the other.
+  const kana = (at: number, step: 1 | -1) => {
+    let n = 0;
+    while (KATAKANA.test(text[at + n * step] ?? '')) n++;
+    return n;
+  };
   for (let i = 0; i < text.length - 1; i++) {
     if (!LIST_MARKS.has(text[i])) continue;
+    const [before, after] = [kana(i - 1, -1), kana(i + 1, 1)];
+    const inName = text[i] === '・' && before > 0 && after > 0 && Math.min(before, after) <= 2;
     const per = text[i] === '／' && DIGIT.test(text[i + 1]);
-    if (per) cuts.delete(i + 1);
-    cuts.add(per ? i : i + 1);
+    if (inName || per) cuts.delete(i + 1);
+    if (!inName) cuts.add(per ? i : i + 1);
   }
 
   // Kinsoku: a closing mark stays with what it closes. And a compound verb

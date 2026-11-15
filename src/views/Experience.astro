@@ -81,15 +81,16 @@ const c = copy[locale];
     size, two by two on a phone, which is the fallback she gave. */}
 <section class="section how">
   <h2 class="h2 center how__title">{c.howTitle}</h2>
-  <ol class="steps measure--cards">
+  {/* role="list": Safari stops calling a list without markers a list, and
+      these four are in order. The number is text, so it is read out. */}
+  <ol class="steps measure--cards" role="list">
     {
       c.steps.map((label, i) => (
         <li class="step">
           <span class="step__icon">
             <Icon name={stepIcons[i]} size={26} />
           </span>
-          {/* The list is ordered, so a screen reader already says the number. */}
-          <span class="step__n" aria-hidden="true">{i + 1}</span>
+          <span class="step__n">{i + 1}</span>
           <span class="step__label">{label}</span>
         </li>
       ))
@@ -167,15 +168,14 @@ const c = copy[locale];
     color: var(--gold-text);
   }
 
-  /* Cormorant numerals in both languages; Mincho figures look accidental.
-     Lining figures, because Cormorant's old-style 1 is drawn like a capital
-     I and the row would read I, 2, 3, 4. */
+  /* The label face in both languages. Cormorant's own 1 is drawn like a
+     capital I, and asking it for lining figures did nothing in WebKit: the
+     row read I, 2, 3, 4. */
   .step__n {
-    margin-top: 4px;
-    font-family: var(--font-display);
-    font-size: 20px;
+    margin-top: 6px;
+    font-family: var(--font-label);
+    font-size: 15px;
     font-weight: 600;
-    font-variant-numeric: lining-nums;
     line-height: 1;
     color: var(--gold-text);
   }

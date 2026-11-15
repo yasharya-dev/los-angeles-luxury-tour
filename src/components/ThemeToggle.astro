@@ -62,7 +62,9 @@ const t = useTranslations(locale);
     try {
       dark = localStorage.getItem(KEY) === 'dark';
     } catch {
-      /* stay on the default */
+      // Storage is blocked, so it cannot say what was chosen. Leave the page
+      // as it was restored.
+      return;
     }
     if (dark) root.dataset.theme = 'dark';
     else delete root.dataset.theme;

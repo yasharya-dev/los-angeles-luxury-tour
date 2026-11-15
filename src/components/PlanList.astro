@@ -4,9 +4,9 @@
   arranged on request. The homepage and the Experience page both show this
   list, so it is one component and the two cannot drift apart.
 
-  A plan with its own page links to it. The rest open in place: the card is a
-  <details> holding the plan's description, what its price leaves out, and
-  both ways to act on it.
+  A plan with its own page links to it. The rest open in place: the card's
+  price row is the summary of a <details> holding the plan's description,
+  what its price leaves out, and both ways to act on it.
 */
 import type { Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
@@ -42,7 +42,9 @@ const tierLabel: Record<Tier, string> = {
         <h3 class="kicker tier__label" id={`tier-${tier}`}>
           {tierLabel[tier]}
         </h3>
-        <ul class="tier__list">
+        {/* role="list": Safari drops the list semantics of a list without
+            markers, and "list, 4 items" is worth hearing here. */}
+        <ul class="tier__list" role="list">
           {byTier(tier).map((o) => {
             const detail = o.detail?.[locale];
             return (
@@ -88,13 +90,14 @@ const tierLabel: Record<Tier, string> = {
 <p class="caption center tiers__foot measure"><Phrases text={capabilities[locale]} /></p>
 
 <script>
-  // An address can name a plan's card (#plan-charter). The card is a
-  // <details>: open the one it names, on arrival and when the fragment
-  // changes, so the visitor lands on the plan itself and not a closed card.
-  // Without script the card is one tap from open.
+  // An address can name a plan's card (#plan-charter). Open the card it
+  // names, on arrival and when the fragment changes, so the visitor lands on
+  // the plan itself and not a closed card. Without script the card is one
+  // tap from open.
   const openNamed = () => {
-    const named = document.getElementById(location.hash.slice(1));
-    if (named instanceof HTMLDetailsElement) named.open = true;
+    const card = document.getElementById(location.hash.slice(1));
+    const details = card?.classList.contains('plan') ? card.querySelector('details') : null;
+    if (details) details.open = true;
   };
   openNamed();
   window.addEventListener('hashchange', openNamed);
@@ -118,7 +121,7 @@ const tierLabel: Record<Tier, string> = {
     gap: 12px;
   }
 
-  @media (min-width: 900px) {
+  @media (min-width: 720px) {
     .tier__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;

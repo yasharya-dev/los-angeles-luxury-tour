@@ -37,7 +37,7 @@ export const plans: Plan[] = [
   {
     slug: 'dodgers-transfer',
     title: {
-      en: 'Dodgers Game Private Transfer',
+      en: 'Dodgers game private transfer',
       ja: 'ドジャース観戦 プライベート送迎',
     },
     subtitle: {

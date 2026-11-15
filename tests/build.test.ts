@@ -187,9 +187,7 @@ describe('locale correctness', () => {
 
 describe('content parity', () => {
   it('renders every offering in both locales', () => {
-    // A card is an <article> when it links to the plan's own page, and a
-    // <details> when it opens in place.
-    const cards = /<(?:article|details) class="plan /g;
+    const cards = /<article class="plan /g;
     expect(count(html('/'), cards)).toBe(offerings.length);
     expect(count(html('/ja'), cards)).toBe(offerings.length);
   });
@@ -229,14 +227,17 @@ describe('content parity', () => {
   });
 });
 
-// The text of a page with the markup taken out and all whitespace removed, so
-// a string of hers can be looked for whole however it was folded for display
-// (<wbr> between phrases, <br> where she asked for a break).
+// The text a visitor SEES on a page, with the markup taken out and all
+// whitespace removed, so a string of hers can be looked for whole however it
+// was folded for display (<wbr> between phrases, <br> where she asked for a
+// break). Text that only a screen reader gets is left out: it is ours.
 const bare = (route: string) =>
   html(route)
     .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
+    .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
     .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, '');
+    // Spaces, and the invisible fold (U+200B) that is not one to a regex.
+    .replace(/[\s​]+/g, '');
 
 // Amelia's homepage, section by section, from her brief of 2026-11-05. Her
 // Japanese is checked character for character, and in her order.
@@ -306,15 +307,15 @@ describe('the homepage, in her six sections', () => {
       expect(count(list, /<svg/g), route).toBe(3);
       expect(count(list, /<p[ >]/g), `${route}: no descriptions`).toBe(0);
     }
-    // Each title with its break written as "/". Nothing else is taken out, so
-    // a space between two of her lines (it shows, in Japanese, once the break
-    // is switched off on a wide screen) fails this.
+    // Each title, with "/" where she breaks the line. The title is one
+    // piece of text with an invisible fold (U+200B) at her break: no element
+    // and no space inside it, either of which shows as a gap in WebKit
+    // wherever the title runs on one line.
     const titles = [...html('/ja').matchAll(/<h3 class="reason__title"[^>]*>([^]*?)<\/h3>/g)].map(
-      ([, inner]) =>
-        inner
-          .replace(/<br class="reason__br"[^>]*>/g, '/')
-          .replace(/<[^>]+>/g, '')
-          .trim(),
+      ([, inner]) => {
+        expect(inner.trim()).not.toMatch(/[<\s]/);
+        return inner.trim().replace(/​/g, '/');
+      },
     );
     expect(titles).toEqual(['日本語で安心', '高級車で/完全貸切', 'オーダーメイドの/旅']);
   });
@@ -323,24 +324,23 @@ describe('the homepage, in her six sections', () => {
   // what the visitor came for: the description and both ways to act on it.
   it('lists every plan as a card with its price and a way to its details', () => {
     const text = (markup: string) => markup.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+    const labels = { en: 'Details', ja: '詳細を見る' };
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
       const doc = html(prefix || '/');
       for (const o of offerings) {
-        const tag = o.slug ? 'article' : 'details';
         // [^] is "any character, newlines included", with no backslash to lose
         // inside a template literal.
         const card =
-          doc.match(new RegExp(`<${tag} class="plan[^"]*" id="plan-${o.id}"[^]*?</${tag}>`))?.[0] ?? '';
+          doc.match(new RegExp(`<article class="plan[^"]*" id="plan-${o.id}"[^]*?</article>`))?.[0] ?? '';
         expect(card, `${prefix} ${o.id}`).not.toBe('');
         expect(text(card), `${prefix} ${o.id} price`).toContain(text(o.price[locale]));
         if (o.slug) {
           expect(card, `${prefix} ${o.id} link`).toContain(`href="${prefix}/experience/${o.slug}"`);
           // The link's name starts with its visible label and says which plan.
-          expect(card, `${prefix} ${o.id} name`).toMatch(
-            /<a class="plan__more[^>]*aria-label="[^"]+: [^"]+"/,
+          expect(card, `${prefix} ${o.id} name`).toContain(
+            `aria-label="${labels[locale]}: ${o.name[locale]}"`,
           );
         } else {
-          expect(card, `${prefix} ${o.id} summary`).toMatch(/<summary class="plan__head"/);
           expect(text(card), `${prefix} ${o.id} description`).toContain(
             text(o.detail?.[locale].body ?? 'no detail'),
           );
@@ -348,6 +348,28 @@ describe('the homepage, in her six sections', () => {
           expect(card, `${prefix} ${o.id} ask`).toContain(`href="${prefix}/consult?service=${o.id}"`);
         }
       }
+    }
+  });
+
+  // A summary is a button, and a screen reader flattens what is inside a
+  // button. With the whole card in it, the plan's name stopped being a
+  // heading for the six cards that open in place. The name stays outside.
+  it('keeps every plan name a heading, outside the control that opens the card', () => {
+    for (const route of ['/', '/ja', '/experience', '/ja/experience']) {
+      const doc = html(route);
+      const cards = doc.match(/<article class="plan [^]*?<\/article>/g) ?? [];
+      expect(cards.length, route).toBe(offerings.length);
+      for (const card of cards) {
+        expect(count(card, /<h4 class="plan__name"/g), route).toBe(1);
+        for (const summary of card.match(/<summary[^]*?<\/summary>/g) ?? []) {
+          expect(summary, route).not.toMatch(/<h\d/);
+          // It says which plan it opens, for someone moving control to control.
+          expect(summary, route).toMatch(/<span class="sr-only"[^>]*>: [^<]+<\/span>/);
+        }
+      }
+      expect(count(doc, /<summary class="plan__row"/g), route).toBe(
+        offerings.filter((o) => !o.slug).length,
+      );
     }
   });
 
@@ -543,7 +565,10 @@ describe('the default theme', () => {
   it('opens on cream and never reads the device preference', () => {
     for (const route of ['/', '/ja', '/ja/contact']) {
       const doc = html(route);
-      expect(doc, route).toContain("localStorage.getItem('llt-theme') === 'dark'");
+      // In the head, so it runs before anything is painted: at the end of the
+      // body a visitor who chose dark would see a cream flash on every page.
+      const head = doc.match(/<head>[^]*?<\/head>/)?.[0] ?? '';
+      expect(head, route).toContain("localStorage.getItem('llt-theme') === 'dark'");
       expect(doc, route).not.toContain('prefers-color-scheme');
       expect(doc, route).not.toMatch(/<html[^>]*data-theme/);
     }
@@ -570,9 +595,13 @@ describe('the default theme', () => {
 
   // The toggle is a script. Without one it is hidden rather than left dead.
   it('hides the theme toggle when there is no JavaScript', () => {
-    expect(html('/ja')).toMatch(
+    const doc = html('/ja');
+    expect(doc).toMatch(
       /<noscript><style>\[data-theme-toggle\]\{display:none!important\}<\/style><\/noscript>/,
     );
+    // The rule hides nothing unless the buttons carry the attribute it names:
+    // one in the bar, one in the phone menu.
+    expect(count(doc, /<button[^>]*data-theme-toggle/g)).toBe(2);
   });
 });
 
@@ -717,8 +746,12 @@ describe('photographs', () => {
   // A landscape photo in a tall phone hero is drawn wider than the screen. At
   // 100vw the browser fetched a 768px file and stretched it to over twice that.
   it('tells the browser the hero is drawn wider than a phone screen', () => {
-    const sizes = picture('/').match(/sizes="([^"]+)"/)?.[1] ?? '';
-    expect(sizes).toMatch(/\(max-aspect-ratio: [^)]+\) \d+vh, 100vw/);
+    // The hero is 52% of the screen tall and the photo is 1920 by 1255, so
+    // on an upright phone it is drawn 80% of a screen-height wide. The
+    // Experience band is cut to 3:2 and is 32% tall: 48%.
+    const sizes = (route: string) => picture(route).match(/sizes="([^"]+)"/)?.[1] ?? '';
+    expect(sizes('/')).toBe('(max-aspect-ratio: 80/100) 80vh, 100vw');
+    expect(sizes('/experience')).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
   });
 
   it('leaves every photo that is not a page opener to load lazily', () => {
@@ -802,6 +835,12 @@ describe('the Experience page, in her order', () => {
       expect(count(list, /<li class="step"/g), route).toBe(4);
       expect(count(list, /<svg/g), route).toBe(4);
       expect(count(list, /<p[ >]/g), route).toBe(0);
+      // Safari stops calling a list without markers a list, so it is told,
+      // and each number is text a screen reader reads.
+      expect(list, route).toMatch(/^<ol class="steps[^"]*"[^>]*role="list"/);
+      const numbers = [...list.matchAll(/<span class="step__n"([^>]*)>(\d)<\/span>/g)];
+      expect(numbers.map(([, , n]) => n), route).toEqual(['1', '2', '3', '4']);
+      for (const [, attrs] of numbers) expect(attrs, route).not.toContain('aria-hidden');
     }
   });
 
@@ -886,10 +925,18 @@ describe('the About page, in her five parts', () => {
     for (const route of ['/about', '/ja/about']) {
       const figure = html(route).match(/<figure class="founder__figure[^]*?<\/figure>/)?.[0] ?? '';
       expect(count(figure, /<img /g), route).toBe(1);
-      expect(figure.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), route).toBe(
+      // What the eye reads, with the screen reader's separator taken out.
+      const seen = figure.replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '');
+      expect(seen.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), route).toBe(
         'Amelia Kay Perrin | Founder',
       );
-      expect(figure, route).toMatch(/<span class="founder__bar"[^>]*aria-hidden="true"/);
+      // The bar is decoration; a screen reader gets a comma in its place, so
+      // the two halves do not run together as "PerrinFounder".
+      expect(figure, route).toMatch(
+        /<span class="sr-only"[^>]*>, <\/span>\s*<span class="founder__bar"[^>]*aria-hidden="true"/,
+      );
+      // The caption names her, so the alt says what the picture is.
+      expect(figure, route).not.toMatch(/<img [^>]*alt="[^"]*(?:Amelia|アメリア)/);
     }
   });
 
@@ -965,6 +1012,17 @@ describe('text over a photograph', () => {
     expect(depth, 'the gradient stop where the text starts').not.toBe('');
     const behind = over(parseHex(depth), [255, 255, 255]);
     expect(ratio(parseHex(ink).rgb, behind)).toBeGreaterThanOrEqual(4.5);
+    // That stop is one --rise down the box, and the text has to start there
+    // and not above it: the box's top padding is the same --rise.
+    expect(rules).toMatch(
+      /\.photo-hero__inner\[data-astro-cid-[^\]]+\]\{[^}]*padding-top:var\(--rise\)/,
+    );
+  });
+
+  // On paper a browser drops backgrounds, and a plate's ink is light: the
+  // header and the footer's registration line would print white on white.
+  it('prints a plate as it looks on screen', () => {
+    expect(css()).toMatch(/@media print\{[^@]*\.plate\{[^}]*print-color-adjust:exact/);
   });
 
   it('puts every photo band on a plate, so its text takes the light ink', () => {

@@ -44,7 +44,7 @@ const copy = {
       'In the many countries I have visited, I have known hospitality that stays with you, and the special time that only travel brings.',
       'I care about more than glamour: quiet attentiveness and comfort, so that you can enjoy your trip at ease.',
     ],
-    portraitAlt: 'Amelia Kay Perrin',
+    portraitAlt: 'Portrait of the founder',
 
     coastAlt: 'Waves breaking below a house on the Malibu coast',
     expTitle: 'Not only where you go. How you spend the time, in your own way.',
@@ -74,7 +74,7 @@ const copy = {
       'これまでに訪れたさまざまな国で、心に残るホスピタリティや、旅がもたらす特別な時間を体験してきました。',
       '華やかさだけでなく、さりげない心配りや心地よさを大切にし、安心して楽しめる旅をご案内しています。',
     ],
-    portraitAlt: 'アメリア・ケイ・ペリン',
+    portraitAlt: '代表のポートレート',
 
     coastAlt: 'マリブの海岸。波打ち際に建つ邸宅',
     expTitle: ['行き先だけでなく、', BR, '過ごし方まで、', 'あなたらしく。'],
@@ -121,13 +121,14 @@ const c = copy[locale];
           alt={c.portraitAlt}
           aspect={3 / 4}
           keep="top"
-          sizes="(min-width: 640px) 220px, 124px"
+          sizes="(min-width: 640px) 240px, 124px"
         />
-        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator, so
-            it is hidden from a screen reader, and dropped where the two
-            halves stack under a narrow portrait. */}
+        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator:
+            a screen reader gets a comma in its place, and it is dropped
+            where the two halves stack under a narrow portrait. */}
         <figcaption class="founder__caption" lang={en}>
           <span class="founder__name">Amelia Kay Perrin</span>
+          <span class="sr-only">, </span>
           <span class="founder__bar" aria-hidden="true">|</span>
           <span class="founder__role">Founder</span>
         </figcaption>
@@ -152,7 +153,7 @@ const c = copy[locale];
 
   {/* 4. Media and press: one slim card. A list, so another credit is a line
       of data. */}
-  <ul class="press measure--cards">
+  <ul class="press measure--cards" role="list">
     {
       c.press.map((item) => (
         <li class="press__item">
@@ -205,8 +206,11 @@ const c = copy[locale];
     margin: clamp(18px, 3vw, 28px) auto 0;
   }
 
+  /* Centred on a phone, like every other heading on the page. Beside the
+     portrait, from 640px, it starts where the text starts. */
   .founder__title {
     margin-bottom: 16px;
+    text-align: center;
   }
 
   /* Beside the introduction, as she asked: on a phone the portrait floats
@@ -266,10 +270,10 @@ const c = copy[locale];
   @media (min-width: 640px) {
     .founder {
       display: grid;
-      grid-template-columns: 220px minmax(0, 1fr);
+      grid-template-columns: 240px minmax(0, 1fr);
       column-gap: clamp(28px, 5vw, 48px);
       align-items: start;
-      max-width: 800px;
+      max-width: 820px;
     }
     .founder__figure {
       float: none;
@@ -281,6 +285,9 @@ const c = copy[locale];
     .founder__title,
     .founder__para {
       grid-column: 2;
+    }
+    .founder__title {
+      text-align: left;
     }
     .founder__caption {
       display: flex;
@@ -370,6 +377,20 @@ const c = copy[locale];
     text-decoration-color: var(--hairline);
     text-underline-offset: 0.3em;
     white-space: nowrap;
+    transition: color 0.3s ease;
+  }
+  .press__link:hover {
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* On the narrowest phones the description and the link no longer fit side
+     by side, and 「代表者インタビュー掲載」 lost its last character to a second
+     line. The link goes under it. */
+  @media (max-width: 359px) {
+    .press__item {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   @media (min-width: 640px) {

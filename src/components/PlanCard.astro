@@ -5,10 +5,14 @@
   list on the site.
 
   Two ways to "see details", same look:
-   - `href` given: the card links to it. The link is stretched over the whole
-     card, so the card is the tap target, but its name stays short.
-   - no `href`: the card is a <details>. The whole head is the summary, and
-     the default slot is what it reveals. Native, so it works without script.
+   - `href` given: the price row ends in a link to it.
+   - no `href`: the price row is the <summary> of a <details>, and the
+     default slot is what it reveals. Native, so it works without script.
+
+  Either way the control is stretched over the whole card, so the card is
+  the tap target. The name and the details stay OUTSIDE the control: a
+  summary is a button, and a screen reader flattens what is inside a button,
+  which would take the plan's name out of heading navigation.
 
   The tile is the monogram until her photograph for the plan arrives.
 */
@@ -34,58 +38,67 @@ const t = useTranslations(locale);
 const more = t('plan.details');
 const name = o.name[locale];
 const unit = o.priceNote?.[locale];
+// English details are separated by a middle dot. A no-break space before it
+// keeps the dot at the end of a line, never at the start of the next.
+const blurb = o.blurb[locale].replaceAll(' \u00b7 ', '\u00a0\u00b7 ');
 
-const Card = href ? 'article' : 'details';
-const Head = href ? 'div' : 'summary';
+const Foot = href ? 'div' : 'details';
+const Row = href ? 'div' : 'summary';
 const Name = `h${level}` as const;
 ---
 
-<Card class="plan panel" id={`plan-${o.id}`}>
-  <Head class="plan__head">
+<article class="plan panel" id={`plan-${o.id}`}>
+  <div class="plan__head">
     {/* Decorative: the name beside it says what the plan is. */}
     <span class="plan__thumb">
       <Monogram size={40} lazy />
     </span>
 
-    <span class="plan__body">
+    <div class="plan__body">
       <Name class="plan__name"><Phrases text={name} /></Name>
-      <span class="plan__blurb"><Phrases text={o.blurb[locale]} /></span>
-    </span>
+      <p class="plan__blurb"><Phrases text={blurb} /></p>
+    </div>
 
-    <span class="plan__foot">
-      <span class="plan__price">
-        <span class="plan__amount">{o.price[locale]}</span>
-        {unit && (
-          <span class="plan__unit">
-            <Phrases text={unit} />
-          </span>
-        )}
-      </span>
+    <Foot class="plan__foot">
+      <Row class="plan__row">
+        <span class="plan__price">
+          <span class="plan__amount">{o.price[locale]}</span>
+          {
+            unit && (
+              <span class="plan__unit">
+                <Phrases text={unit} />
+              </span>
+            )
+          }
+        </span>
+        {
+          href ? (
+            // The name starts with the visible label, then says which plan.
+            <a class="plan__more plan__more--link" href={href} aria-label={`${more}: ${name}`}>
+              {more}
+              <Icon name="arrow-right" size={18} />
+            </a>
+          ) : (
+            // The same words for a screen reader, after the price it reads
+            // on the way: "… Details: Solo traveler plan".
+            <span class="plan__more">
+              {more}
+              <span class="sr-only">: {name}</span>
+              <Icon name="chevron-down" size={18} class="plan__chevron" />
+            </span>
+          )
+        }
+      </Row>
       {
-        href ? (
-          // The name starts with the visible label, then says which plan.
-          <a class="plan__more plan__more--link" href={href} aria-label={`${more}: ${name}`}>
-            {more}
-            <Icon name="arrow-right" size={18} />
-          </a>
-        ) : (
-          <span class="plan__more">
-            {more}
-            <Icon name="chevron-down" size={18} class="plan__chevron" />
-          </span>
+        !href && (
+          <div class="plan__reveal">
+            <slot />
+          </div>
         )
       }
-    </span>
-  </Head>
-
-  {
-    !href && (
-      <div class="plan__reveal">
-        <slot />
-      </div>
-    )
-  }
-</Card>
+    </Foot>
+  </div>
+</article>
 
 <style>
   .plan {
@@ -104,22 +117,14 @@ const Name = `h${level}` as const;
 
   /* Two rows: the tile beside the name and details, then the price and the
      way in across the whole card. Across the card, the price has room to sit
-     beside the link; inside the text column it never did, and every card ran
-     a line longer. */
+     beside the control; inside the text column it never did, and every card
+     ran a line longer. */
   .plan__head {
     display: grid;
     grid-template-columns: 72px minmax(0, 1fr);
     gap: 8px 14px;
     align-items: center;
     padding: 12px;
-    list-style: none;
-  }
-  .plan__head::-webkit-details-marker {
-    display: none;
-  }
-  summary.plan__head {
-    cursor: pointer;
-    border-radius: var(--radius-card);
   }
 
   /* The photo slot. Square, so a column of cards lines up. */
@@ -133,7 +138,6 @@ const Name = `h${level}` as const;
   }
 
   .plan__body {
-    display: block;
     min-width: 0;
   }
 
@@ -156,23 +160,33 @@ const Name = `h${level}` as const;
 
   /* Balanced, like the name: two even lines, not one long and one word. */
   .plan__blurb {
-    display: block;
-    margin-top: 2px;
+    margin: 2px 0 0;
     font-size: 14px;
     line-height: 1.6;
     color: var(--ink-soft);
     text-wrap: balance;
   }
 
-  /* The price takes the room the link leaves. A long price folds between
-     its figure and its unit, and the link stays on the last line. */
   .plan__foot {
     grid-column: 1 / -1;
+    display: block;
+  }
+
+  /* The price takes the room the control leaves. A long price folds between
+     its figure and its unit, and the control stays on the last line. */
+  .plan__row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     gap: 0 12px;
     line-height: 1.5;
+    list-style: none;
+  }
+  .plan__row::-webkit-details-marker {
+    display: none;
+  }
+  summary.plan__row {
+    cursor: pointer;
   }
 
   .plan__price {
@@ -200,8 +214,8 @@ const Name = `h${level}` as const;
     color: var(--ink-soft);
   }
 
-  /* The card (or the summary) is the tap target, far over 44px, so this label
-     only has to read as the way in. */
+  /* The control covers the card (below), far over 44px, so this label only
+     has to read as the way in. */
   .plan__more {
     display: inline-flex;
     align-items: center;
@@ -221,18 +235,22 @@ const Name = `h${level}` as const;
     text-transform: none;
   }
 
-  /* The link covers the card: one big target, one short name. The focus ring
-     is drawn around the card, where a sighted keyboard user is looking. */
-  .plan__more--link::after {
+  /* The link, or the summary, is stretched over the card: one big target
+     with a short name. Its focus ring is drawn around the card, where a
+     sighted keyboard user is looking. */
+  .plan__more--link::after,
+  summary.plan__row::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: var(--radius-card);
   }
-  .plan__more--link:focus-visible {
+  .plan__more--link:focus-visible,
+  summary.plan__row:focus-visible {
     outline: none;
   }
-  .plan__more--link:focus-visible::after {
+  .plan__more--link:focus-visible::after,
+  summary.plan__row:focus-visible::after {
     outline: 2px solid var(--gold-text);
     outline-offset: 2px;
   }
@@ -240,20 +258,25 @@ const Name = `h${level}` as const;
   .plan :global(.plan__chevron) {
     transition: transform 0.25s ease;
   }
-  .plan[open] :global(.plan__chevron) {
+  .plan__foot[open] :global(.plan__chevron) {
     transform: rotate(180deg);
   }
 
+  /* What the card opens to show. It sits above the stretched control, or
+     its own links could not be reached and its text could not be selected. */
   .plan__reveal {
-    margin: 0 12px;
-    padding: 14px 0 16px;
+    position: relative;
+    z-index: 1;
+    margin-top: 10px;
+    padding: 14px 0 4px;
     border-top: 1px solid var(--hairline-soft);
   }
 
-  /* Under 340px the longest unit and the link no longer fit side by side:
-     the price takes the row and the link goes under it, at the right. */
+  /* Under 340px the longest unit and the control no longer fit side by
+     side: the price takes the row and the control goes under it, at the
+     right. */
   @media (max-width: 339px) {
-    .plan__foot {
+    .plan__row {
       grid-template-columns: minmax(0, 1fr);
     }
     .plan__more {
@@ -269,9 +292,6 @@ const Name = `h${level}` as const;
     }
     .plan__thumb {
       width: 84px;
-    }
-    .plan__reveal {
-      margin-inline: 14px;
     }
   }
 </style>

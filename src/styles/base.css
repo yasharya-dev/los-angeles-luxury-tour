@@ -64,6 +64,16 @@ main {
   color: var(--ink);
 }
 
+/* On paper a browser drops backgrounds, and a plate's light ink would be
+   white on white: the header, and the footer with the registration line.
+   A plate prints as it looks on screen. */
+@media print {
+  .plate {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 /* proportional kana spacing */
 html[lang='ja'] body {
   font-feature-settings: 'palt';
@@ -253,6 +263,11 @@ html[lang='ja'] .h3 {
   line-height: 1.85;
   color: var(--ink-mid);
   text-wrap: pretty;
+}
+
+/* Centred, a paragraph is short, and reads best in lines of even length. */
+.center > .body {
+  text-wrap: balance;
 }
 
 html[lang='ja'] .body {
@@ -505,6 +520,15 @@ html[lang='ja'] .btn {
   font-weight: 500;
   letter-spacing: 0.2em;
   color: var(--gold-text);
+}
+
+/* 「完全予約制」 is set wide in Mincho. Its English, "By Reservation Only",
+   takes the English display face and stays on one line. */
+html[lang='en'] .reservation__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 26px);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .reservation__note {

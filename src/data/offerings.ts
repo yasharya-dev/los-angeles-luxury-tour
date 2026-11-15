@@ -66,7 +66,7 @@ export const offerings: Offering[] = [
       ja: '4泊6日・1名様から、安心のひとり旅を',
     },
     price: { en: 'from $2,480', ja: '約404,000円〜' },
-    priceNote: { en: '', ja: '（$2,480〜）／1名様' },
+    priceNote: { en: 'per person', ja: '（$2,480〜）／1名様' },
     detail: {
       en: {
         body: `One game with round-trip stadium transfers, a full day of sightseeing, hotel check-in assistance, and easy stops ${EM} supermarkets, restaurants, wherever the day leads. Additional games can be added at $150 each.`,
@@ -211,7 +211,7 @@ export const offerings: Offering[] = [
     tier: 'transport',
     slug: 'dodgers-transfer',
     name: {
-      en: 'Dodgers Game Private Transfer',
+      en: 'Dodgers game private transfer',
       ja: 'ドジャース観戦 プライベート送迎',
     },
     // Her subtitle, verbatim, doubles as the card line.
@@ -220,7 +220,7 @@ export const offerings: Offering[] = [
       ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     price: { en: 'from ¥49,800', ja: '49,800円〜' },
-    priceNote: { en: '/ 1 group', ja: '／1組' },
+    priceNote: { en: 'per group', ja: '／1組' },
   },
   {
     id: 'dodgers-ticket',
