@@ -33,7 +33,9 @@ const links = [
   <a class="brand" href={p('/')} aria-label={t('nav.home')}>
     <Monogram size={40} />
     <span class="brand__words">
-      <span class="brand__name">LOS ANGELES</span>
+      {/* The space is real text: without it the lockup reads to a screen
+          reader, and to the label-in-name rule, as "LOS ANGELESLUXURY TOUR". */}
+      <span class="brand__name">LOS ANGELES</span>{' '}
       <span class="brand__sub">LUXURY TOUR</span>
     </span>
   </a>

@@ -472,12 +472,15 @@ describe('the header and footer', () => {
     );
   });
 
-  // The home link's name has to contain the lockup's own lettering.
+  // The home link's name has to contain the lockup's own lettering, as the
+  // words it shows: two spans with nothing between them read as one word.
   it('names the home link after the lettering it shows', () => {
     for (const route of ['/', '/ja']) {
-      expect(header(route), route).toMatch(
-        /<a class="brand"[^>]*aria-label="Los Angeles Luxury Tour[^"]*"/,
-      );
+      const link = header(route).match(/<a class="brand"[^]*?<\/a>/)?.[0] ?? '';
+      const name = link.match(/aria-label="([^"]*)"/)?.[1] ?? '';
+      const shown = link.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      expect(shown, route).toBe('LOS ANGELES LUXURY TOUR');
+      expect(name.toLowerCase(), route).toContain(shown.toLowerCase());
     }
   });
 
