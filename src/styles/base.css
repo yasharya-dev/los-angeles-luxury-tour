@@ -290,6 +290,14 @@ html[lang='ja'] .kicker {
   text-transform: none;
 }
 
+/* An English label on a Japanese page (ABOUT US, THE EXPERIENCE: she names
+   those parts in English). It is set as the English labels are, and the
+   element carries lang="en" so a screen reader says it as English. */
+html[lang='ja'] .kicker[lang='en'] {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+}
+
 /* A long Japanese label at 0.2em wraps into a two-character orphan on a
    phone column. */
 @media (max-width: 480px) {

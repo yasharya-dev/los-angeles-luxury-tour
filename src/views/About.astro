@@ -1,9 +1,12 @@
 ---
 import { type Locale } from '../i18n/ui';
+import { BR } from '../i18n/text';
 import { localizePath } from '../i18n/utils';
-import Divider from '../components/Divider.astro';
+import Icon from '../components/Icon.astro';
 import Photo from '../components/Photo.astro';
+import Phrases from '../components/Phrases.astro';
 import portrait from '../assets/portrait.jpg';
+import coast from '../assets/hero-malibu.jpg';
 
 interface Props {
   locale: Locale;
@@ -11,471 +14,386 @@ interface Props {
 const { locale } = Astro.props;
 const p = (path: string) => localizePath(path, locale);
 
-const RSQ = String.fromCharCode(0x2019);
-
-// Amelia's structure and Japanese from her review of 2026-10-22: a brand page
-// with a founder section inside it, in her order. English derived from it.
-// Her small headings are bilingual lockups; the Japanese page shows them as
-// she wrote them, the English page shows the English half.
+// Amelia's About page, from section 09 of her brief of 2026-11-05: five
+// short parts in place of the seven longer ones. Her Japanese is verbatim,
+// with the line breaks her picture shows; the English is derived from it,
+// and stays in the first person, since this is her page.
 const BOLD_JOURNEY = 'https://boldjourney.com/meet-amelia-perrin/';
+
+// She names the parts in English, in both languages. On the Japanese page
+// they are marked as English so a screen reader says them as English words.
+const labels = {
+  about: 'About us',
+  founder: 'Founder',
+  experience: 'The experience',
+  press: 'Media & press',
+};
+const en = locale === 'en' ? undefined : 'en';
 
 const copy = {
   en: {
-    aboutKicker: 'About us',
-    aboutTitle: ['We believe luxury is an experience that enriches your life.'],
-    aboutSub: '',
-    about: [
-      'Luxury, to us, is not only what is lavish. It is time, freedom, room to breathe, and enjoying things in a way that is yours.',
-      'A place that moves you because of who you are. Time that exists because of the day it is. An experience that stays with you after the trip is over. Those are the luxuries we care about.',
-      `Los Angeles Luxury Tour brings together a local view of Los Angeles and each guest${RSQ}s interests and sensibility, and proposes time that is yours alone.`,
+    title: 'Luxury is an experience that enriches your life.',
+    lead: [
+      'What a trip is worth is not the number of places you saw, but the time you spent there.',
+      'We stay close to what each guest hopes for, and bring you a Los Angeles trip that stays with you.',
     ],
 
-    founderKicker: 'Founder',
-    founderTitle: ['Raised in Japan. At home in Southern California.'],
+    founderTitle: 'I have always loved to travel. That is why there is time I want to share.',
     founder: [
-      'Raised in Japan by a Japanese mother and an American father, now based in Southern California.',
-      'The careful attention Japan is known for, and the easy freedom of America.',
-      'Drawing on a life lived close to both cultures and on the view of someone who lives here, she proposes time in Los Angeles shaped to each guest.',
+      'I grew up in Japan and now live in Southern California.',
+      'In the many countries I have visited, I have known hospitality that stays with you, and the special time that only travel brings.',
+      'I care about more than glamour: quiet attentiveness and comfort, so that you can enjoy your trip at ease.',
     ],
     portraitAlt: 'Amelia Kay Perrin',
 
-    storyKicker: 'Our story',
-    storyTitle: ['The moments that make people happy, turned into a life in travel.'],
-    story: [
-      'As a child, the ballet and musical stage was everything.',
-      'What came naturally there was to think not only about how I looked, but about what the person watching was feeling right then.',
-      'That never changed as an adult: thinking about what would make someone happy, noticing the small things, and sharing the places I love.',
-      'When I began running tours in Los Angeles, everything I had done until then came together.',
-      'Not simply showing people places, but making experiences they could only have met on this trip.',
-      'And letting that time become the memory that coming to Los Angeles was worth it.',
-      'That is where Los Angeles Luxury Tour began.',
-    ],
-
-    expKicker: 'The experience',
-    expTitle: ['Time that stays with you after the trip is over.'],
-    expLines: [
-      'The view you met because of the day it was.',
-      'The place you had always wanted to go.',
-      'The little shop you found by chance and loved.',
-      'The time you laughed with someone.',
-      'Time you find yourself remembering long after the trip is over.',
-    ],
+    coastAlt: 'Waves breaking below a house on the Malibu coast',
+    expTitle: 'Not only where you go. How you spend the time, in your own way.',
     exp: [
-      'From the classic sights of Los Angeles to the places and experiences only someone who lives here could suggest.',
-      `Shaped to each guest${RSQ}s interests and what they came for, we make time that is theirs alone.`,
+      'More than a round of the sights: we propose a trip at your pace and to your wishes, one that lets you feel what Los Angeles really is.',
+      'With real local knowledge and careful support in Japanese, even a first visit is one you can enjoy at ease.',
     ],
 
-    pressKicker: 'Media & press',
-    pressTitle: ['Press and appearances'],
     press: [
-      {
-        name: 'Bold Journey',
-        label: 'Founder Interview: Meet Amelia Perrin',
-        body: 'An interview on how Los Angeles Luxury Tour began, the road to it, and how she thinks about travel and hospitality.',
-        link: 'Read the article',
-        href: BOLD_JOURNEY,
-      },
-      {
-        name: 'Nippon TV',
-        label: 'Joho Live Miyaneya',
-        body: 'Appeared live from Dodger Stadium, alongside a guest.',
-      },
+      { name: 'Bold Journey', what: 'Founder interview', link: 'Read the article', href: BOLD_JOURNEY },
     ],
 
-    partnerKicker: 'Partnership',
-    partnerTitle: ['New experiences in Los Angeles, together.'],
-    partner: [
-      'Los Angeles Luxury Tour welcomes partners who can bring new experiences to our guests: hotels, restaurants, attractions, sports and entertainment, brands, media.',
-      `We value building, on each other${RSQ}s strengths, experiences that could only come from here.`,
-    ],
-    partnerCta: 'Partnership enquiries',
-
-    closingTitle: ['Next, your Los Angeles.'],
-    closing: [
-      'Where you want to go and how you want to spend it can be different for everyone.',
-      'Your next special time, in Los Angeles.',
-    ],
-    closingPlans: 'See the plans',
-    closingConsult: 'Consult',
+    closingTitle: 'A Los Angeles that is yours alone.',
+    cta: 'Ask about your trip',
   },
 
   ja: {
-    aboutKicker: 'ABOUT US｜私たちについて',
-    aboutTitle: ['私たちが考えるLuxuryとは、', '人生の価値になる体験です。'],
-    aboutSub: 'We believe luxury is an experience that enriches your life.',
-    about: [
-      '贅沢とは、豪華さだけではなく、時間、自由、心の余裕、そして自分らしく楽しめること。',
-      'その人だから心が動く場所、その日だから生まれる時間、旅が終わったあとも心に残る体験も、私たちにとって大切なLuxuryです。',
-      'Los Angeles Luxury Tourは、ロサンゼルスを知る現地の視点と、一人ひとりの興味や感性を掛け合わせ、その方だけの時間をご提案します。',
+    title: ['贅沢とは、', BR, '人生の価値になる体験。'],
+    lead: [
+      ['旅の価値は、', '訪れた場所の数ではなく、', 'そこでどんな時間を過ごしたか。'],
+      ['一人ひとりの希望に寄り添い、', '心に残るロサンゼルスの旅を', 'お届けします。'],
     ],
 
-    founderKicker: 'FOUNDER｜代表紹介',
-    founderTitle: ['日本で育ち、', '南カリフォルニアに暮らして。'],
+    founderTitle: ['旅を愛してきたからこそ、', BR, '届けたい時間があります。'],
     founder: [
-      '日本人の母とアメリカ人の父のもと日本で育ち、現在は南カリフォルニアを拠点にしています。',
-      '日本ならではの細やかな心配りと、アメリカらしい自由な感覚。',
-      '二つの文化を身近に感じてきた経験と、現地で暮らす視点を活かしながら、一人ひとりに合わせたロサンゼルスでの時間をご提案しています。',
+      '日本で育ち、現在は南カリフォルニアで暮らしています。',
+      'これまでに訪れたさまざまな国で、心に残るホスピタリティや、旅がもたらす特別な時間を体験してきました。',
+      '華やかさだけでなく、さりげない心配りや心地よさを大切にし、安心して楽しめる旅をご案内しています。',
     ],
     portraitAlt: 'アメリア・ケイ・ペリン',
 
-    storyKicker: 'OUR STORY｜Los Angeles Luxury Tourを始めた理由',
-    storyTitle: ['人が喜ぶ瞬間を、', '旅の仕事に。'],
-    story: [
-      '子どもの頃は、バレエやミュージカルの舞台に夢中でした。',
-      'そこで自然と考えていたのは、自分がどう見えるかだけではなく、「見てくれている人は、今どんなことを感じているだろう」ということ。',
-      '大人になってからも、人が喜ぶことを考えること、細かなことに気づくこと、そして大好きな場所を誰かと分かち合うことは変わりませんでした。',
-      'ロサンゼルスでツアーを始めたとき、それまでの経験がひとつにつながりました。',
-      'ただ場所をご案内するのではなく、「この旅だったから出会えた」と思える体験をつくる。',
-      'そして、その時間が「ロサンゼルスに来てよかった」という記憶につながっていく。',
-      'それが、Los Angeles Luxury Tourの原点です。',
-    ],
-
-    expKicker: 'THE EXPERIENCE｜旅のあとにも残るもの',
-    expTitle: ['旅が終わったあとも、', '心に残る時間を。'],
-    expLines: [
-      'その日だから出会えた景色。',
-      'ずっと行ってみたかった場所。',
-      '偶然見つけたお気に入りのお店。',
-      '誰かと笑った時間。',
-      '旅が終わったあとも、ふとした瞬間に思い出したくなる時間。',
-    ],
+    coastAlt: 'マリブの海岸。波打ち際に建つ邸宅',
+    expTitle: ['行き先だけでなく、', BR, '過ごし方まで、', 'あなたらしく。'],
     exp: [
-      '定番のロサンゼルス観光から、現地を知るからこそご提案できる場所や体験まで。',
-      '一人ひとりの興味や目的に合わせ、その方だけの時間をつくります。',
+      '観光地を巡るだけでなく、あなたのペースやご希望に合わせて、ロサンゼルスの魅力を深く感じられる旅をご提案します。',
+      '現地のリアルな情報と、日本語でのきめ細やかなサポートで、初めての方でも安心してお楽しみいただけます。',
     ],
 
-    pressKicker: 'MEDIA & PRESS｜メディア掲載・出演実績',
-    pressTitle: ['メディア掲載・出演実績'],
     press: [
-      {
-        name: 'Bold Journey',
-        label: 'Founder Interview｜Meet Amelia Perrin',
-        body: 'Los Angeles Luxury Tourを始めた背景やこれまでの歩み、旅とおもてなしに対する考えについてインタビューいただきました。',
-        link: '記事を読む ※英語記事',
-        href: BOLD_JOURNEY,
-      },
-      {
-        name: '日本テレビ系',
-        label: '『情報ライブ ミヤネ屋』',
-        body: 'ドジャースタジアムからの生中継に、お客様とともに出演。',
-      },
+      { name: 'Bold Journey', what: '代表者インタビュー掲載', link: '記事を読む', href: BOLD_JOURNEY },
     ],
 
-    partnerKicker: 'PARTNERSHIP｜パートナーシップ',
-    partnerTitle: ['ロサンゼルスで、', '新しい体験を一緒に。'],
-    partner: [
-      'Los Angeles Luxury Tourでは、ホテル、レストラン、観光施設、スポーツ・エンターテインメント、ブランド、メディアなど、お客様に新しい体験を届けられるパートナーとの協業を歓迎しています。',
-      '互いの強みを活かしながら、ここでしか生まれない体験を一緒につくることを大切にしています。',
-    ],
-    partnerCta: 'パートナーシップのお問い合わせ',
-
-    closingTitle: ['次は、あなたのロサンゼルスを。'],
-    closing: [
-      '行きたい場所も、過ごし方も、一人ひとり違っていい。',
-      '次の特別な時間を、ロサンゼルスで。',
-    ],
-    closingPlans: 'プランを見る',
-    closingConsult: '相談する',
+    closingTitle: ['あなただけの', 'ロサンゼルスを。'],
+    cta: '旅のご相談はこちら',
   },
 } as const;
 
 const c = copy[locale];
 ---
 
-{/* 1. About us */}
-<section class="section about">
+{/* 1. About us: her headline and two short lines, on a compact head. */}
+<section class="section head">
   <div class="measure measure--wide center">
-    <p class="kicker">{c.aboutKicker}</p>
-    <h1 class="h2 section__title">{c.aboutTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h1>
-    {c.aboutSub && <p class="about__en">{c.aboutSub}</p>}
-    {c.about.map((para) => <p class="body stack">{para}</p>)}
+    <p class="kicker" lang={en}>{labels.about}</p>
+    <span class="rule"></span>
+    <h1 class="h2"><Phrases text={c.title} /></h1>
+    {c.lead.map((para) => <p class="body head__lead"><Phrases text={para} /></p>)}
   </div>
 </section>
 
-{/* 2. Founder: the portrait smaller, set beside the introduction, as she asked. */}
+{/* 2. Founder: her portrait beside the introduction. On a phone the heading
+    runs full width and the text wraps around the portrait; from 640px the
+    portrait is a column of its own. */}
 <section class="section section--deep">
-  <div class="founder measure--grid">
-    <div class="founder__portrait">
-      <Photo src={portrait} alt={c.portraitAlt} sizes="(min-width: 720px) 220px, 128px" />
-    </div>
-    <p class="kicker founder__kicker">{c.founderKicker}</p>
-    <div class="founder__text">
-      <h2 class="h2 section__title">{c.founderTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-      {c.founder.map((para) => <p class="body stack">{para}</p>)}
+  <div class="measure--cards">
+    <p class="kicker center" lang={en}>{labels.founder}</p>
+    <span class="rule rule--center"></span>
+    <div class="founder">
+      <h2 class="h2 founder__title"><Phrases text={c.founderTitle} /></h2>
+      <figure class="founder__figure">
+        <Photo
+          class="founder__photo"
+          src={portrait}
+          alt={c.portraitAlt}
+          aspect={3 / 4}
+          keep="top"
+          sizes="(min-width: 640px) 220px, 124px"
+        />
+        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator, so
+            it is hidden from a screen reader, and dropped where the two
+            halves stack under a narrow portrait. */}
+        <figcaption class="founder__caption" lang={en}>
+          <span class="founder__name">Amelia Kay Perrin</span>
+          <span class="founder__bar" aria-hidden="true">|</span>
+          <span class="founder__role">Founder</span>
+        </figcaption>
+      </figure>
+      {c.founder.map((para) => <p class="body founder__para"><Phrases text={para} /></p>)}
     </div>
   </div>
 </section>
 
-<Divider />
+{/* 3. The full-width California photo, then her short experience message. */}
+<div class="band">
+  <Photo class="band__photo" src={coast} alt={c.coastAlt} aspect={5 / 2} sizes="100vw" />
+</div>
 
-{/* 3. Our story */}
 <section class="section">
-  <div class="measure measure--wide">
-    <p class="kicker">{c.storyKicker}</p>
-    <h2 class="h2 section__title">{c.storyTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-    {c.story.map((para) => <p class="body stack">{para}</p>)}
-  </div>
-</section>
-
-{/* 4. The experience: five fragments she wrote as a stack, then two lines. */}
-<section class="section section--deep">
   <div class="measure measure--wide center">
-    <p class="kicker">{c.expKicker}</p>
-    <h2 class="h2 section__title">{c.expTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-    <div class="exp__lines">
-      {c.expLines.map((line) => <p class="exp__line">{line}</p>)}
-    </div>
-    {c.exp.map((para) => <p class="body stack">{para}</p>)}
+    <p class="kicker" lang={en}>{labels.experience}</p>
+    <span class="rule"></span>
+    <h2 class="h2"><Phrases text={c.expTitle} /></h2>
+    {c.exp.map((para) => <p class="body exp__para"><Phrases text={para} /></p>)}
   </div>
-</section>
 
-{/* 5. Media & press */}
-<section class="section">
-  <div class="measure measure--wide center press__head">
-    <p class="kicker">{c.pressKicker}</p>
-    <h2 class="h2 section__title">{c.pressTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-  </div>
+  {/* 4. Media and press: one slim card. A list, so another credit is a line
+      of data. */}
   <ul class="press measure--cards">
     {
       c.press.map((item) => (
         <li class="press__item">
-          <p class="press__name">{item.name}</p>
-          <p class="press__label">{item.label}</p>
-          <p class="body press__body">{item.body}</p>
-          {'href' in item && item.href && (
-            <a class="press__link" href={item.href} rel="noopener" target="_blank">
-              {item.link} <span aria-hidden="true">&rarr;</span>
-            </a>
-          )}
+          <span class="kicker press__label" lang={en}>{labels.press}</span>
+          <span class="press__what">
+            <span class="press__name" lang={en}>{item.name}</span>
+            <span class="press__desc">{item.what}</span>
+          </span>
+          <a class="press__link" href={item.href} rel="noopener" target="_blank">
+            {item.link}
+            <Icon name="arrow-right" size={18} />
+          </a>
         </li>
       ))
     }
   </ul>
 </section>
 
-<Divider />
-
-{/* 6. Partnership */}
-<section class="section">
-  <div class="measure measure--wide center">
-    <p class="kicker">{c.partnerKicker}</p>
-    <h2 class="h2 section__title">{c.partnerTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-    {c.partner.map((para) => <p class="body stack">{para}</p>)}
-    <a class="btn partner__cta" href={p('/consult')}>{c.partnerCta}</a>
-  </div>
-</section>
-
-{/* 7. Final CTA */}
+{/* 5. Her closing line and the one gold button. */}
 <section class="section section--deep">
   <div class="measure measure--wide center">
-    <h2 class="h2 section__title">{c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
-    {c.closing.map((para) => <p class="body stack">{para}</p>)}
-    <div class="closing__actions">
-      <a class="btn btn--solid" href={p('/experience')}>{c.closingPlans}</a>
-      <a class="btn" href={p('/consult')}>{c.closingConsult}</a>
-    </div>
+    <h2 class="h2"><Phrases text={c.closingTitle} /></h2>
+    <span class="rule"></span>
+    <a class="btn btn--solid closing__cta" href={p('/contact')}>
+      {c.cta}
+      <Icon name="arrow-right" size={18} />
+    </a>
   </div>
 </section>
 
 <style>
-  .section__title {
-    margin-block: 26px;
+  /* --------------------------------------------------------------- head */
+
+  .head .rule {
+    margin-block: 14px 18px;
   }
 
-  /* One sentence per line is how she writes; .body carries margin: 0. */
-  .stack + .stack {
-    margin-top: 0.7em;
+  .head__lead {
+    margin-top: 14px;
+  }
+  .head__lead + .head__lead {
+    margin-top: 6px;
   }
 
-  /* ------------------------------------------------------------- about */
+  /* ------------------------------------------------------------ founder */
 
-  .about__en {
-    margin: 0 0 28px;
+  .founder {
+    display: flow-root;
+    max-width: 560px;
+    margin: clamp(18px, 3vw, 28px) auto 0;
+  }
+
+  .founder__title {
+    margin-bottom: 16px;
+  }
+
+  /* Beside the introduction, as she asked: on a phone the portrait floats
+     and her three paragraphs run beside it, then under it. */
+  .founder__figure {
+    float: left;
+    width: 124px;
+    margin: 8px 16px 6px 0;
+  }
+  .founder__figure :global(picture) {
+    display: block;
+  }
+  .founder__photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-ctl);
+  }
+
+  .founder__caption {
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .founder__name,
+  .founder__role {
+    display: block;
+  }
+  /* A name is set as it is written: never uppercased, never tracked apart. */
+  .founder__name {
     font-family: var(--font-display);
-    font-style: italic;
-    font-size: clamp(16px, 2.2vw, 19px);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .founder__bar {
+    display: none;
+    color: var(--gold-text);
+  }
+  .founder__role {
+    margin-top: 2px;
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--gold-text);
   }
 
-  /* ----------------------------------------------------------- founder */
-
-  /* The portrait sits at a fixed small width beside the introduction, as she
-     asked, rather than filling the viewport the way it used to. On a phone the
-     kicker sits beside the photo and the heading and text run full width
-     underneath: a Japanese heading cannot wrap inside a 180px column without
-     breaking mid-word. From 720px the text column takes both. */
-  .founder {
-    margin-inline: auto;
-    display: grid;
-    grid-template-columns: 128px minmax(0, 1fr);
-    column-gap: clamp(20px, 4vw, 48px);
-    row-gap: 22px;
-    align-items: center;
+  .founder__para + .founder__para {
+    margin-top: 0.7em;
   }
 
-  .founder__portrait {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .founder__kicker {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .founder__text {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  @media (min-width: 720px) {
+  /* From here the portrait has a column to itself, with the heading and the
+     text beside it and her name line on one row beneath. The figure spans
+     more rows than there are, so a fourth paragraph needs no change here. */
+  @media (min-width: 640px) {
     .founder {
+      display: grid;
       grid-template-columns: 220px minmax(0, 1fr);
-      row-gap: 0;
+      column-gap: clamp(28px, 5vw, 48px);
       align-items: start;
+      max-width: 800px;
     }
-    .founder__portrait {
-      grid-row: 1 / span 2;
-      align-self: center;
+    .founder__figure {
+      float: none;
+      grid-column: 1;
+      grid-row: 1 / span 12;
+      width: auto;
+      margin: 0;
     }
-    .founder__text {
+    .founder__title,
+    .founder__para {
       grid-column: 2;
     }
-  }
-
-  .founder__portrait img {
-    width: 100%;
-    height: auto;
-    border: 1px solid var(--card-edge);
-  }
-
-  .founder__text .section__title {
-    margin-block: 0 18px;
-  }
-
-  @media (min-width: 720px) {
-    .founder__text .section__title {
-      margin-block: 20px 22px;
+    .founder__caption {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: 12px;
     }
+    .founder__bar {
+      display: inline;
+    }
+    .founder__role {
+      margin-top: 0;
+    }
+  }
+
+  /* --------------------------------------------------------------- band */
+
+  .band :global(picture) {
+    display: block;
+  }
+  .band__photo {
+    display: block;
+    width: 100%;
+    height: clamp(150px, 32vw, 380px);
+    object-fit: cover;
   }
 
   /* --------------------------------------------------------- experience */
 
-  .exp__lines {
-    margin: 0 auto clamp(28px, 4vw, 40px);
-    padding-block: clamp(28px, 4vw, 40px);
-    border-top: 1px solid var(--hairline-soft);
-    border-bottom: 1px solid var(--hairline-soft);
+  .exp__para {
+    margin-top: 14px;
   }
-
-  .exp__line {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(18px, 2.6vw, 24px);
-    line-height: 1.8;
-    color: var(--ink);
-  }
-
-  :global(html[lang='ja']) .exp__line {
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(15.5px, 2.2vw, 20px);
-    line-height: 2;
+  .exp__para + .exp__para {
+    margin-top: 6px;
   }
 
   /* -------------------------------------------------------------- press */
 
-  .press__head {
-    margin-inline: auto;
-    margin-bottom: clamp(32px, 5vw, 46px);
-  }
-
   .press {
     list-style: none;
-    margin: 0 auto;
+    margin: clamp(26px, 4vw, 40px) auto 0;
     padding: 0;
     display: grid;
-    gap: var(--gap-md);
-    grid-template-columns: 1fr;
+    gap: 10px;
+    max-width: 720px;
   }
 
-  @media (min-width: 760px) {
-    .press {
-      grid-template-columns: 1fr 1fr;
-      align-items: start;
-    }
-  }
-
+  /* A slim card on the alternate cream. On a phone the label takes the first
+     row; from 640px the three parts sit in one row, divided by hairlines. */
   .press__item {
-    border: 1px solid var(--card-edge);
-    background: var(--card);
-    padding: clamp(24px, 3.5vw, 34px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 16px;
+    padding: 14px clamp(16px, 3vw, 24px);
+    background: var(--bg-deep);
+    border-radius: var(--radius-card);
   }
-
-  .press__name {
-    margin: 0 0 8px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .press__name {
-    font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    text-transform: none;
-  }
-
   .press__label {
-    margin: 0 0 12px;
-    font-family: var(--font-display);
-    font-size: clamp(18px, 2.4vw, 22px);
+    grid-column: 1 / -1;
+  }
+  .press__name,
+  .press__desc {
+    display: block;
+  }
+  .press__name {
+    font-family: var(--font-label);
+    font-size: 17px;
+    font-weight: 600;
     line-height: 1.4;
     color: var(--ink);
   }
-
-  :global(html[lang='ja']) .press__label {
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(15.5px, 2vw, 18px);
-    line-height: 1.7;
+  .press__desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
   }
-
-  .press__body {
-    margin-bottom: 16px;
-  }
-
   .press__link {
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    display: inline-block;
-    padding-block: 4px;
-  }
-
-  :global(html[lang='ja']) .press__link {
-    font-family: var(--font-body);
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--tap);
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: none;
+    color: var(--gold-text);
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
+    white-space: nowrap;
   }
 
-  /* ------------------------------------------------- partner + closing */
-
-  .partner__cta {
-    margin-top: 36px;
+  @media (min-width: 640px) {
+    .press__item {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0 24px;
+    }
+    .press__label {
+      grid-column: auto;
+      padding-right: 24px;
+      border-right: 1px solid var(--hairline);
+    }
+    .press__what {
+      text-align: center;
+    }
+    .press__link {
+      padding-left: 24px;
+      border-left: 1px solid var(--hairline);
+    }
   }
 
-  .closing__actions {
-    margin-top: 36px;
-    display: flex;
-    justify-content: center;
-    gap: var(--gap-md);
-    flex-wrap: wrap;
+  /* ------------------------------------------------------------ closing */
+
+  .closing__cta {
+    margin-top: 8px;
   }
 </style>
