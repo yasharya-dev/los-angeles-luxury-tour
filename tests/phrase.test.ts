@@ -95,7 +95,7 @@ describe('phrases', () => {
       'お一人旅はもちろん、初めてロサンゼルスを訪れる方にも安心してお楽しみいただけるよう、日本語で丁寧にサポートいたします。',
     );
     expect(parts.join('|')).not.toContain('安|心');
-    expect(parts).toContain('安心してお楽しみいただけるよう、');
+    expect(parts.join('|')).toContain('安心して|お楽しみいただけるよう、');
   });
 
   // A space in Japanese is the author's own boundary. Her plan title folds
@@ -134,6 +134,15 @@ describe('phrases', () => {
     expect(phrases('スタジアムツアー／プリゲームツアーも')).toEqual([
       'スタジアムツアー／',
       'プリゲームツアーも',
+    ]);
+  });
+
+  // Thirteen characters with no seam of script in them: on a narrow card the
+  // line ran out mid-word, 「…お申し込みくだ / さい。」.
+  it('opens a long phrase before a polite prefix', () => {
+    expect(phrases('ご希望の日程・人数などを入力してお申し込みください。').slice(-2)).toEqual([
+      '入力して',
+      'お申し込みください。',
     ]);
   });
 

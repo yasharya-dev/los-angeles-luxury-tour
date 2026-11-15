@@ -988,6 +988,17 @@ describe('the contact page chooses', () => {
     }
     expect(bare('/ja/contact')).toContain('直接ご連絡をご希望の方へ');
   });
+
+  // With the footer down to icons, this page is the one place the LINE ID and
+  // the address can be read. A link alone is not enough: the ID is how she is
+  // added from another device, and a mailto does nothing without a mail app.
+  it('prints the LINE ID and the email address as text, not only as links', () => {
+    for (const route of ['/contact', '/ja/contact']) {
+      const ids = html(route).match(/<dl class="direct__ids"[^]*?<\/dl>/)?.[0] ?? '';
+      const values = [...ids.matchAll(/<dd[^>]*>([^<]*)<\/dd>/g)].map(([, value]) => value.trim());
+      expect(values, route).toEqual(['@153cqwqp', 'losangelesluxurytour@gmail.com']);
+    }
+  });
 });
 
 describe('her sample plan, in her format', () => {

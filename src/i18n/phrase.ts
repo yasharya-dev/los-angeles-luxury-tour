@@ -30,6 +30,8 @@
 // as ワイ|ナ|リー); never next to a digit or a symbol (9:|00, 3|試合); never
 // before hiragana, which would start a line on a particle; and never from
 // hiragana into kanji, which is a prefix or an inflection (お|出迎え, 買い|物).
+// One more seam the eye reads: a polite お or ご that starts a word after kana
+// (入力して|お申し込みください, 安心して|お楽しみいただけるよう).
 //
 // A space inside Japanese text is different: the author put it there, so it
 // is the boundary. Each side of it is taken on its own, and a side short
@@ -147,7 +149,9 @@ function cut(text: string): string[] {
     const [start, end] = [edges[i], edges[i + 1]];
     if (end - start <= LONG) continue;
     for (const w of wordStarts) {
-      if (w > start && w < end && seam(text[w - 1], text[w])) cuts.add(w);
+      if (w <= start || w >= end) continue;
+      const polite = (text[w] === 'お' || text[w] === 'ご') && HIRAGANA.test(text[w - 1]);
+      if (polite || seam(text[w - 1], text[w])) cuts.add(w);
     }
   }
 
