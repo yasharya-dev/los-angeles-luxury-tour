@@ -49,6 +49,8 @@ Those two sources can change under the site: a BudouX release, or a Node upgrade
 
 **Plates.** The header, the footer, a photograph with text on it and the reservation panel are black in both themes. Rather than hard-code light colours on each, they carry one class, `.plate`, which gives everything inside it the dark theme's token values. A component on a plate uses the same tokens as one on the page, and a focus ring or a link inside it comes out in the bright gold by itself.
 
+**A photo is cut to its band at build time.** A portrait photograph shown as a short band would otherwise send a phone the whole picture to draw a strip of it. `Photo.astro` takes an `aspect` and which part to `keep`, and crops while it resizes: the Experience page's opening image went from 89 KB to 18 KB at the width a phone asks for.
+
 **Text over a photograph is safe by construction.** An accessibility checker cannot judge text over an image, so `PhotoHero.astro` does not leave it to the photo: the text sits in the lower part of the frame over a gradient that belongs to the text, clear at the top of the picture and at its full depth exactly where the first line starts. That depth is tested against a pure white pixel, so the text clears 4.5:1 over any photograph the owner sends.
 
 
@@ -90,7 +92,7 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 
 | File | Guards |
 | --- | --- |
-| `tests/build.test.ts` | Every route in both locales; the canonical, alternates and language link of every page, by value; no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity; the palette, with contrast computed for text, the CTA and control edges in both themes; cream as the default theme; the header, menu and footer; photo formats, priority and file sizes; the depth of the gradient behind text on a photo; every Japanese fold, pinned; one label for the booking request; both paths on every card, the booking notice, no phone number, sitemap and robots |
+| `tests/build.test.ts` | Every route in both locales; the canonical, alternates and language link of every page, by value; no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity; her homepage and Experience copy, character for character and in her order; no exchange rate on any page; the palette, with contrast computed for text, the CTA and control edges in both themes; cream as the default theme; the header, menu and footer; photo formats, priority and file sizes; the depth of the gradient behind text on a photo; every Japanese fold, pinned; one label for the booking request; both paths on every card, the booking notice, no phone number, sitemap and robots |
 | `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every plan has a page or a description for its card, every plan books and consults on the site |
 | `tests/i18n.test.ts` | Path helpers, including the build's `.html` paths, and dictionary key parity |
 | `tests/phrase.test.ts` | Where Japanese may fold: lossless, never inside a katakana word, a dictionary word or a compound verb, never a one-character phrase, kinsoku respected, an authored space as the only fold of a title |

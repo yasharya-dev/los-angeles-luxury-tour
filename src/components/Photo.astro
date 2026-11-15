@@ -22,6 +22,14 @@ interface Props {
   sizes?: string;
   /** The page's opening image: fetched early, never lazy. */
   priority?: boolean;
+  /**
+   * Crop to this shape (width over height) while resizing. For a photo shown
+   * as a band much shorter than itself: without it a phone downloads the
+   * whole of a portrait photo to draw a strip of it.
+   */
+  aspect?: number;
+  /** Which part a crop keeps: 'top', 'centre', 'bottom', 'left', 'right'. */
+  keep?: string;
   class?: string;
   style?: string;
   // Astro hands a child component the parent's style-scope attribute; it has
@@ -29,7 +37,15 @@ interface Props {
   [attr: `data-astro-cid-${string}`]: unknown;
 }
 
-const { src, alt, sizes = '100vw', priority = false, ...rest } = Astro.props;
+const {
+  src,
+  alt,
+  sizes = '100vw',
+  priority = false,
+  aspect,
+  keep = 'centre',
+  ...rest
+} = Astro.props;
 
 // One quality per format. A single number for all three makes the AVIF
 // larger than the WebP, which defeats listing it first: at these settings
@@ -37,15 +53,28 @@ const { src, alt, sizes = '100vw', priority = false, ...rest } = Astro.props;
 const QUALITY = { avif: 48, webp: 68, jpg: 74 } as const;
 type Format = keyof typeof QUALITY;
 
+// The photo as it is served: its own shape, or the crop's. A crop taller
+// than the photo is cut from its sides, so it has less width to offer.
+const shape = aspect ?? src.width / src.height;
+const own = Math.min(src.width, Math.round(src.height * shape));
+
 // A ladder of widths, ending on the photo's own (capped at 1920): asking for
 // more than the original holds only upscales it, and stopping at the rung
 // below would throw resolution away.
-const top = Math.min(src.width, 1920);
+const top = Math.min(own, 1920);
 const widths = [...[240, 480, 768, 1080, 1440].filter((w) => w < top), top];
 
 const make = (format: Format) =>
   Promise.all(
-    widths.map((width) => getImage({ src, width, format, quality: QUALITY[format] })),
+    widths.map((width) =>
+      getImage({
+        src,
+        width,
+        format,
+        quality: QUALITY[format],
+        ...(aspect ? { height: Math.round(width / aspect), fit: 'cover', position: keep } : {}),
+      }),
+    ),
   );
 const [avif, webp, jpg] = await Promise.all([make('avif'), make('webp'), make('jpg')]);
 const srcset = (set: typeof avif) =>
@@ -53,7 +82,6 @@ const srcset = (set: typeof avif) =>
 
 // What a browser with no srcset support gets: the middle of the ladder.
 const fallback = jpg[Math.min(3, jpg.length - 1)];
-const ratio = src.height / src.width;
 ---
 
 <picture>
@@ -65,7 +93,7 @@ const ratio = src.height / src.width;
     sizes={sizes}
     alt={alt}
     width={top}
-    height={Math.round(top * ratio)}
+    height={Math.round(top / shape)}
     loading={priority ? 'eager' : 'lazy'}
     decoding={priority ? 'auto' : 'async'}
     fetchpriority={priority ? 'high' : undefined}

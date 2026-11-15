@@ -63,8 +63,17 @@ const copy = {
 const c = copy[locale];
 ---
 
-{/* 01 Hero: her heading and nothing else, on a short photo band. */}
-<PhotoHero src={heroImg} alt={c.heroAlt} size="short" focus="50% 30%" priority>
+{/* 01 Hero: her heading and nothing else, on a short photo band. The photo
+    is a tall one; the band takes its upper part, sky to horizon. */}
+<PhotoHero
+  src={heroImg}
+  alt={c.heroAlt}
+  size="short"
+  aspect={3 / 2}
+  keep="top"
+  focus="50% 40%"
+  priority
+>
   <h1 class="h2 hero__title"><Phrases text={c.title} /></h1>
 </PhotoHero>
 
@@ -158,12 +167,15 @@ const c = copy[locale];
     color: var(--gold-text);
   }
 
-  /* Cormorant numerals in both languages; Mincho figures look accidental. */
+  /* Cormorant numerals in both languages; Mincho figures look accidental.
+     Lining figures, because Cormorant's old-style 1 is drawn like a capital
+     I and the row would read I, 2, 3, 4. */
   .step__n {
     margin-top: 4px;
     font-family: var(--font-display);
     font-size: 20px;
     font-weight: 600;
+    font-variant-numeric: lining-nums;
     line-height: 1;
     color: var(--gold-text);
   }
