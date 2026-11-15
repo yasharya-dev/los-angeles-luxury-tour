@@ -53,6 +53,31 @@ export interface Booking {
 
 export type Problem = 'service' | 'type' | 'route' | 'date' | 'guests';
 
+/** What is wrong, in the form's own words: on the form, and on the page a
+    visitor without script lands on when a request is refused. */
+export const problemText: Record<Locale, Record<Problem | 'name' | 'email' | 'missing', string>> = {
+  ja: {
+    service: 'プランを選択してください。',
+    type: '送迎タイプを選択してください。',
+    route: '送迎区間を選択してください。',
+    date: 'ご利用希望日を選択してください。',
+    guests: 'ご利用人数を選択してください。',
+    name: 'お名前をご記入ください。',
+    email: 'メールアドレスをご確認ください。',
+    missing: '未記入の項目があります。',
+  },
+  en: {
+    service: 'Please choose a plan.',
+    type: 'Please choose a transfer.',
+    route: 'Please choose a route.',
+    date: 'Please choose a date.',
+    guests: 'Please tell us how many guests.',
+    name: 'Please enter your name.',
+    email: 'Please check the email address.',
+    missing: 'A few fields still need attention.',
+  },
+};
+
 /** A calendar date as the form sends it: YYYY-MM-DD, and a real one. */
 export function isDate(s: string): boolean {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s ?? '');
@@ -88,11 +113,16 @@ export function checkBooking(
   }
 
   const date = input.date ?? '';
-  if (!isDate(date)) return { ok: false, problem: 'date' };
+  if (!isDate(date) || date < yesterday()) return { ok: false, problem: 'date' };
   const party = guestOptions(offering.id).find((g) => g.value === input.guests);
   if (!party) return { ok: false, problem: 'guests' };
 
   return { ok: true, booking: { service: offering.id, type, route, date, guests: party.value } };
+}
+
+/** Yesterday in UTC: the earliest date anyone anywhere can still call today. */
+function yesterday(): string {
+  return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 }
 
 /** 2026-12-05 reads 2026年12月5日（土） or Saturday, December 5, 2026. The

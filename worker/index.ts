@@ -8,6 +8,7 @@ import { offerings } from '../src/data/offerings';
 import { CONTACT } from '../src/data/contact';
 import {
   checkBooking,
+  problemText,
   receipt,
   receivedQuery,
   summary,
@@ -215,7 +216,7 @@ export function summaryHtml(s: Summary): string {
     .join('');
   return (
     `<div class="received-summary">` +
-    `<p class="received-summary__title">${escapeHtml(s.title)}</p>` +
+    `<h2 class="received-summary__title">${escapeHtml(s.title)}</h2>` +
     `<p class="received-summary__plan">${escapeHtml(s.plan)}</p>` +
     `<dl class="received-summary__rows">${rows}</dl></div>`
   );
@@ -240,7 +241,10 @@ export function receiptMail(b: Booking, locale: Locale, site: string) {
 }
 
 // What a visitor without script sees when a post is refused: a short page in
-// their language with the way back, not a line of bare English.
+// their language that says what was wrong, with a way back. The link goes back
+// in history where script runs (it usually does: a post that skipped the
+// background send most often means only the form's module failed), which keeps
+// what was typed; it falls back to the page itself.
 const FAIL: Record<Locale, { check: string; send: string; back: string }> = {
   ja: {
     check: '送信できませんでした。前のページに戻り、入力内容をご確認ください。',
@@ -254,20 +258,48 @@ const FAIL: Record<Locale, { check: string; send: string; back: string }> = {
   },
 };
 
-function failPage(locale: Locale, kind: 'check' | 'send', back: string, status: number) {
-  const f = FAIL[locale];
-  const mail =
-    kind === 'send'
-      ? ` <a href="mailto:${CONTACT.email}">${CONTACT.email}</a>`
-      : '';
-  const body =
-    `<!doctype html><html lang="${locale}"><meta charset="utf-8">` +
-    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<title>Los Angeles Luxury Tour</title>` +
-    `<body style="font:16px/1.8 system-ui,sans-serif;max-width:32rem;margin:12vh auto;padding:0 20px;color:#191919">` +
-    `<p>${escapeHtml(f[kind])}${mail}</p><p><a href="${escapeHtml(back)}">${escapeHtml(f.back)}</a></p></body></html>`;
-  return new Response(body, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+function page(lang: string, body: string, status: number): Response {
+  return new Response(
+    `<!doctype html><html lang="${lang}"><meta charset="utf-8">` +
+      `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+      `<meta name="robots" content="noindex">` +
+      `<title>Los Angeles Luxury Tour</title>` +
+      `<body style="font:16px/1.8 system-ui,sans-serif;max-width:32rem;margin:12vh auto;padding:0 20px;color:#191919">` +
+      `${body}</body></html>`,
+    { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+  );
 }
+
+function failPage(
+  locale: Locale,
+  kind: 'check' | 'send',
+  back: string,
+  status: number,
+  problem?: string,
+): Response {
+  const f = FAIL[locale];
+  const what = problem ? (problemText[locale] as Record<string, string>)[problem] : undefined;
+  const mail =
+    kind === 'send' ? ` <a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
+  return page(
+    locale,
+    `<p>${escapeHtml(f[kind])}${mail}</p>` +
+      (what ? `<p>${escapeHtml(what)}</p>` : '') +
+      `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${escapeHtml(f.back)}</a></p>`,
+    status,
+  );
+}
+
+/** A post from another site's page. It has no language of its own: both. */
+const forbidden = () =>
+  page(
+    'ja',
+    '<p>このページからは送信できません。</p><p lang="en">This form cannot be sent from another site.</p>',
+    403,
+  );
+
+/** More than any of the two forms can hold. */
+const MAX_BODY = 64 * 1024;
 
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
   const res = await fetch('https://api.resend.com/emails', {
@@ -297,11 +329,18 @@ async function handleSubmission(
 
   // Another site's page cannot post here on a visitor's behalf.
   const origin = request.headers.get('Origin');
-  if (origin && origin !== url.origin) {
-    return new Response('Forbidden', { status: 403 });
-  }
+  if (origin && origin !== url.origin) return forbidden();
 
-  const form = await request.formData();
+  // Read the body only when it is a form, and of a size a form can be.
+  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) {
+    return new Response('Too large', { status: 413 });
+  }
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return new Response('Bad request', { status: 400 });
+  }
   const wantsJson = (request.headers.get('Accept') ?? '').includes(
     'application/json',
   );
@@ -323,7 +362,7 @@ async function handleSubmission(
   const fail = (error: string, status: number) =>
     wantsJson
       ? Response.json({ ok: false, error }, { status })
-      : failPage(locale, status >= 500 ? 'send' : 'check', back, status);
+      : failPage(locale, status >= 500 ? 'send' : 'check', back, status, error);
 
   // Honeypot. A success, so the bot moves on; logged, in case autofill or a
   // person ever fills it.
@@ -400,16 +439,17 @@ async function received(request: Request, env: Env, url: URL): Promise<Response>
   if (!res.ok || !(res.headers.get('Content-Type') ?? '').includes('text/html')) return res;
   const check = checkBooking(Object.fromEntries(url.searchParams));
   if (!check.ok) return res;
-  const locale: Locale = url.pathname.startsWith('/ja/') ? 'ja' : 'en';
-  const page = (await res.text()).replace(
-    SUMMARY_MARK,
-    summaryHtml(summary(check.booking, locale)),
-  );
+  // The page now says what one visitor sent: not one for a cache to keep.
   const headers = new Headers(res.headers);
   headers.delete('Content-Length');
   headers.delete('ETag');
   headers.set('Cache-Control', 'no-store');
-  return new Response(page, { status: res.status, headers });
+  if (request.method === 'HEAD') return new Response(null, { status: res.status, headers });
+  const locale: Locale = url.pathname.startsWith('/ja/') ? 'ja' : 'en';
+  const block = summaryHtml(summary(check.booking, locale));
+  // A function, so nothing in the summary is read as a replacement pattern.
+  const body = (await res.text()).replace(SUMMARY_MARK, () => block);
+  return new Response(body, { status: res.status, headers });
 }
 
 export default {
@@ -439,7 +479,9 @@ export default {
     if (submission) return handleSubmission(request, env, submission, url);
 
     const res =
-      request.method === 'GET' && RECEIVED.has(url.pathname) && url.search
+      (request.method === 'GET' || request.method === 'HEAD') &&
+      RECEIVED.has(url.pathname) &&
+      url.search
         ? await received(request, env, url)
         : await env.ASSETS.fetch(request);
     if (!beta) return res;

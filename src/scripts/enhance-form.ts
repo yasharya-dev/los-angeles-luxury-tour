@@ -4,23 +4,36 @@
  * Both forms work without this: the browser checks the required fields, the
  * form posts normally and the Worker redirects to the right page afterwards.
  * With it, validation runs on blur rather than on every keystroke, and the
- * form sends in the background: on success it moves to the page the Worker
- * names (the booking's received page), or shows its own panel.
+ * form sends in the background, then moves to the page the Worker names: the
+ * same page a visitor without script lands on.
  *
  * Expects, inside the form: `[data-form-error]`, `[data-send-error]` and
- * `[data-submit]`; and, for a form that stays on its page, a `[data-form-ok]`
- * panel next to it. A required field `f-x` pairs with an error line `e-x`; a
+ * `[data-submit]`. A required field `f-x` pairs with an error line `e-x`; a
  * group of required radios named `x` does too.
  */
 type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+// The Worker names the field it refused. Its own word for each, here.
+const FIELD: Record<string, string> = {
+  name: '#f-name',
+  email: '#f-email',
+  date: '#f-date',
+  guests: '#f-guests',
+  type: 'input[name="type"]',
+  route: 'input[name="route"]',
+};
+
+declare global {
+  interface Window {
+    turnstile?: { reset: () => void };
+  }
+}
 
 export function enhanceForm(form: HTMLFormElement): void {
   // Two components on one page may each ship this script.
   if (form.dataset.enhanced) return;
   form.dataset.enhanced = 'true';
 
-  const scope = form.parentElement ?? document;
-  const ok = scope.querySelector<HTMLElement>('[data-form-ok]');
   const formErr = form.querySelector<HTMLElement>('[data-form-error]');
   const sendErr = form.querySelector<HTMLElement>('[data-send-error]');
   const submit = form.querySelector<HTMLButtonElement>('[data-submit]');
@@ -52,38 +65,59 @@ export function enhanceForm(form: HTMLFormElement): void {
     .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
     .forEach((d) => (d.min = local));
 
+  const reset = () => {
+    submit.disabled = false;
+    submit.textContent = submit.dataset.label ?? 'Send';
+  };
+
+  /* Back from the next page can restore this one as it was left: sending. */
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) reset();
+  });
+
   // Read when needed, not once: a field can become required later (the
   // booking form's route does, on a one-way choice).
   const required = () =>
     (Array.from(form.querySelectorAll('[required]')) as Field[]).filter((f) => !f.disabled);
 
-  const key = (input: Field) =>
-    input instanceof HTMLInputElement && input.type === 'radio'
-      ? input.name
-      : input.id.replace(/^f-/, '');
+  const isRadio = (input: Field): input is HTMLInputElement =>
+    input instanceof HTMLInputElement && input.type === 'radio';
+
+  // Spaces alone are not an answer, though the browser accepts them.
+  const valid = (input: Field) =>
+    input.checkValidity() && (isRadio(input) || input.value.trim() !== '');
 
   const showError = (input: Field, on: boolean) => {
-    const group =
-      input instanceof HTMLInputElement && input.type === 'radio'
-        ? (Array.from(form.querySelectorAll(`input[name="${input.name}"]`)) as Field[])
-        : [input];
+    const id = `e-${isRadio(input) ? input.name : input.id.replace(/^f-/, '')}`;
+    const group = isRadio(input)
+      ? (Array.from(form.querySelectorAll(`input[name="${input.name}"]`)) as Field[])
+      : [input];
+    const fieldset = isRadio(input) ? input.closest('fieldset') : null;
+    // The error is the field's description only while it shows: a hidden
+    // line referenced at rest is still read out as one.
+    for (const el of [...group, ...(fieldset ? [fieldset] : [])]) {
+      const ids = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter((t) => t && t !== id);
+      if (on) ids.push(id);
+      if (ids.length) el.setAttribute('aria-describedby', ids.join(' '));
+      else el.removeAttribute('aria-describedby');
+    }
     for (const member of group) {
       member.setAttribute('aria-invalid', String(on));
       member.classList.toggle('input--err', on);
     }
-    const msg = document.getElementById(`e-${key(input)}`);
+    const msg = document.getElementById(id);
     if (msg) msg.hidden = !on;
   };
 
   /* On blur, not on input: do not correct someone mid-type. */
   form.addEventListener('focusout', (e) => {
     const input = e.target as Field;
-    if (!input.required || input.disabled) return;
-    if (input.value.trim() && input.type !== 'radio') showError(input, !input.checkValidity());
+    if (!input.required || input.disabled || isRadio(input)) return;
+    if (input.value.trim()) showError(input, !valid(input));
   });
   const clear = (e: Event) => {
     const input = e.target as Field;
-    if (input.classList.contains('input--err') && input.checkValidity()) {
+    if (input.classList.contains('input--err') && (input.disabled || valid(input))) {
       showError(input, false);
       /* Once the last mark is gone, the summary pointing at them goes too. */
       if (!form.querySelector('.input--err')) formErr.hidden = true;
@@ -94,11 +128,12 @@ export function enhanceForm(form: HTMLFormElement): void {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (submit.disabled) return;
     sendErr.hidden = true;
 
     let bad = false;
     for (const input of required()) {
-      const invalid = !input.checkValidity();
+      const invalid = !valid(input);
       showError(input, invalid);
       if (invalid && !bad) {
         input.focus();
@@ -112,31 +147,39 @@ export function enhanceForm(form: HTMLFormElement): void {
     submit.disabled = true;
     submit.textContent = submit.dataset.sending ?? 'Sending';
 
+    let body: { ok?: boolean; next?: string; error?: string } = {};
     try {
       const res = await fetch(form.action, {
         method: 'POST',
         body: new FormData(form),
         headers: { Accept: 'application/json' },
       });
-      if (!res.ok) throw new Error(String(res.status));
-      const body = (await res.json().catch(() => ({}))) as { next?: string };
-
-      // The same page a visitor without script lands on, so there is one
-      // received screen, and a reload keeps it.
-      if (body.next) {
+      body = (await res.json().catch(() => ({}))) as typeof body;
+      if (res.ok && body.next) {
         location.assign(body.next);
         return;
       }
-      if (!ok) throw new Error('no panel');
-      form.hidden = true;
-      ok.hidden = false;
-      ok.setAttribute('tabindex', '-1');
-      ok.focus();
     } catch {
-      sendErr.hidden = false;
-      submit.disabled = false;
-      submit.textContent = submit.dataset.label ?? 'Send';
+      /* the network: the same as a failed send */
     }
+
+    // A token is good for one try. The next try needs a new one.
+    window.turnstile?.reset();
+    reset();
+
+    // A field the Worker refused is the visitor's to fix, not a failure to send.
+    const field = body.error ? FIELD[body.error] : undefined;
+    // A cast, as for the select above: the shared types reject Field here.
+    const input = field ? (form.querySelector(field) as Field | null) : null;
+    if (input || body.error === 'missing') {
+      if (input) {
+        showError(input, true);
+        input.focus();
+      }
+      formErr.hidden = false;
+      return;
+    }
+    sendErr.hidden = false;
   });
 }
 

@@ -5,7 +5,7 @@ import { CONTACT } from '../data/contact';
 import { offerings } from '../data/offerings';
 import { yenAmount, lowestPrice } from '../data/plans';
 import { planPhotos } from '../data/plan-photos';
-import { guestOptions, hasChoice, planFor } from '../data/booking';
+import { guestOptions, hasChoice, planFor, problemText } from '../data/booking';
 import { cancellation } from '../data/cancellation';
 import Icon from './Icon.astro';
 import Monogram from './Monogram.astro';
@@ -35,21 +35,15 @@ const copy = {
   en: {
     selected: 'Your plan',
     type: 'Transfer',
-    typeErr: 'Please choose a transfer.',
     route: 'Route',
-    routeErr: 'Please choose a route.',
     date: 'Preferred date',
-    dateErr: 'Please choose a date.',
     guests: 'Guests',
     guestsPlaceholder: 'How many',
-    guestsErr: 'Please tell us how many guests.',
     hotel: 'Where you are staying',
     hotelPlaceholder: 'Hotel name or area',
     customer: 'Your details',
     name: 'Your name',
-    nameErr: 'Please enter your name.',
     email: 'Email',
-    emailErr: 'Please check the email address.',
     line: 'LINE ID',
     linePlaceholder: 'If you would like to hear back on LINE',
     notes: 'Requests or notes',
@@ -68,21 +62,15 @@ const copy = {
   ja: {
     selected: '選択中のプラン',
     type: '送迎タイプ',
-    typeErr: '送迎タイプを選択してください。',
     route: '送迎区間',
-    routeErr: '送迎区間を選択してください。',
     date: 'ご利用希望日',
-    dateErr: 'ご利用希望日を選択してください。',
     guests: 'ご利用人数',
     guestsPlaceholder: '選択してください',
-    guestsErr: 'ご利用人数を選択してください。',
     hotel: 'ご宿泊先',
     hotelPlaceholder: 'ホテル名・エリアなど',
     customer: 'お客様情報',
     name: 'お名前',
-    nameErr: 'お名前をご記入ください。',
     email: 'メールアドレス',
-    emailErr: 'メールアドレスをご確認ください。',
     line: 'LINE ID',
     linePlaceholder: 'LINEでのご連絡をご希望の場合',
     notes: 'ご要望・備考',
@@ -100,6 +88,7 @@ const copy = {
 } as const;
 
 const c = copy[locale];
+const err = problemText[locale];
 
 // What the summary card and the price box show before a choice: the plan's
 // lowest price as a from-price. A choice puts its own price there.
@@ -149,7 +138,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   {
     choice && (
-      <fieldset class="field choice" aria-describedby="e-type">
+      <fieldset class="field choice">
         <legend class="label">
           {c.type} <span class="req" aria-hidden="true">*</span>
           <span class="sr-only">{c.required}</span>
@@ -169,7 +158,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-type" hidden>
-          {c.typeErr}
+          {err.type}
         </p>
       </fieldset>
     )
@@ -180,7 +169,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       where one applies. The script makes it required when it is. */}
   {
     choice?.routes && (
-      <fieldset class="field choice route" data-route-field aria-describedby="e-route">
+      <fieldset class="field choice route" data-route-field>
         <legend class="label">
           {c.route} <span class="req" aria-hidden="true">*</span>
           <span class="sr-only">{c.required}</span>
@@ -192,7 +181,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-route" hidden>
-          {c.routeErr}
+          {err.route}
         </p>
       </fieldset>
     )
@@ -210,9 +199,8 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       type="date"
       required
       data-min-today
-      aria-describedby="e-date"
     />
-    <p class="err" id="e-date" hidden>{c.dateErr}</p>
+    <p class="err" id="e-date" hidden>{err.date}</p>
   </div>
 
   <div class="field">
@@ -220,12 +208,12 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       {c.guests} <span class="req" aria-hidden="true">*</span>
       <span class="sr-only">{c.required}</span>
     </label>
-    <select class="input" id="f-guests" name="guests" required aria-describedby="e-guests">
+    <select class="input" id="f-guests" name="guests" required>
       <option value="">{c.guestsPlaceholder}</option>
       {guestOptions(id).map((g) => <option value={g.value}>{g.label[locale]}</option>)}
     </select>
     {plan?.over && <p class="caption over-note">{plan.over.note[locale]}</p>}
-    <p class="err" id="e-guests" hidden>{c.guestsErr}</p>
+    <p class="err" id="e-guests" hidden>{err.guests}</p>
   </div>
 
   <div class="field">
@@ -254,9 +242,8 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       type="text"
       required
       autocomplete="name"
-      aria-describedby="e-name"
     />
-    <p class="err" id="e-name" hidden>{c.nameErr}</p>
+    <p class="err" id="e-name" hidden>{err.name}</p>
   </div>
 
   <div class="field">
@@ -272,9 +259,9 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       required
       autocomplete="email"
       inputmode="email"
-      aria-describedby="e-email"
+      pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
     />
-    <p class="err" id="e-email" hidden>{c.emailErr}</p>
+    <p class="err" id="e-email" hidden>{err.email}</p>
   </div>
 
   <div class="field">
@@ -379,6 +366,8 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       input.disabled = !needs;
       if (!needs) input.checked = false;
     });
+    // Let the form's own check clear a mark the route no longer needs.
+    route?.querySelector('input')?.dispatchEvent(new Event('change', { bubbles: true }));
     if (chosen?.dataset.price) {
       form.querySelectorAll('[data-selected-price]').forEach((el) => {
         el.textContent = chosen.dataset.price ?? '';

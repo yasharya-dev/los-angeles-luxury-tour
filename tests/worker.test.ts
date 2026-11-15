@@ -10,6 +10,7 @@ import worker, {
   thanksPath,
 } from '../worker/index';
 import { SUMMARY_MARK } from '../src/data/booking';
+import { grantAccess } from '../worker/beta';
 
 describe('clean', () => {
   it('trims and returns strings', () => {
@@ -210,6 +211,94 @@ describe('the Worker, end to end', () => {
     expect(mail.reply_to).toBe('nao@example.com');
     expect(mail.html).toContain('2027年1月5日（火）');
     expect(mail.html).toContain('通常24時間以内');
+  });
+
+  it('takes a post from its own site', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const res = await post('/api/booking', transfer, { ...json, Origin: 'https://x.test' });
+    expect(res.status).toBe(200);
+  });
+
+  it('refuses a past date, a body that is not a form, and one too big for a form', async () => {
+    const past = await post('/api/booking', { ...transfer, date: '2001-01-01' }, json);
+    expect(await past.json()).toEqual({ ok: false, error: 'date' });
+    const notForm = await worker.fetch(
+      new Request('https://x.test/api/booking', { method: 'POST', body: '{}' }),
+      env({ RESEND_API_KEY: 're_test' }),
+    );
+    expect(notForm.status).toBe(400);
+    const huge = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: 'x',
+        headers: { 'Content-Length': String(1024 * 1024) },
+      }),
+      env({ RESEND_API_KEY: 're_test' }),
+    );
+    expect(huge.status).toBe(413);
+  });
+
+  it('tells a visitor without script what was wrong, with a way back that keeps their typing', async () => {
+    const res = await post('/api/booking', { ...transfer, route: '' }, { Referer: 'https://x.test/ja/book/dodgers-transfer' });
+    const body = await res.text();
+    expect(res.status).toBe(400);
+    expect(body).toContain('送迎区間を選択してください。');
+    expect(body).toContain('href="/ja/book/dodgers-transfer" onclick="history.back();return false"');
+  });
+
+  it('sends the consultation on to the thank-you page too', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const res = await post(
+      '/api/inquiry',
+      { locale: 'ja', name: 'Nao', email: 'nao@example.com', hoping: 'A good trip' },
+      json,
+    );
+    expect(await res.json()).toEqual({ ok: true, next: '/ja/thank-you' });
+  });
+
+  // Behind the preview's password, the only receipts that go out today.
+  it('sends the receipt behind the preview password', async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        sent.push(JSON.parse(String(init.body)));
+        return new Response('{}', { status: 200 });
+      }),
+    );
+    const granted = await grantAccess('pw', '/');
+    const cookie = (granted.headers.get('Set-Cookie') ?? '').split(';')[0];
+    const res = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: new URLSearchParams(transfer),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie, ...json },
+      }),
+      env({ RESEND_API_KEY: 're_test', BETA_PASSWORD: 'pw' }),
+    );
+    expect(res.status).toBe(200);
+    expect(sent.length).toBe(2);
+  });
+
+  it('fills the English page in English, and keeps the filled page out of caches', async () => {
+    const page = `<main>${SUMMARY_MARK}</main>`;
+    const assets = {
+      fetch: async () =>
+        new Response(page, { headers: { 'Content-Type': 'text/html', ETag: '"abc"' } }),
+    };
+    const q = 'service=dodgers-transfer&type=round-trip&date=2027-04-10&guests=over';
+    const res = await worker.fetch(new Request(`https://x.test/book/received?${q}`), env({ ASSETS: assets }));
+    const text = await res.text();
+    expect(text).toContain('Your request');
+    expect(text).toContain('Round trip');
+    expect(text).toContain('Saturday, April 10, 2027');
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('ETag')).toBeNull();
+    const head = await worker.fetch(
+      new Request(`https://x.test/book/received?${q}`, { method: 'HEAD' }),
+      env({ ASSETS: assets }),
+    );
+    expect(head.headers.get('Cache-Control')).toBe('no-store');
   });
 
   it('still lands an inquiry on the thank-you page', async () => {

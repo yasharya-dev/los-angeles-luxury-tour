@@ -181,7 +181,7 @@ export const plans: Plan[] = [
             heading: { en: 'Pricing notes', ja: '【料金補足】' },
             bullets: {
               en: [
-                'The price shown covers the transfer between your hotel and Dodger Stadium.',
+                'The price shown covers the transfer between where you are staying and Dodger Stadium.',
                 'No extra charge for ordinary delays caused by game-day traffic or road restrictions.',
                 'Large changes of time, additional stops or a change of area may carry an extra charge.',
                 'Game tickets, parking and other out-of-pocket costs are not included in the price shown.',
@@ -225,7 +225,7 @@ export const plans: Plan[] = [
               en: [
                 'Los Angeles and its surroundings.',
                 'Downtown, Hollywood, West Hollywood, Beverly Hills, Santa Monica, the Torrance area and more.',
-                'Heading to Anaheim or Orange County? Ask us; we are glad to arrange it.',
+                'Heading to Anaheim or Orange County? Please ask us.',
               ],
               ja: [
                 'ロサンゼルス市内・近郊',

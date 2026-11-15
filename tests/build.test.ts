@@ -8,6 +8,7 @@ import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
 import { SUMMARY_MARK } from '../src/data/booking';
+import { SUBMISSIONS } from '../worker/index';
 
 const DIST = join(process.cwd(), 'dist');
 
@@ -1471,6 +1472,46 @@ describe('the booking form', () => {
     const plain = html('/ja/book/temecula');
     for (const s of ['name="type"', 'name="route"', 'ご希望の基本料金', 'value="over"']) {
       expect(plain, s).not.toContain(s);
+    }
+  });
+
+  // The form and the Worker agree on every field: a renamed field, or one no
+  // longer required on the page, would have every real booking refused.
+  it('names and requires every field the Worker reads', () => {
+    const sub = SUBMISSIONS['/api/booking'];
+    const doc = html('/ja' + page);
+    for (const field of sub.fields) {
+      expect(doc, field).toContain(`name="${field}"`);
+    }
+    for (const field of sub.required) {
+      if (field === 'service') continue;
+      expect(doc, field).toMatch(new RegExp(`name="${field}"[^>]*required|required[^>]*name="${field}"`));
+    }
+  });
+
+  // An old /book?service=<id> goes to the plan's own page, in its language.
+  it('forwards an old link to the plan page, in the same language', () => {
+    for (const [prefix, query, expected] of [
+      ['/ja', '?service=temecula', '/ja/book/temecula'],
+      ['', '?service=dodgers-transfer', '/book/dodgers-transfer'],
+      ['', '?service=nothing', ''],
+    ]) {
+      const script =
+        html(prefix + '/book')
+          .split('<script>')
+          .map((chunk) => chunk.split('</script>')[0])
+          .find((chunk) => chunk.includes('location.replace')) ?? '';
+      let target = '';
+      new Function('location', script)({ search: query, replace: (u: string) => (target = u) });
+      expect(target, prefix + query).toBe(expected);
+    }
+  });
+
+  // An error line describes its field only while it shows. Referenced at
+  // rest, a hidden line is still read out as the field's description.
+  it('describes no field by its error line at rest', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula', '/ja/consult']) {
+      expect(html(p), p).not.toMatch(/aria-describedby="e-/);
     }
   });
 

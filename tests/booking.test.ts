@@ -38,6 +38,8 @@ describe('checkBooking', () => {
     expect(checkBooking({ ...transfer, type: '' })).toEqual({ ok: false, problem: 'type' });
     expect(checkBooking({ ...transfer, route: 'x' })).toEqual({ ok: false, problem: 'route' });
     expect(checkBooking({ ...transfer, date: '10/04/2027' })).toEqual({ ok: false, problem: 'date' });
+    // A date that has passed everywhere is not a request anyone can make.
+    expect(checkBooking({ ...transfer, date: '2001-01-01' })).toEqual({ ok: false, problem: 'date' });
     expect(checkBooking({ ...transfer, guests: '5' })).toEqual({ ok: false, problem: 'guests' });
   });
 });
