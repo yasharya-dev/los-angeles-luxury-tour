@@ -1,15 +1,19 @@
 /**
- * Progressive behaviour shared by the contact and booking forms.
+ * Progressive behaviour shared by the consultation and booking forms.
  *
- * Both forms work without this: they post normally and the Worker redirects
- * to the right page afterwards. With it, the plan a card linked with is
- * pre-selected, validation runs on blur rather than on every keystroke, and
- * a successful send swaps the form for its panel without leaving the page.
+ * Both forms work without this: the browser checks the required fields, the
+ * form posts normally and the Worker redirects to the right page afterwards.
+ * With it, validation runs on blur rather than on every keystroke, and the
+ * form sends in the background: on success it moves to the page the Worker
+ * names (the booking's received page), or shows its own panel.
  *
  * Expects, inside the form: `[data-form-error]`, `[data-send-error]` and
- * `[data-submit]`; and next to the form, a `[data-form-ok]` panel. Each
- * required field `f-x` pairs with an error line `e-x`.
+ * `[data-submit]`; and, for a form that stays on its page, a `[data-form-ok]`
+ * panel next to it. A required field `f-x` pairs with an error line `e-x`; a
+ * group of required radios named `x` does too.
  */
+type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
 export function enhanceForm(form: HTMLFormElement): void {
   // Two components on one page may each ship this script.
   if (form.dataset.enhanced) return;
@@ -20,14 +24,18 @@ export function enhanceForm(form: HTMLFormElement): void {
   const formErr = form.querySelector<HTMLElement>('[data-form-error]');
   const sendErr = form.querySelector<HTMLElement>('[data-send-error]');
   const submit = form.querySelector<HTMLButtonElement>('[data-submit]');
-  if (!ok || !formErr || !sendErr || !submit) return;
+  if (!formErr || !sendErr || !submit) return;
 
-  /* Static build, so the plan a card linked with is selected here. Without
-     JS the select opens on its first option, which is a fine answer too. */
+  // The script checks the fields itself from here, with its own messages.
+  // In the markup the form is left to the browser, for a visitor without it.
+  form.noValidate = true;
+
+  /* The consultation form's plan, from the card that linked to it. Without
+     script the select opens on its first option, which is a fine answer too. */
   // Cast, not a generic: @cloudflare/workers-types merges HTMLRewriter's
   // Element into the DOM one, and HTMLSelectElement redeclares remove(), so
   // it alone fails querySelector<T>'s constraint under the shared tsconfig.
-  const service = form.querySelector('[name="service"]') as HTMLSelectElement | null;
+  const service = form.querySelector('select[name="service"]') as HTMLSelectElement | null;
   const wanted = new URLSearchParams(location.search).get('service');
   if (service && wanted) {
     const known = Array.from(service.options).some((o) => o.value === wanted);
@@ -44,46 +52,59 @@ export function enhanceForm(form: HTMLFormElement): void {
     .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
     .forEach((d) => (d.min = local));
 
-  type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+  // Read when needed, not once: a field can become required later (the
+  // booking form's route does, on a one-way choice).
+  const required = () =>
+    (Array.from(form.querySelectorAll('[required]')) as Field[]).filter((f) => !f.disabled);
+
+  const key = (input: Field) =>
+    input instanceof HTMLInputElement && input.type === 'radio'
+      ? input.name
+      : input.id.replace(/^f-/, '');
 
   const showError = (input: Field, on: boolean) => {
-    const msg = document.getElementById(`e-${input.id.replace('f-', '')}`);
-    input.setAttribute('aria-invalid', String(on));
-    input.classList.toggle('input--err', on);
+    const group =
+      input instanceof HTMLInputElement && input.type === 'radio'
+        ? (Array.from(form.querySelectorAll(`input[name="${input.name}"]`)) as Field[])
+        : [input];
+    for (const member of group) {
+      member.setAttribute('aria-invalid', String(on));
+      member.classList.toggle('input--err', on);
+    }
+    const msg = document.getElementById(`e-${key(input)}`);
     if (msg) msg.hidden = !on;
   };
 
-  const required = Array.from(form.querySelectorAll('[required]')) as Field[];
-
-  /* On blur, not on input - do not correct someone mid-type. */
-  required.forEach((input) => {
-    input.addEventListener('blur', () => {
-      if (input.value.trim()) showError(input, !input.checkValidity());
-    });
-    const clear = () => {
-      if (input.classList.contains('input--err') && input.checkValidity()) {
-        showError(input, false);
-        /* Once the last mark is gone, the summary pointing at them goes too. */
-        if (!form.querySelector('.input--err')) formErr.hidden = true;
-      }
-    };
-    input.addEventListener('input', clear);
-    input.addEventListener('change', clear);
+  /* On blur, not on input: do not correct someone mid-type. */
+  form.addEventListener('focusout', (e) => {
+    const input = e.target as Field;
+    if (!input.required || input.disabled) return;
+    if (input.value.trim() && input.type !== 'radio') showError(input, !input.checkValidity());
   });
+  const clear = (e: Event) => {
+    const input = e.target as Field;
+    if (input.classList.contains('input--err') && input.checkValidity()) {
+      showError(input, false);
+      /* Once the last mark is gone, the summary pointing at them goes too. */
+      if (!form.querySelector('.input--err')) formErr.hidden = true;
+    }
+  };
+  form.addEventListener('input', clear);
+  form.addEventListener('change', clear);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     sendErr.hidden = true;
 
     let bad = false;
-    required.forEach((input) => {
+    for (const input of required()) {
       const invalid = !input.checkValidity();
       showError(input, invalid);
       if (invalid && !bad) {
         input.focus();
         bad = true;
       }
-    });
+    }
 
     formErr.hidden = !bad;
     if (bad) return;
@@ -98,7 +119,15 @@ export function enhanceForm(form: HTMLFormElement): void {
         headers: { Accept: 'application/json' },
       });
       if (!res.ok) throw new Error(String(res.status));
+      const body = (await res.json().catch(() => ({}))) as { next?: string };
 
+      // The same page a visitor without script lands on, so there is one
+      // received screen, and a reload keeps it.
+      if (body.next) {
+        location.assign(body.next);
+        return;
+      }
+      if (!ok) throw new Error('no panel');
       form.hidden = true;
       ok.hidden = false;
       ok.setAttribute('tabindex', '-1');

@@ -35,7 +35,7 @@ tests/          the suite, see below
 
 A plan in the owner's own format is an entry in `src/data/plans.ts` (with a card of the same slug in `offerings.ts`); its page renders entirely from that entry, and a test fails if the page template ever holds plan-specific copy. Her cancellation terms live once, in `src/data/cancellation.ts`, and the FAQ and every plan page read them.
 
-Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in both forms' plan selects without touching a template. A plan with a `slug` has its own page and its card links there; a plan without one carries a `detail`, which is what its card opens to show. Every card shows the monogram tile until the owner's photograph for the plan arrives. Adding a locale is a config entry plus a dictionary; no new markup.
+Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page, the consultation form's select and the booking pages without touching a template. A plan with a `slug` has its own page and its card links there; a plan without one carries a `detail`, which is what its card opens to show. Every card shows the monogram tile until the owner's photograph for the plan arrives. Adding a locale is a config entry plus a dictionary; no new markup.
 
 ## Decisions worth knowing
 
@@ -66,9 +66,11 @@ Those two sources can change under the site: a BudouX release, or a Node upgrade
 
 **URLs have no trailing slash, on both sides.** Astro builds with `trailingSlash: 'never'` and `build.format: 'file'`; the assets binding serves with `drop-trailing-slash` and `404-page`. A test fails if the two configs stop agreeing, because when they did, every page answered with a redirect and Japanese visitors got the English 404.
 
-**Prices are floors.** Every price carries a from-form. Yen figures on the Japanese pages are converted at a printed rate; English pages show dollars only.
+**Prices are floors.** Every price carries a from-form. Yen figures converted from dollars are marked 約 on the Japanese pages; the rate itself is not printed, at the owner's request. English pages show dollars, except where she has given yen only.
 
-**Every offering has two paths.** Each plan card offers booking and consultation, with the plan carried through as `?service=` to a select built from the same data. A booking is a request: the owner checks availability and confirms, normally within 24 hours, and the pages say so in her words. The site is the one place to book; the owner's older third-party forms are not linked. A test checks both links on every card in both languages.
+**Every offering has two paths.** Each plan offers booking and consultation. Booking goes to the plan's own page, `/book/<id>`, so the form knows its plan without script; consultation carries the plan as `?service=` to a select built from the same data, and `/book` asks which plan. The site is the one place to book; the owner's older third-party forms are not linked.
+
+**A booking is a request.** The owner checks availability and confirms, normally within 24 hours, and every page and email says so in her words. A plan in her format offers its own choices (one way or round trip, the route for one way, its group sizes), all from `src/data/plans.ts`, and `src/data/booking.ts` holds the rules the form, the received page and the Worker share: the Worker refuses any choice that is not the plan's own. The guest gets a receipt that carries only those checked values, never anything they typed, and only past the challenge or behind the preview's password, since it mails an address typed into a public form. The received page shows the same summary, filled in by the Worker from the checked request its address carries, so a visitor without script sees it too.
 
 **No phone number.** Deliberate, and the owner's instruction.
 
@@ -99,7 +101,8 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 | `tests/i18n.test.ts` | Path helpers, including the build's `.html` paths, and dictionary key parity |
 | `tests/phrase.test.ts` | Where Japanese may fold: lossless, never inside a katakana word, a dictionary word or a compound verb, never a one-character phrase, kinsoku respected, an authored space as the only fold of a title |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
-| `tests/worker.test.ts` | Input cleaning, HTML escaping, plan labels, redirect paths, and both endpoints driven end to end with Resend stubbed |
+| `tests/booking.test.ts` | The booking rules: a plan's own choices only, the route only where it applies, real dates, the guest list per plan, and how a request reads back |
+| `tests/worker.test.ts` | Input cleaning, one-line fields, a single email address, HTML escaping, plan labels, redirect paths, refused choices and origins, the guest receipt and what it may carry, the received page's summary, and both endpoints driven end to end with Resend stubbed |
 | `tests/beta.test.ts` | The gate: cookie signing, open-redirect guard, `noindex`, the page itself |
 
 ## The beta gate

@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
+import { SUMMARY_MARK } from '../src/data/booking';
 
 const DIST = join(process.cwd(), 'dist');
 
@@ -22,10 +23,16 @@ const PATHS = [
   '/privacy',
   '/thank-you',
   '/book/received',
+  ...offerings.map((o) => `/book/${o.id}`),
 ];
 
 // Form destinations, not pages anyone should land on from search.
-const NOT_IN_SITEMAP = ['/thank-you', '/book/received'];
+const NOT_IN_SITEMAP = [
+  '/thank-you',
+  '/book/received',
+  // A step on the way to the form, not a page anyone lands on from search.
+  ...offerings.map((o) => `/book/${o.id}`),
+];
 
 // build.format is 'file': /about is about.html and /ja is ja.html. Only the
 // site root is an index.html.
@@ -196,7 +203,7 @@ describe('content parity', () => {
   // point at fields that are fine.
   it('gives both forms a send-failure message with a way out', () => {
     for (const prefix of ['', '/ja']) {
-      for (const page of ['/consult', '/book']) {
+      for (const page of ['/consult', '/book/dodgers-transfer', '/book/temecula']) {
         const doc = html(prefix + page);
         expect(doc, prefix + page).toContain('data-send-error');
         expect(doc, prefix + page).toContain('href="mailto:losangelesluxurytour@gmail.com"');
@@ -344,7 +351,7 @@ describe('the homepage, in her six sections', () => {
           expect(text(card), `${prefix} ${o.id} description`).toContain(
             text(o.detail?.[locale].body ?? 'no detail'),
           );
-          expect(card, `${prefix} ${o.id} book`).toContain(`href="${prefix}/book?service=${o.id}"`);
+          expect(card, `${prefix} ${o.id} book`).toContain(`href="${prefix}/book/${o.id}"`);
           expect(card, `${prefix} ${o.id} ask`).toContain(`href="${prefix}/consult?service=${o.id}"`);
         }
       }
@@ -1120,7 +1127,7 @@ describe('every offering has somewhere to go', () => {
       for (const o of offerings) {
         if (o.slug) continue; // those cards link to the journey page instead
         expect(doc, `${prefix} ${o.id} book`).toContain(
-          `href="${localized(`/book?service=${o.id}`, prefix)}"`,
+          `href="${localized(`/book/${o.id}`, prefix)}"`,
         );
         expect(doc, `${prefix} ${o.id} consult`).toContain(
           `href="${localized(`/consult?service=${o.id}`, prefix)}"`,
@@ -1134,7 +1141,7 @@ describe('every offering has somewhere to go', () => {
       for (const j of [...journeys, ...plans]) {
         const doc = html(`${prefix}/experience/${j.slug}`);
         expect(doc, `${prefix} ${j.slug} book`).toContain(
-          `href="${localized(`/book?service=${j.slug}`, prefix)}"`,
+          `href="${localized(`/book/${j.slug}`, prefix)}"`,
         );
         expect(doc, `${prefix} ${j.slug} consult`).toContain(
           `href="${localized(`/consult?service=${j.slug}`, prefix)}"`,
@@ -1160,15 +1167,15 @@ describe('every offering has somewhere to go', () => {
     }
   });
 
-  it('lists every plan in both forms, in the right language', () => {
+  it('lists every plan in the consultation form, and on the way to booking, in the right language', () => {
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
-      for (const page of ['/consult', '/book']) {
-        const doc = html(prefix + page);
-        for (const o of offerings) {
-          // Scoped styles put a data-astro-cid attribute between the two.
-          expect(doc, `${prefix}${page} ${o.id}`).toContain(`<option value="${o.id}"`);
-          expect(doc, `${prefix}${page} ${o.id}`).toContain(`>${o.name[locale]}</option>`);
-        }
+      const consult = html(prefix + '/consult');
+      const book = bare(prefix + '/book');
+      for (const o of offerings) {
+        // Scoped styles put a data-astro-cid attribute between the two.
+        expect(consult, `${prefix}/consult ${o.id}`).toContain(`<option value="${o.id}"`);
+        expect(consult, `${prefix}/consult ${o.id}`).toContain(`>${o.name[locale]}</option>`);
+        expect(book, `${prefix}/book ${o.id}`).toContain(o.name[locale].replace(/\s+/g, ''));
       }
     }
   });
@@ -1325,10 +1332,10 @@ describe('her plan page, in her order', () => {
   it('puts both actions by the price, and the request again at the end', () => {
     for (const prefix of ['', '/ja']) {
       const doc = html(prefix + page);
-      expect(count(doc, new RegExp(`href="${prefix}/book[?]service=dodgers-transfer"`, 'g'))).toBe(2);
+      expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(2);
       expect(count(doc, new RegExp(`href="${prefix}/consult[?]service=dodgers-transfer"`, 'g'))).toBe(1);
       const closing = doc.match(/<section class="closing plate"[^]*?<\/section>/)?.[0] ?? '';
-      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book[?]service=`));
+      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer"`));
     }
   });
 
@@ -1385,33 +1392,136 @@ describe('her plan page, in her order', () => {
 });
 
 describe('the booking form', () => {
-  // Her instruction, verbatim: a booking is submitted, then she checks
-  // availability, then it is confirmed. The page must never say otherwise.
-  const NOTICE =
-    '※ご予約は送信後、Los Angeles Luxury Tour にて空き状況を確認し、通常24時間以内の承認をもって確定となります。';
+  const page = '/book/dodgers-transfer';
+  // The text a visitor sees inside <main>; the <title> names the page too.
+  const seen = (route: string) =>
+    (html(route).match(/<main[^]*<\/main>/)?.[0] ?? '')
+      .replace(/<script[^]*?<\/script>|<style[^]*?<\/style>/g, '')
+      .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[\s​]+/g, '');
 
-  it('posts to its own endpoint', () => {
-    expect(html('/book')).toContain('action="/api/booking"');
-    expect(html('/ja/book')).toContain('action="/api/booking"');
-  });
-
-  it('asks for what she listed: plan, date, guests, name, contact, notes', () => {
-    const doc = html('/book');
-    for (const name of ['service', 'date', 'guests', 'name', 'email', 'line', 'notes']) {
-      expect(doc, name).toContain(`name="${name}"`);
+  // Every plan has its own booking page, so the form knows its plan without
+  // script; /book asks which, and an old ?service= link goes on to the page.
+  it('gives every plan its own booking page, and /book asks which', () => {
+    for (const prefix of ['', '/ja']) {
+      const picker = html(`${prefix}/book`);
+      expect(picker).toContain('location.replace(');
+      for (const o of offerings) {
+        expect(picker, o.id).toContain(`href="${prefix}/book/${o.id}"`);
+        const doc = html(`${prefix}/book/${o.id}`);
+        expect(doc, o.id).toContain('action="/api/booking"');
+        expect(doc, o.id).toMatch(new RegExp(`<input type="hidden" name="service" value="${o.id}"`));
+      }
     }
-    expect(doc).toContain('type="date"');
   });
 
-  it('shows her approval notice on the form and on the received page', () => {
-    expect(html('/ja/book')).toContain(NOTICE);
-    expect(html('/ja/book/received')).toContain(NOTICE);
-    expect(html('/book')).toMatch(/normally within 24 hours/);
-    expect(html('/book/received')).toMatch(/normally within 24 hours/);
+  // Her request form (brief of 2026-11-05), her words, her order.
+  it('asks for what she listed, in her order', () => {
+    const text = seen('/ja' + page);
+    let from = 0;
+    for (const line of [
+      'Booking request',
+      'ご予約リクエスト',
+      'ご希望の内容をお聞かせください。空き状況を確認のうえ、ご連絡いたします。',
+      '選択中のプラン',
+      'ドジャース観戦 プライベート送迎',
+      '送迎タイプ',
+      '片道送迎',
+      '49,800円',
+      '往復送迎',
+      '79,800円',
+      '送迎区間',
+      'ホテル → スタジアム',
+      'スタジアム → ホテル',
+      'ご利用希望日',
+      'ご利用人数',
+      '4名様',
+      '5名様以上（要相談）',
+      '5名様以上の場合は、車両や料金を個別にご案内します。',
+      'ご宿泊先（任意）',
+      'お客様情報',
+      'お名前',
+      'メールアドレス',
+      'LINE ID（任意）',
+      'ご要望・備考（任意）',
+      'ご希望の基本料金',
+      '空き状況・送迎条件を確認後、正式な料金とご予約についてご案内いたします。',
+      'キャンセル料はかかりますか？',
+      '予約リクエストを送信する',
+      'この時点では予約は確定していません。',
+    ]) {
+      const at = text.indexOf(line.replace(/\s+/g, ''), from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
+    }
+  });
+
+  // The route only for a one-way choice. It is not required in the markup,
+  // so a round trip goes through without script; the Worker asks for a route
+  // where one applies, and the script makes it required then.
+  it('asks for the route only where it applies, and offers no choice a plan does not have', () => {
+    const doc = html('/ja' + page);
+    const type = doc.match(/<fieldset class="field choice"[^]*?<\/fieldset>/)?.[0] ?? '';
+    expect(count(type, /<input type="radio" name="type"[^>]*required/g)).toBe(2);
+    expect(type).toMatch(/value="one-way"[^>]*data-needs-route/);
+    const route = doc.match(/<fieldset class="field choice route"[^]*?<\/fieldset>/)?.[0] ?? '';
+    expect(count(route, /<input type="radio" name="route"/g)).toBe(2);
+    expect(route).not.toMatch(/required/);
+    const plain = html('/ja/book/temecula');
+    for (const s of ['name="type"', 'name="route"', 'ご希望の基本料金', 'value="over"']) {
+      expect(plain, s).not.toContain(s);
+    }
+  });
+
+  it('leaves checking to the browser when there is no script', () => {
+    for (const p of ['/book/temecula', '/ja/book/dodgers-transfer', '/consult', '/ja/consult']) {
+      expect(html(p), p).not.toMatch(/<form[^>]*novalidate/);
+    }
+  });
+
+  it('gives her cancellation terms before the button that sends', () => {
+    const doc = html('/ja' + page);
+    const terms = doc.match(/<details class="terms"[^]*?<\/details>/)?.[0] ?? '';
+    for (const tier of ['7日前まで：無料', '4日前まで：30%', 'それ以降：100%']) {
+      expect(terms.replace(/<[^>]+>/g, ''), tier).toContain(tier);
+    }
+    expect(doc.indexOf('<details class="terms"')).toBeLessThan(doc.indexOf('予約リクエストを送信する'));
+  });
+
+  // Her received screen. What was sent arrives from the Worker, in place of
+  // the mark, and only from a request it has checked.
+  it('shows her received screen, with a place for what was sent', () => {
+    const text = seen('/ja/book/received');
+    for (const line of [
+      'Request received',
+      'お申し込みを受け付けました。',
+      'ご予約リクエストありがとうございます。空き状況を確認のうえ、通常24時間以内にご連絡いたします。',
+      '正式なご予約は、こちらからのご案内をもって確定いたします。',
+      'ホームへ戻る',
+    ]) {
+      expect(text, line).toContain(line.replace(/\s+/g, ''));
+    }
+    expect(html('/ja/book/received')).toContain(SUMMARY_MARK);
+    expect(html('/book/received')).toContain(SUMMARY_MARK);
+  });
+
+  // Her newer lines say the same thing as her October notice, so it retired.
+  it('retires the old approval notice for her newer lines', () => {
+    for (const p of ['/ja/book', '/ja/book/dodgers-transfer', '/ja/book/received']) {
+      expect(html(p), p).not.toContain('※ご予約は送信後');
+    }
   });
 
   it('never calls a submitted booking confirmed', () => {
-    for (const p of ['/book', '/book/received', '/ja/book', '/ja/book/received']) {
+    const pages = [
+      '/book',
+      '/book/received',
+      '/ja/book',
+      '/ja/book/received',
+      ...offerings.flatMap((o) => [`/book/${o.id}`, `/ja/book/${o.id}`]),
+    ];
+    for (const p of pages) {
       const doc = html(p);
       expect(doc, p).not.toMatch(/booking is confirmed|reservation is confirmed\./i);
       expect(doc, p).not.toMatch(/ご予約が確定しました|予約確定/);

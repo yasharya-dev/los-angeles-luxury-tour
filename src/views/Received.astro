@@ -1,0 +1,115 @@
+---
+import { type Locale } from '../i18n/ui';
+import { localizePath } from '../i18n/utils';
+import { SUMMARY_MARK } from '../data/booking';
+import Icon from '../components/Icon.astro';
+import Phrases from '../components/Phrases.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const p = (path: string) => localizePath(path, locale);
+
+// Her received screen (brief of 2026-11-05, section 10B). What was sent is
+// filled in by the Worker, from the checked request the address carries, in
+// place of the mark below; a visit without one shows her lines alone. Nothing
+// here calls the booking confirmed.
+const copy = {
+  en: {
+    title: 'We have received your request.',
+    body: 'Thank you for your booking request. We will check availability and reply, normally within 24 hours.',
+    final: 'Your booking becomes final once we write to you with the details.',
+    home: 'Back to home',
+  },
+  ja: {
+    title: ['お申し込みを', '受け付けました。'],
+    body: ['ご予約リクエストありがとうございます。', '空き状況を確認のうえ、通常24時間以内にご連絡いたします。'],
+    final: '正式なご予約は、こちらからのご案内をもって確定いたします。',
+    home: 'ホームへ戻る',
+  },
+} as const;
+
+const c = copy[locale];
+const en = locale === 'en' ? undefined : 'en';
+---
+
+<section class="section received">
+  <div class="measure measure--narrow center">
+    <span class="received__icon"><Icon name="check-circle" size={44} /></span>
+    <p class="kicker" lang={en}>Request received</p>
+    <h1 class="h2 received__title"><Phrases text={c.title} /></h1>
+    <p class="body"><Phrases text={c.body} /></p>
+    <Fragment set:html={SUMMARY_MARK} />
+    <p class="body received__final"><Phrases text={c.final} /></p>
+    <a class="btn btn--solid received__home" href={p('/')}>{c.home}</a>
+  </div>
+</section>
+
+<style>
+  .received {
+    padding-top: clamp(40px, 8vw, 72px);
+  }
+
+  .received__icon {
+    display: inline-grid;
+    place-items: center;
+    margin-bottom: 8px;
+    color: var(--gold-text);
+  }
+
+  .received__title {
+    margin-block: 10px 14px;
+  }
+
+  .received__final {
+    margin-top: 18px;
+  }
+
+  .received__home {
+    margin-top: 22px;
+  }
+
+  /* The summary arrives from the Worker without this component's scope
+     attribute, so it is styled globally. */
+  :global(.received-summary) {
+    margin-top: 24px;
+    padding: 16px 18px;
+    border: 1px solid var(--card-edge);
+    border-radius: var(--radius-card);
+    background: var(--card);
+    text-align: left;
+  }
+  :global(.received-summary__title) {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  :global(.received-summary__plan) {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  :global(.received-summary__rows) {
+    margin: 0;
+  }
+  :global(.received-summary__rows > div) {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-top: 1px solid var(--hairline-soft);
+    font-size: 15px;
+  }
+  :global(.received-summary__rows dt) {
+    color: var(--ink-soft);
+  }
+  :global(.received-summary__rows dd) {
+    margin: 0;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: right;
+  }
+</style>

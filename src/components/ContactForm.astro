@@ -123,17 +123,17 @@ const c = copy[locale];
       class="form"
       method="post"
       action={CONTACT.formEndpoint}
-      novalidate
       data-enhance
       data-inquiry-form
     >
       <input type="hidden" name="locale" value={locale} />
 
-      {/* Honeypot - the Worker drops anything that arrives with it filled. */}
+      {/* Honeypot: the Worker drops anything that arrives with it filled.
+          Named so that no browser's autofill has a value for it. */}
       <div class="hp" aria-hidden="true">
         <label>
-          Company
-          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+          Leave this empty
+          <input type="text" name="llt-check" tabindex="-1" autocomplete="off" />
         </label>
       </div>
 
@@ -249,7 +249,7 @@ const c = copy[locale];
           <div
             class="cf-turnstile"
             data-sitekey={turnstileKey}
-            data-theme="auto"
+            data-theme="light"
           />
         )
       }
