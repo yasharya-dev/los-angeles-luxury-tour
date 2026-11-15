@@ -12,7 +12,11 @@ export const CONTACT = {
   lineUrl: 'https://line.me/R/ti/p/@153cqwqp',
   instagram: 'https://www.instagram.com/losangelesluxurytour/',
   instagramHandle: '@losangelesluxurytour',
-  threads: 'https://www.threads.net/@losangelesluxurytour',
+  // She asked for a Facebook icon in the footer (2026-11-05). The page URL is
+  // hers to give; the icon renders once this is set.
+  facebook: '' as string,
+  /** Her California Seller of Travel registration. Shown in the footer. */
+  sellerOfTravel: '2175215-50',
   /** Both handled by worker/index.ts; see SUBMISSIONS there. */
   formEndpoint: '/api/inquiry',
   bookingEndpoint: '/api/booking',

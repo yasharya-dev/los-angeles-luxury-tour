@@ -1,0 +1,62 @@
+---
+/*
+  The LA mark on its own, cropped out of the full lockup so there is one logo
+  file. The lockup is square with the monogram in its upper middle: drawn at
+  3.225 times the box and shifted, the box frames just the mark. Decorative
+  wherever it appears; the link or card around it carries the name.
+*/
+import { getImage } from 'astro:assets';
+import logo from '../assets/logo.png';
+
+interface Props {
+  /** The box, in px. */
+  size?: number;
+  /** Below the fold: let the browser fetch it late. */
+  lazy?: boolean;
+  class?: string;
+}
+const { size = 40, lazy = false, class: className } = Astro.props;
+
+const SCALE = 3.225;
+const drawn = Math.round(size * SCALE);
+// The source is an 800px PNG. Serve it at the size it is drawn, and at the 2x
+// and 3x a phone screen asks for.
+const [x1, x2, x3] = await Promise.all(
+  [1, 2, 3].map((density) =>
+    getImage({ src: logo, width: Math.min(drawn * density, logo.width), format: 'webp' }),
+  ),
+);
+---
+
+<span class:list={['monogram', className]} style={`--box: ${size}px`}>
+  <img
+    src={x1.src}
+    srcset={`${x1.src} 1x, ${x2.src} 2x, ${x3.src} 3x`}
+    alt=""
+    width={drawn}
+    height={drawn}
+    loading={lazy ? 'lazy' : undefined}
+    decoding="async"
+  />
+</span>
+
+<style>
+  .monogram {
+    display: block;
+    position: relative;
+    flex: none;
+    width: var(--box);
+    height: var(--box);
+    border-radius: 50%;
+    overflow: hidden;
+  }
+
+  .monogram img {
+    position: absolute;
+    width: calc(var(--box) * 3.225);
+    height: calc(var(--box) * 3.225);
+    left: calc(var(--box) * -1.075);
+    top: calc(var(--box) * -0.9);
+    max-width: none;
+  }
+</style>

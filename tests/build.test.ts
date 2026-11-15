@@ -2,7 +2,7 @@
 // `npm test` chains them.
 
 import { describe, expect, it, beforeAll } from 'vitest';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
@@ -253,98 +253,368 @@ describe('content parity', () => {
   });
 });
 
-describe('the light theme gold rule', () => {
-  // #D4AF37 is 9.0:1 on the dark plate but only about 2:1 on the light one, so
-  // the light theme swaps in a darker gold for anything meaning-carrying.
+// All the built CSS, minified, as one string.
+const css = () => {
+  const dir = join(DIST, '_astro');
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.css'))
+    .map((f) => readFileSync(join(dir, f), 'utf8'))
+    .join('\n');
+};
+
+type RGB = [number, number, number];
+
+// A colour as the minifier writes it: #rgb, #rrggbb, or #rrggbbaa for what
+// the source wrote as rgba(). Returns the colour and its alpha.
+const parseHex = (h: string): { rgb: RGB; a: number } => {
+  const x = h.slice(1);
+  const full = x.length <= 4 ? [...x].map((c) => c + c).join('') : x;
+  const n = (i: number) => parseInt(full.slice(i, i + 2), 16);
+  return { rgb: [n(0), n(2), n(4)], a: full.length === 8 ? n(6) / 255 : 1 };
+};
+
+const over = (top: { rgb: RGB; a: number }, under: RGB): RGB =>
+  top.rgb.map((v, i) => v * top.a + under[i] * (1 - top.a)) as RGB;
+
+const luminance = ([r, g, b]: RGB) => {
+  const f = (v: number) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+
+const ratio = (a: RGB, b: RGB) => {
+  const [l1, l2] = [luminance(a), luminance(b)];
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+};
+
+// Every declaration block whose selector list contains exactly `needle`,
+// merged. The dark values live in a block shared by two selectors, so a regex
+// anchored on one selector followed by "{" would miss it.
+const block = (needle: string) =>
+  [...css().matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, selector]) => selector.split(',').some((part) => part.trim() === needle))
+    .map(([, , body]) => body)
+    .join(';');
+
+// The whole value of a token, up to the next declaration. Without the
+// terminator a request for an rgba token would quietly return its first six
+// digits and drop the alpha.
+const token = (decls: string, name: string) =>
+  decls.match(new RegExp(`(?:^|;)--${name}:(#[0-9a-f]{3,8})(?=;|$)`, 'i'))?.[1] ?? '';
+
+const cream = () => block(':root');
+const dark = () => block('html[data-theme=dark]');
+const solid = (decls: string, name: string): RGB => parseHex(token(decls, name)).rgb;
+
+describe('the palette and the gold rule', () => {
+  // Cream is the default theme, on :root, with the four colours from Amelia's
+  // brief. Her accent gold is about 3:1 on the cream: fine for a decorative
+  // line or a button fill, not for text. So text gold is its own, darker token.
   //
-  // This computes real ratios rather than asserting a hex value. The earlier
+  // These compute real ratios rather than asserting hex values. An earlier
   // version checked only that the token equalled #8a6d1f, which passed happily
-  // while that colour measured 4.37:1 against the warm paper background. The
-  // token was never the thing that mattered.
-  const css = () => {
-    const dir = join(DIST, '_astro');
-    return readdirSync(dir)
-      .filter((f) => f.endsWith('.css'))
-      .map((f) => readFileSync(join(dir, f), 'utf8'))
-      .join('\n');
-  };
+  // while that colour measured 4.37:1 against the warm paper background.
 
-  const hex = (h: string): [number, number, number] => [
-    parseInt(h.slice(1, 3), 16),
-    parseInt(h.slice(3, 5), 16),
-    parseInt(h.slice(5, 7), 16),
-  ];
-
-  const luminance = ([r, g, b]: [number, number, number]) => {
-    const f = (v: number) => {
-      v /= 255;
-      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    };
-    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-  };
-
-  const contrast = (a: string, b: string) => {
-    const [l1, l2] = [luminance(hex(a)), luminance(hex(b))];
-    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-  };
-
-  const lightBlock = () =>
-    css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
-
-  const token = (block: string, name: string) =>
-    block.match(new RegExp(`--${name}:(#[0-9a-f]{6})`, 'i'))?.[1] ?? '';
-
-  it('defines a light theme block', () => {
-    expect(lightBlock(), 'light theme block not found').not.toBe('');
+  it('defines the cream theme as the default and dark as the override', () => {
+    expect(token(cream(), 'bg'), ':root has no --bg').not.toBe('');
+    expect(token(dark(), 'bg'), 'the dark block has no --bg').not.toBe('');
   });
 
-  // Both light surfaces, because the sections alternate between them and the
-  // darker one is the binding constraint.
-  it('clears AA for meaning-carrying gold on every light surface', () => {
-    const block = lightBlock();
-    const gold = token(block, 'gold-text');
-    expect(gold, '--gold-text missing').toMatch(/^#[0-9a-f]{6}$/i);
+  it('uses the four colours from her brief', () => {
+    expect(token(cream(), 'ink').toLowerCase()).toBe('#191919');
+    expect(token(cream(), 'bg').toLowerCase()).toBe('#faf9f6');
+    expect(token(cream(), 'bg-deep').toLowerCase()).toBe('#f2f0e9');
+    expect(token(cream(), 'gold-deco').toLowerCase()).toBe('#b18a3a');
+  });
 
-    for (const surface of ['bg', 'bg-deep'] as const) {
-      const bg = token(block, surface);
-      expect(bg, `--${surface} missing`).toMatch(/^#[0-9a-f]{6}$/i);
-      const ratio = contrast(gold, bg);
-      expect(
-        ratio,
-        `--gold-text ${gold} on --${surface} ${bg} is ${ratio.toFixed(2)}:1`,
-      ).toBeGreaterThanOrEqual(4.5);
+  // Every surface text gold can sit on, in both themes. The alternate cream
+  // is the binding one.
+  it('clears AA for text gold on every surface, in both themes', () => {
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+        const r = ratio(solid(decls, 'gold-text'), solid(decls, surface));
+        expect(r, `${name}: --gold-text on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 
-  it('keeps the bright gold usable on the dark plate', () => {
-    // --bar never changes with the theme, which is what makes the literal
-    // #d4af37 on the header, footer, hero and skip link safe.
-    expect(contrast('#d4af37', '#101010')).toBeGreaterThanOrEqual(4.5);
+  it('clears AA for the soft and mid ink on every surface, in both themes', () => {
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      for (const ink of ['ink-mid', 'ink-soft'] as const) {
+        for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+          const under = solid(decls, surface);
+          const r = ratio(over(parseHex(token(decls, ink)), under), under);
+          expect(r, `${name}: --${ink} on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
   });
 
-  it('keeps the decorative wedge gold bright', () => {
-    expect(lightBlock()).toMatch(/--wedge:#d4af37/i);
+  // The solid CTA sets its label on the gold fill, resting and hovered. White
+  // on that gold would be 3.2:1; an earlier hover colour was 4.3:1.
+  it('clears AA for the label on the gold CTA, resting and hovered, in both themes', () => {
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      for (const fill of ['cta', 'cta-hover']) {
+        const r = ratio(solid(decls, 'on-cta'), solid(decls, fill));
+        expect(r, `${name}: label on --${fill} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
-  // form.hidden = true is how the contact form gets out of the way after a
-  // successful submit. Any author display rule beats the browser's own
-  // [hidden] rule, so the reset has to say it with !important.
+  // What separates a control from the page has to clear 3:1: the CTA's edge
+  // against both creams, and a form field's edge against every surface a form
+  // sits on.
+  it('gives the CTA and form fields an edge that clears 3:1', () => {
+    for (const surface of ['bg', 'bg-deep'] as const) {
+      const r = ratio(solid(cream(), 'cta-edge'), solid(cream(), surface));
+      expect(r, `--cta-edge on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+    }
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      for (const surface of ['bg', 'bg-deep', 'surface'] as const) {
+        const under = solid(decls, surface);
+        const r = ratio(over(parseHex(token(decls, 'field-edge')), under), under);
+        expect(r, `${name}: --field-edge on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  // A plate (the header, the footer, a photo with text on it) is black in both
+  // themes and takes its values from the same block as the dark theme, so the
+  // bright gold on it needs no literal colours.
+  it('gives a plate the dark values and leaves its two blacks alone', () => {
+    const plate = block('.plate');
+    expect(token(plate, 'gold-text').toLowerCase()).toBe('#d4af37');
+    for (const black of ['bar', 'bar-deep'] as const) {
+      const r = ratio(solid(plate, 'gold-text'), solid(cream(), black));
+      expect(r, `gold on --${black} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      expect(token(dark(), black), `--${black} must not change with the theme`).toBe('');
+    }
+  });
+
+  // form.hidden = true is how a form gets out of the way after a successful
+  // submit. Any author display rule beats the browser's own [hidden] rule, so
+  // the reset has to say it with !important.
   it('hides anything with the hidden attribute, whatever its own display rule', () => {
     expect(css()).toMatch(/\[hidden\]\{display:none!important\}/);
   });
 
-  it('does not override the dark plate tokens in light', () => {
-    const block = lightBlock();
-    for (const t of ['--bar:', '--bar-deep:', '--pill:']) {
-      expect(block, t).not.toContain(t);
+  // A typo in a token name fails silently: the declaration is just dropped.
+  it('defines every custom property the CSS reads without a fallback', () => {
+    const sheet = css();
+    const defined = new Set([...sheet.matchAll(/(--[a-z0-9-]+):/gi)].map((m) => m[1]));
+    // Set inline, on the element, by the component that reads it.
+    const inline = new Set(['--box']);
+    const missing = [...sheet.matchAll(/var\((--[a-z0-9-]+)\)/gi)]
+      .map((m) => m[1])
+      .filter((name) => !defined.has(name) && !inline.has(name));
+    expect([...new Set(missing)]).toEqual([]);
+  });
+});
+
+// Cream is the default for every visitor, whatever their device prefers. Dark
+// is only ever a saved choice.
+describe('the default theme', () => {
+  it('opens on cream and never reads the device preference', () => {
+    for (const route of ['/', '/ja', '/ja/contact']) {
+      const doc = html(route);
+      expect(doc, route).toContain("localStorage.getItem('llt-theme') === 'dark'");
+      expect(doc, route).not.toContain('prefers-color-scheme');
+      expect(doc, route).not.toMatch(/<html[^>]*data-theme/);
+    }
+    // Nor may the stylesheet switch on it behind the page's back.
+    expect(css()).not.toContain('prefers-color-scheme');
+  });
+
+  // A phone set to force every page dark (Chrome on Android does it) leaves a
+  // page alone when its scheme says "only". Dark stays the visitor's choice.
+  it('opts the cream theme out of a forced dark mode', () => {
+    // The keyword may sit on either side; the minifier writes it second.
+    expect(cream()).toMatch(/(?:^|;)color-scheme:(?:only light|light only)(?:;|$)/);
+    expect(dark()).toMatch(/(?:^|;)color-scheme:dark(?:;|$)/);
+  });
+
+  // Pulled past its top or its end, a phone shows the canvas behind the page.
+  // It is the black of the bars, so the header and the footer run to the edge
+  // of the screen, and the body lays the cream over it.
+  it('paints the canvas in the black of the bars, and the page over it', () => {
+    expect(block('html')).toMatch(/(?:^|;)background:var\(--bar\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)background:var\(--bg\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)min-height:100svh(?:;|$)/);
+  });
+
+  // The toggle is a script. Without one it is hidden rather than left dead.
+  it('hides the theme toggle when there is no JavaScript', () => {
+    expect(html('/ja')).toMatch(
+      /<noscript><style>\[data-theme-toggle\]\{display:none!important\}<\/style><\/noscript>/,
+    );
+  });
+});
+
+// One row at every width: logo, language, and the way to the pages. Nothing
+// floats over the page.
+describe('the header and footer', () => {
+  // Anchored on the class: the Experience page has another <footer> (under a
+  // quotation) before the site's own.
+  const header = (route: string) =>
+    html(route).match(/<header class="site-header[\s\S]*?<\/header>/)?.[0] ?? '';
+  const footer = (route: string) =>
+    html(route).match(/<footer class="site-footer[\s\S]*?<\/footer>/)?.[0] ?? '';
+
+  it('puts the language link in the header bar on every page', () => {
+    for (const p of PATHS) {
+      for (const [prefix, other] of [['', 'ja'], ['/ja', 'en']] as const) {
+        expect(header(prefix + p), prefix + p).toMatch(
+          new RegExp(`<a [^>]*class="lang-link"[^>]*hreflang="${other}"`),
+        );
+      }
     }
   });
 
-  // The skip link sits on --bar, so its colour must not follow --gold-text.
-  it('does not let the skip link darken with the theme', () => {
-    const rule = css().match(/\.skip-link\{[^}]*\}/)?.[0] ?? '';
-    expect(rule, '.skip-link rule not found').not.toBe('');
-    expect(rule).not.toMatch(/color:var\(--gold-text\)/);
+  // The old language switch was a pill fixed to the corner of the screen,
+  // over the content. Her brief: nothing may cover the page.
+  it('pins nothing over the page', () => {
+    expect(css()).not.toMatch(/position:fixed/);
+  });
+
+  // A link whose whole text is "EN" needs a name that says more, and the name
+  // has to start with what is on screen. Each half carries its own language.
+  it('names the language link, starting with its visible label', () => {
+    expect(header('/ja')).toMatch(
+      /<span class="lang-link__label" lang="en"[^>]*>EN<\/span>\s*<span class="sr-only" lang="en"[^>]*>English<\/span>/,
+    );
+    expect(header('/')).toMatch(
+      /<span class="lang-link__label" lang="ja"[^>]*>日本語<\/span>\s*<span class="sr-only" lang="en"[^>]*>Japanese<\/span>/,
+    );
+  });
+
+  // The home link's name has to contain the lockup's own lettering, as the
+  // words it shows: two spans with nothing between them read as one word.
+  it('names the home link after the lettering it shows', () => {
+    for (const route of ['/', '/ja']) {
+      const link = header(route).match(/<a class="brand"[^]*?<\/a>/)?.[0] ?? '';
+      const name = link.match(/aria-label="([^"]*)"/)?.[1] ?? '';
+      const shown = link.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      expect(shown, route).toBe('LOS ANGELES LUXURY TOUR');
+      expect(name.toLowerCase(), route).toContain(shown.toLowerCase());
+    }
+  });
+
+  // The mark is drawn at 129px; the 800px original must not be what ships,
+  // and a 3x phone must not be handed the 2x file.
+  it('serves the header mark as WebP at display size, 2x and 3x', () => {
+    const img = header('/').match(/<img[^>]*>/)?.[0] ?? '';
+    expect(img).toMatch(/src="\/_astro\/logo\.[^"]+\.webp"/);
+    expect(img).toMatch(/srcset="[^"]+\.webp 1x, [^"]+\.webp 2x, [^"]+\.webp 3x"/);
+    expect(img).not.toContain('.png');
+  });
+
+  // Two navigation landmarks with the same links, one for each layout. The
+  // phone one wraps the <details>, so it exists whether the menu is open or
+  // not, and the menu opens without JavaScript.
+  it('gives the phone menu every link the bar has, inside its own nav', () => {
+    const h = header('/ja');
+    expect(count(h, /<nav /g)).toBe(2);
+    expect(count(h, /<nav [^>]*aria-label="メインメニュー"/g)).toBe(2);
+    expect(h).toMatch(/<nav class="menu-nav"[^>]*>\s*<details/);
+    expect(h).toMatch(/<summary class="menu__button"[^>]*aria-label="メニュー"/);
+    for (const href of ['/ja/experience', '/ja/about', '/ja/contact']) {
+      expect(count(h, new RegExp(`href="${href}"`, 'g')), href).toBe(2);
+    }
+  });
+
+  // Her brief: Email, Instagram and Facebook as icons; LINE and Threads out of
+  // the footer. An icon-only link has no text, so every one needs a name.
+  it('links the footer by icon, every one of them named', () => {
+    for (const route of ['/', '/ja', '/experience']) {
+      const links =
+        footer(route).match(/<nav class="site-footer__links"[\s\S]*?<\/nav>/)?.[0] ?? '';
+      const anchors = links.match(/<a [^>]*>/g) ?? [];
+      expect(anchors.length, route).toBeGreaterThanOrEqual(2);
+      for (const a of anchors) expect(a, route).toMatch(/aria-label="[^"]+"/);
+      expect(links).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+      expect(links).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
+      expect(footer(route)).not.toContain('line.me');
+      expect(footer(route)).not.toContain('threads.net');
+    }
+  });
+
+  // Her footer, in her order: the wish, the icons, the privacy link on a row
+  // of its own, then the two legal lines and nothing else.
+  it('ends the footer with the privacy link and the two legal lines', () => {
+    for (const [route, privacy] of [
+      ['/', '/privacy'],
+      ['/ja', '/ja/privacy'],
+    ]) {
+      const tail = footer(route).split('</nav>')[1] ?? '';
+      const lines = [...tail.matchAll(/<p class="site-footer__(\w+)[^>]*>([\s\S]*?)<\/p>/g)];
+      expect(lines.map(([, kind]) => kind), route).toEqual(['privacy', 'meta', 'meta']);
+      expect(lines[0][2], route).toContain(`href="${privacy}"`);
+      expect(lines[1][2].trim(), route).toBe('© 2026 Los Angeles Luxury Tour');
+      expect(lines[2][2], route).toContain('California Seller of Travel');
+    }
+  });
+
+  // On a 360px phone the line used to fold inside the number: 2175215- / 50.
+  it('keeps the registration number in one piece', () => {
+    for (const route of ['/', '/ja']) {
+      expect(footer(route), route).toMatch(
+        /<span class="site-footer__whole"[^>]*>[^<]*2175215-50\s*<\/span>/,
+      );
+    }
+  });
+
+  // Black in both themes: these take the dark tokens, not literal colours.
+  it('marks the header, the footer and the skip link as plates', () => {
+    const doc = html('/ja');
+    expect(doc).toMatch(/<header class="site-header plate"/);
+    expect(doc).toMatch(/<footer class="site-footer plate"/);
+    expect(doc).toMatch(/<a class="skip-link plate"/);
+  });
+});
+
+describe('photographs', () => {
+  const picture = (route: string) =>
+    html(route).match(/<picture[\s\S]*?<\/picture>/)?.[0] ?? '';
+  const files = (srcset: string) =>
+    srcset.split(',').map((part) => join(DIST, part.trim().split(' ')[0]));
+
+  it('offers the opening photo as AVIF, then WebP, then JPEG, and fetches it first', () => {
+    const pic = picture('/');
+    const types = [...pic.matchAll(/<source type="(image\/[a-z]+)"/g)].map((m) => m[1]);
+    expect(types).toEqual(['image/avif', 'image/webp']);
+    const img = pic.match(/<img[^>]*>/)?.[0] ?? '';
+    expect(img).toMatch(/src="[^"]+\.jpg"/);
+    expect(img).toContain('fetchpriority="high"');
+    expect(img).toContain('loading="eager"');
+  });
+
+  // A landscape photo in a tall phone hero is drawn wider than the screen. At
+  // 100vw the browser fetched a 768px file and stretched it to over twice that.
+  it('tells the browser the hero is drawn wider than a phone screen', () => {
+    const sizes = picture('/').match(/sizes="([^"]+)"/)?.[1] ?? '';
+    expect(sizes).toMatch(/\(max-aspect-ratio: [^)]+\) \d+vh, 100vw/);
+  });
+
+  it('leaves every photo that is not a page opener to load lazily', () => {
+    const img = picture('/about').match(/<img[^>]*>/)?.[0] ?? '';
+    expect(img).toContain('loading="lazy"');
+    expect(img).toContain('decoding="async"');
+    expect(img).not.toContain('fetchpriority');
+  });
+
+  // Listing AVIF first only helps if it is the smaller file. With one shared
+  // quality it was a quarter larger than the WebP at every width.
+  it('makes the AVIF the smallest file at every width', () => {
+    const sets = [...picture('/').matchAll(/srcset="([^"]+)"/g)].map((m) => files(m[1]));
+    const [avif, webp, jpg] = sets;
+    expect(avif.length).toBeGreaterThan(3);
+    for (let i = 0; i < avif.length; i++) {
+      const [a, w, j] = [avif[i], webp[i], jpg[i]].map((f) => statSync(f).size);
+      expect(a, `${avif[i]} (${a}) vs WebP (${w})`).toBeLessThan(w);
+      expect(w, `${webp[i]} (${w}) vs JPEG (${j})`).toBeLessThan(j);
+    }
   });
 });
 

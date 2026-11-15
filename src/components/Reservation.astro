@@ -12,14 +12,8 @@ const t = useTranslations(locale);
 // no urgency copy. Don't let anyone add one.
 ---
 
-<div class="reservation">
+{/* A plate: black in both themes, so its tokens are the dark ones. */}
+<div class="reservation plate">
   <p class="reservation__title">{t('reservation.title')}</p>
   <p class="reservation__note">{t('reservation.note')}</p>
 </div>
-
-<style>
-  /* Always on the dark plate, so the gold is safe in both themes. */
-  .reservation__title {
-    color: #d4af37;
-  }
-</style>

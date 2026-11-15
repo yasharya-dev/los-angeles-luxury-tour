@@ -1,5 +1,6 @@
 /* Language rules key off [lang] on <html>, so a third locale needs no new
-   markup. Where the design handoff and tokens.md disagreed, tokens.md won. */
+   markup. Sizes follow Amelia's brief of 2026-11-05: body text 16px and up on
+   a phone, labels 14px and up in both languages, 44px tap targets. */
 
 @import './tokens.css';
 
@@ -11,8 +12,12 @@
   box-sizing: border-box;
 }
 
+/* The canvas is the black of the header and the footer, and the body lays
+   the page's cream over it. A phone shows the canvas when a page is pulled
+   past its top or its end, and a cream band there would cut the black bars
+   off from the edge of the screen. */
 html {
-  background: var(--bg);
+  background: var(--bar);
   scroll-behavior: smooth;
 }
 
@@ -29,7 +34,14 @@ html {
   }
 }
 
+/* A column at least as tall as the screen, with the footer at its foot: on
+   a short page (a thank-you, a 404) the black footer would otherwise stop
+   short and leave a band of cream under it. */
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
   margin: 0;
   min-width: 320px;
   overflow-x: clip;
@@ -37,15 +49,25 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
-  line-height: 2;
+  line-height: 1.9;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+/* A surface that is black in both themes. tokens.css gives everything inside
+   it the dark values; this gives it the ink to go with them. */
+.plate {
+  color: var(--ink);
 }
 
 /* proportional kana spacing */
 html[lang='ja'] body {
   font-feature-settings: 'palt';
-  line-height: 2.15;
+  line-height: 2;
   /* Kinsoku shori: keeps the long-vowel mark and small kana off the start of
      a line. Without it the browser breaks プリゲームツアー before the ー. */
   line-break: strict;
@@ -68,7 +90,7 @@ video {
 a {
   color: var(--gold-text);
   text-decoration: none;
-  transition: color 0.4s ease;
+  transition: color 0.3s ease;
 }
 
 a:hover {
@@ -83,15 +105,17 @@ a:hover {
   text-underline-offset: 0.2em;
 }
 
+/* Inverted, so selected text is legible whatever colour it started as. */
 ::selection {
-  background: rgba(212, 175, 55, 0.32);
+  background: var(--ink);
+  color: var(--bg);
 }
 
+/* --gold-text, so on a plate the ring is the bright gold by itself. */
 :focus-visible {
   outline: 2px solid var(--gold-text);
   outline-offset: 3px;
 }
-
 
 .sr-only {
   position: absolute;
@@ -105,6 +129,8 @@ a:hover {
   border: 0;
 }
 
+/* A plate (the class is on the element), so its gold and its hover ink are
+   the dark-surface ones. One line: it is a label, not a sentence. */
 .skip-link {
   position: absolute;
   top: 0;
@@ -112,14 +138,13 @@ a:hover {
   transform: translate(-50%, -120%);
   z-index: 100;
   background: var(--bar);
-  /* --bar is dark in both themes, so the gold must NOT darken with the theme
-     the way --gold-text does. Literal, same as the header and footer. */
-  color: #d4af37;
-  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: var(--gold-text);
+  border: 1px solid var(--hairline);
   padding: 12px 24px;
   font-family: var(--font-label);
-  font-size: 11px;
-  letter-spacing: 0.24em;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
   transition: transform 0.2s ease;
 }
 
@@ -142,13 +167,13 @@ a:hover {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(32px, 6.2vw, 58px);
+  font-size: clamp(30px, 6vw, 56px);
   line-height: 1.22;
-  color: var(--gold-text);
+  color: var(--ink);
   text-wrap: balance;
 }
 
-/* balance gives up around a forced break and strands "life." alone on a
+/* balance gives up around a forced break and strands a word alone on a
    phone; pretty keeps the last line to two words. */
 @media (max-width: 480px) {
   .display {
@@ -160,10 +185,19 @@ a:hover {
    there are no spaces to rebalance and the breaks are authored. */
 html[lang='ja'] .display {
   font-family: var(--font-body);
-  font-size: clamp(27px, 5.1vw, 46px);
-  line-height: 1.55;
-  letter-spacing: 0.055em;
+  font-size: clamp(26px, 5.1vw, 46px);
+  line-height: 1.5;
+  letter-spacing: 0.05em;
   text-wrap: initial;
+}
+
+/* Her longest hero line is eleven characters: 283px at this size and
+   tracking, and a 360px phone has 320px to give it. */
+@media (max-width: 400px) {
+  html[lang='ja'] .display {
+    font-size: 25px;
+    letter-spacing: 0.03em;
+  }
 }
 
 .h2 {
@@ -176,21 +210,23 @@ html[lang='ja'] .display {
   text-wrap: balance;
 }
 
-/* An authored eleven-character line is 313px at 27px, and a 360px phone has
-   312px to give it. */
-@media (max-width: 400px) {
-  html[lang='ja'] .display {
-    font-size: 26px;
-    letter-spacing: 0.03em;
-  }
-}
-
 html[lang='ja'] .h2 {
   font-family: var(--font-body);
   font-size: clamp(22px, 3.6vw, 32px);
-  line-height: 1.6;
+  line-height: 1.55;
   letter-spacing: 0.05em;
   text-wrap: initial;
+}
+
+/* Her headings run to fourteen or fifteen characters a line (どんな時間を
+   過ごしたいですか？). At 22px that is 346px and a 360px phone has 320px, so
+   the last two characters dropped to a line of their own. At this size and
+   tracking the same line is 321px on a 375px phone's 335px. */
+@media (max-width: 400px) {
+  html[lang='ja'] .h2 {
+    font-size: 21px;
+    letter-spacing: 0.02em;
+  }
 }
 
 .h3 {
@@ -204,7 +240,7 @@ html[lang='ja'] .h2 {
 
 html[lang='ja'] .h3 {
   font-family: var(--font-body);
-  font-size: clamp(16px, 2.1vw, 20px);
+  font-size: clamp(17px, 2.1vw, 20px);
   line-height: 1.6;
   /* h3s are plain strings with no authored breaks, so balance them rather
      than let a phone column strand one kana on the last line. */
@@ -213,14 +249,14 @@ html[lang='ja'] .h3 {
 
 .body {
   margin: 0;
-  font-size: clamp(15px, 1.6vw, 16px);
-  line-height: 1.95;
+  font-size: clamp(16px, 1.5vw, 17px);
+  line-height: 1.85;
   color: var(--ink-mid);
   text-wrap: pretty;
 }
 
 html[lang='ja'] .body {
-  line-height: 2.2;
+  line-height: 2;
   /* No text-wrap: balance - there are no spaces to rebalance. Alignment is
      left by default and inherited from .center where a section centres. */
   text-wrap: initial;
@@ -228,35 +264,35 @@ html[lang='ja'] .body {
 
 .caption {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.8;
   color: var(--ink-soft);
 }
 
-/* Kana and kanji cannot be uppercased, so weight and tracking carry it. */
+/* The small label above a heading. Kana and kanji cannot be uppercased, so
+   weight and tracking carry it there. */
 .kicker {
   margin: 0;
   font-family: var(--font-label);
-  font-size: clamp(10px, 1.3vw, 11px);
-  font-weight: 500;
-  letter-spacing: 0.34em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--gold-text);
 }
 
 html[lang='ja'] .kicker {
   font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.24em;
+  font-size: 14px;
+  letter-spacing: 0.2em;
   text-transform: none;
 }
 
-/* The tagline is 21 characters. At 0.24em that is 338px, which a 327px
-   phone column wraps into a two-character orphan. */
+/* A long Japanese label at 0.2em wraps into a two-character orphan on a
+   phone column. */
 @media (max-width: 480px) {
   html[lang='ja'] .kicker {
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
   }
 }
 
@@ -274,42 +310,12 @@ html[lang='ja'] .em {
 /* ------------------------------------------------------------- layout */
 
 .section {
-  padding: var(--section-y) 24px;
+  padding: var(--section-y) var(--gutter);
   background: var(--bg);
 }
 
 .section--deep {
   background: var(--bg-deep);
-}
-
-/* invisible in dark, gold in light, as on her cards */
-.section--wedged {
-  position: relative;
-  overflow: hidden;
-}
-
-.section--wedged::before,
-.section--wedged::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  pointer-events: none;
-}
-
-.section--wedged::before {
-  top: 0;
-  left: 0;
-  border-width: 110px 110px 0 0;
-  border-color: var(--wedge) transparent transparent transparent;
-}
-
-.section--wedged::after {
-  bottom: 0;
-  right: 0;
-  border-width: 0 0 110px 110px;
-  border-color: transparent transparent var(--wedge) transparent;
 }
 
 .measure {
@@ -344,20 +350,19 @@ html[lang='ja'] .em {
 
 /* --------------------------------------------------------------- divider */
 
-
 .divider {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  max-width: 420px;
+  max-width: 300px;
   margin-inline: auto;
 }
 
 .divider__rule {
   flex: 1;
   height: 1px;
-  background: var(--hairline-soft);
+  background: var(--hairline);
 }
 
 .divider__mark {
@@ -368,17 +373,27 @@ html[lang='ja'] .em {
 
 /* --------------------------------------------------------------- buttons */
 
+/* One box for both languages. Never under the 44px tap floor. The outline is
+   the text gold, not a tint of it, so the button's edge is as legible as its
+   label; on a plate both come out bright by themselves. */
 .btn {
-  display: inline-block;
-  border: 1px solid var(--hairline);
-  color: var(--gold-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 28px;
+  border: 1px solid var(--gold-text);
+  border-radius: var(--radius-ctl);
   background: transparent;
+  color: var(--gold-text);
   font-family: var(--font-label);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.28em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-align: center;
   text-transform: uppercase;
-  padding: 16px 38px 15px 42px; /* optical: tracking adds space on the right */
   cursor: pointer;
   transition:
     background 0.3s ease,
@@ -389,67 +404,69 @@ html[lang='ja'] .em {
 .btn:hover {
   background: var(--btn-hover);
   color: var(--ink);
-  border-color: var(--gold-text);
+  border-color: var(--ink);
 }
 
-/* JA buttons use the serif; same box so one component serves both. */
 html[lang='ja'] .btn {
   font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.24em;
+  font-size: 15px;
+  letter-spacing: 0.1em;
   text-transform: none;
-  padding: 15px 34px 14px 38px;
 }
 
-/* On a phone the tracking is what pushes a long label onto two lines, and a
-   Japanese label has no spaces, so it breaks mid-word. Tighten there. */
-@media (max-width: 430px) {
+/* A Japanese label has no spaces, so on a narrow phone the tracking is what
+   pushes it onto two lines mid-word. */
+@media (max-width: 400px) {
   .btn {
-    letter-spacing: 0.18em;
-    padding-inline: 30px 34px;
+    letter-spacing: 0.08em;
+    padding-inline: 22px;
   }
   html[lang='ja'] .btn {
-    letter-spacing: 0.12em;
-    padding-inline: 26px 30px;
+    letter-spacing: 0.06em;
   }
 }
 
+/* The champagne-gold CTA. Ink on the gold, not white: white is 3.2:1. The
+   darker edge is what separates the fill from the cream at 3:1 or better;
+   hover lightens the fill, which only raises the label's contrast. */
 .btn--solid {
-  background: var(--gold-deco);
-  border-color: var(--gold-deco);
-  color: #101010;
+  background: var(--cta);
+  border-color: var(--cta-edge);
+  color: var(--on-cta);
 }
 
 .btn--solid:hover {
-  background: transparent;
-  color: var(--gold-text);
+  background: var(--cta-hover);
+  border-color: var(--cta-edge);
+  color: var(--on-cta);
 }
 
 /* ----------------------------------------------------- reservation panel */
 
-/* Service model, not a scarcity device. No counters, no urgency. */
+/* Service model, not a scarcity device. No counters, no caps. A plate: the
+   class is on the element, so these tokens are the dark-surface ones. */
 .reservation {
-  border: 1px solid var(--hairline);
-  padding: clamp(28px, 5vw, 44px) clamp(20px, 4vw, 40px);
-  text-align: center;
-  background: var(--bar);
   max-width: 620px;
   margin-inline: auto;
+  padding: clamp(28px, 5vw, 40px) clamp(22px, 4vw, 40px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  background: var(--bar);
+  text-align: center;
 }
 
 .reservation__title {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font-family: var(--font-body);
-  font-size: clamp(17px, 2.4vw, 21px);
+  font-size: clamp(19px, 2.6vw, 23px);
   font-weight: 500;
-  letter-spacing: 0.24em;
-  color: #d4af37; /* on --bar, which is always dark: 9.0:1 */
+  letter-spacing: 0.2em;
+  color: var(--gold-text);
 }
 
 .reservation__note {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.9;
-  color: rgba(245, 245, 250, 0.72);
+  color: var(--ink-mid);
 }

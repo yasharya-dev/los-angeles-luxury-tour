@@ -2,6 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { localizePath } from '../i18n/utils';
 import Divider from '../components/Divider.astro';
+import Photo from '../components/Photo.astro';
 import portrait from '../assets/portrait.jpg';
 
 interface Props {
@@ -195,13 +196,7 @@ const c = copy[locale];
 <section class="section section--deep">
   <div class="founder measure--grid">
     <div class="founder__portrait">
-      <img
-        src={portrait.src}
-        alt={c.portraitAlt}
-        width={portrait.width}
-        height={portrait.height}
-        loading="lazy"
-      />
+      <Photo src={portrait} alt={c.portraitAlt} sizes="(min-width: 720px) 220px, 128px" />
     </div>
     <p class="kicker founder__kicker">{c.founderKicker}</p>
     <div class="founder__text">
@@ -223,7 +218,7 @@ const c = copy[locale];
 </section>
 
 {/* 4. The experience: five fragments she wrote as a stack, then two lines. */}
-<section class="section section--deep section--wedged">
+<section class="section section--deep">
   <div class="measure measure--wide center">
     <p class="kicker">{c.expKicker}</p>
     <h2 class="h2 section__title">{c.expTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>

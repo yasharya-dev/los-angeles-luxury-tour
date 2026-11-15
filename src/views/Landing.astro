@@ -4,6 +4,7 @@ import { useTranslations, localizePath } from '../i18n/utils';
 import { byTier, capabilities, tierOrder, type Tier } from '../data/offerings';
 import Divider from '../components/Divider.astro';
 import Reservation from '../components/Reservation.astro';
+import Photo from '../components/Photo.astro';
 import heroImg from '../assets/hero-dtla.jpg';
 
 interface Props {
@@ -119,14 +120,16 @@ const tierLabel: Record<Tier, string> = {
 };
 ---
 
-<section class="hero">
-  <img
+<section class="hero plate">
+  {/* The photo is 1.53 wide to 1 tall and the hero is about two thirds of
+      the screen, so on an upright phone it is drawn about one screen-height
+      wide: far more than 100vw. */}
+  <Photo
     class="hero__img"
-    src={heroImg.src}
+    src={heroImg}
     alt={c.heroAlt}
-    width={heroImg.width}
-    height={heroImg.height}
-    fetchpriority="high"
+    sizes="(max-aspect-ratio: 4/5) 105vh, 100vw"
+    priority
   />
   <div class="hero__scrim"></div>
   <div class="hero__inner">
@@ -185,7 +188,7 @@ const tierLabel: Record<Tier, string> = {
   </ul>
 </section>
 
-<section class="section section--deep section--wedged" id="journeys">
+<section class="section section--deep" id="journeys">
   <div class="measure measure--wide center offers__head">
     <h2 class="h2 section__title">
       {c.offersTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
@@ -316,16 +319,6 @@ const tierLabel: Record<Tier, string> = {
     margin-top: 44px;
     display: flex;
     justify-content: center;
-  }
-
-  /* Plate is always dark, so these are literal rather than tokens. */
-  .hero :global(.btn) {
-    color: #d4af37;
-    border-color: rgba(212, 175, 55, 0.75);
-  }
-  .hero :global(.btn:hover) {
-    background: rgba(212, 175, 55, 0.12);
-    color: #f5f5fa;
   }
 
   /* ---------------------------------------------------------- sections */

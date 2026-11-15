@@ -123,7 +123,7 @@ describe('ui dictionaries', () => {
   it('has no accidentally empty strings', () => {
     for (const locale of locales) {
       for (const [key, value] of Object.entries(ui[locale])) {
-        if (key === 'price.from' || key === 'price.note') continue;
+        if (key === 'price.note') continue;
         expect(value.trim(), `${locale}.${key}`).not.toBe('');
       }
     }
