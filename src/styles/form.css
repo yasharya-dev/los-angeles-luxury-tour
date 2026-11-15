@@ -27,16 +27,19 @@
   }
 }
 
+/* Packed to the top: two fields share a row and one has a hint under it, and
+   without this the other one stretches its control to fill the difference. */
 .field {
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .label {
   font-family: var(--font-label);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-mid);
 }
@@ -58,7 +61,9 @@ html[lang='ja'] .label {
 
 .input {
   width: 100%;
-  min-height: 50px;
+  /* One height for a text field, a select and a date field, which otherwise
+     each come out a pixel or three different. A textarea sets its own. */
+  height: 52px;
   background: var(--surface);
   /* --field-edge, not a gold tint: a control's edge has to clear 3:1. */
   border: 1px solid var(--field-edge);
@@ -72,10 +77,12 @@ html[lang='ja'] .label {
   transition: border-color 0.3s ease;
 }
 
-.input:focus {
+/* A ring as well as the border: the border alone moves from one mid-tone to
+   another, which is not enough to see where the keyboard is. */
+.input:focus-visible {
   border-color: var(--gold-text);
-  outline: 2px solid transparent;
-  outline-offset: 2px;
+  outline: 2px solid var(--gold-text);
+  outline-offset: 1px;
 }
 
 .input--err {
@@ -83,6 +90,7 @@ html[lang='ja'] .label {
 }
 
 .textarea {
+  height: auto;
   resize: vertical;
   min-height: 8em;
 }

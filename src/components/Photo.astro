@@ -1,22 +1,29 @@
 ---
 /*
-  Every photograph on the site goes through here: AVIF and WebP at a ladder
-  of widths with a JPEG fallback, so a phone downloads a phone-sized file.
-  Below the fold by default (lazy, async decode); pass `priority` for the one
-  image a page opens on.
+  Every photograph on the site goes through here: AVIF, then WebP, then a JPEG
+  fallback, each at a ladder of widths, so a phone downloads a phone-sized
+  file. Below the fold by default (lazy, decoded off the main thread); pass
+  `priority` for the one image a page opens on.
+
+  `sizes` must say how wide the photo is actually DRAWN, which for a photo
+  that fills a box with object-fit: cover is often wider than the screen: a
+  landscape photo in a tall phone hero is scaled up to the box's height. Left
+  at 100vw there, the browser fetches a file for the screen's width and
+  stretches it to more than twice that.
 */
-import { Picture } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
 interface Props {
   src: ImageMetadata;
   /** Empty for a purely decorative photo. */
   alt: string;
-  /** How wide the image is laid out, for the browser to pick a file. */
+  /** How wide the image is drawn, for the browser to pick a file. */
   sizes?: string;
   /** The page's opening image: fetched early, never lazy. */
   priority?: boolean;
   class?: string;
+  style?: string;
   // Astro hands a child component the parent's style-scope attribute; it has
   // to reach the <img> or the parent's scoped rules will not match it.
   [attr: `data-astro-cid-${string}`]: unknown;
@@ -24,23 +31,44 @@ interface Props {
 
 const { src, alt, sizes = '100vw', priority = false, ...rest } = Astro.props;
 
+// One quality per format. A single number for all three makes the AVIF
+// larger than the WebP, which defeats listing it first: at these settings
+// the AVIF is the smallest of the three at every width.
+const QUALITY = { avif: 48, webp: 68, jpg: 74 } as const;
+type Format = keyof typeof QUALITY;
+
 // A ladder of widths, ending on the photo's own (capped at 1920): asking for
 // more than the original holds only upscales it, and stopping at the rung
 // below would throw resolution away.
 const top = Math.min(src.width, 1920);
-const widths = [...[480, 768, 1080, 1440].filter((w) => w < top), top];
+const widths = [...[240, 480, 768, 1080, 1440].filter((w) => w < top), top];
+
+const make = (format: Format) =>
+  Promise.all(
+    widths.map((width) => getImage({ src, width, format, quality: QUALITY[format] })),
+  );
+const [avif, webp, jpg] = await Promise.all([make('avif'), make('webp'), make('jpg')]);
+const srcset = (set: typeof avif) =>
+  set.map((img, i) => `${img.src} ${widths[i]}w`).join(', ');
+
+// What a browser with no srcset support gets: the middle of the ladder.
+const fallback = jpg[Math.min(3, jpg.length - 1)];
+const ratio = src.height / src.width;
 ---
 
-<Picture
-  src={src}
-  alt={alt}
-  formats={['avif', 'webp']}
-  fallbackFormat="jpg"
-  widths={widths}
-  sizes={sizes}
-  quality={60}
-  loading={priority ? 'eager' : 'lazy'}
-  decoding={priority ? undefined : 'async'}
-  fetchpriority={priority ? 'high' : undefined}
-  {...rest}
-/>
+<picture>
+  <source type="image/avif" srcset={srcset(avif)} sizes={sizes} />
+  <source type="image/webp" srcset={srcset(webp)} sizes={sizes} />
+  <img
+    src={fallback.src}
+    srcset={srcset(jpg)}
+    sizes={sizes}
+    alt={alt}
+    width={top}
+    height={Math.round(top * ratio)}
+    loading={priority ? 'eager' : 'lazy'}
+    decoding={priority ? 'auto' : 'async'}
+    fetchpriority={priority ? 'high' : undefined}
+    {...rest}
+  />
+</picture>

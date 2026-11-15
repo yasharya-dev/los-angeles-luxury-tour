@@ -11,13 +11,15 @@ const { locale, labelled = false } = Astro.props;
 const t = useTranslations(locale);
 ---
 
-{/* Cream is the default. Pressed means the dark theme is on. */}
+{/* Cream is the default. One name in both places, "Dark mode", and pressed
+    means it is on. Without JavaScript the button could do nothing, so
+    Base.astro hides it in a <noscript> style. */}
 <button
   class:list={['theme-toggle', { 'theme-toggle--labelled': labelled }]}
   type="button"
-  aria-label={labelled ? undefined : t('toggle.theme')}
+  aria-label={labelled ? undefined : t('toggle.dark')}
   aria-pressed="false"
-  title={labelled ? undefined : t('toggle.theme')}
+  title={labelled ? undefined : t('toggle.dark')}
   data-theme-toggle
 >
   <span class="theme-toggle__mark" aria-hidden="true"></span>
@@ -51,10 +53,26 @@ const t = useTranslations(locale);
       sync();
     });
   });
+
+  // A page restored by the Back button keeps the DOM it had. Re-read the
+  // choice, which may have changed on the page the visitor came back from.
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    let dark = false;
+    try {
+      dark = localStorage.getItem(KEY) === 'dark';
+    } catch {
+      /* stay on the default */
+    }
+    if (dark) root.dataset.theme = 'dark';
+    else delete root.dataset.theme;
+    sync();
+  });
 </script>
 
 <style>
-  /* The button is the 44px target; the mark inside is the 26px drawing. */
+  /* The button is the 44px target; the mark inside is the 26px drawing. In
+     the header's plate, so the tokens are the dark-surface ones. */
   .theme-toggle {
     display: inline-flex;
     align-items: center;
@@ -65,29 +83,28 @@ const t = useTranslations(locale);
     padding: 0;
     border: 0;
     background: none;
-    color: #f5f5fa;
+    color: var(--ink);
     cursor: pointer;
   }
 
-  /* Half-filled circle: reads as "two states" and costs no icon swap. */
+  /* A half-filled circle: the gold half is on the right for cream and on the
+     left for dark. It follows the theme attribute on <html>, which the
+     blocking script in Base.astro sets before first paint, so a visitor who
+     chose dark never sees the cream mark first. */
   .theme-toggle__mark {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 1px solid rgba(212, 175, 55, 0.6);
-    background: linear-gradient(90deg, transparent 0 50%, #d4af37 50% 100%);
-    transition:
-      transform 0.3s ease,
-      border-color 0.3s ease;
+    border: 1px solid var(--hairline);
+    background: linear-gradient(90deg, transparent 0 50%, var(--gold-text) 50% 100%);
+    transition: border-color 0.3s ease;
+  }
+  :global(html[data-theme='dark']) .theme-toggle__mark {
+    background: linear-gradient(90deg, var(--gold-text) 0 50%, transparent 50% 100%);
   }
 
   .theme-toggle:hover .theme-toggle__mark {
-    border-color: #d4af37;
-    transform: rotate(180deg);
-  }
-
-  .theme-toggle[aria-pressed='true'] .theme-toggle__mark {
-    background: linear-gradient(90deg, #d4af37 0 50%, transparent 50% 100%);
+    border-color: var(--gold-text);
   }
 
   .theme-toggle--labelled {
@@ -97,14 +114,14 @@ const t = useTranslations(locale);
 
   .theme-toggle__text {
     font-family: var(--font-label);
-    font-size: 13px;
-    letter-spacing: 0.2em;
+    font-size: 14px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
   :global(html[lang='ja']) .theme-toggle__text {
     font-family: var(--font-body);
-    font-size: 15px;
+    font-size: 16px;
     letter-spacing: 0.1em;
     text-transform: none;
   }

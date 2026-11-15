@@ -1,5 +1,5 @@
 ---
-import { localeLinkNames, localeNames, locales, type Locale } from '../i18n/ui';
+import { localeGloss, localeNames, locales, type Locale } from '../i18n/ui';
 import { alternatePath, pagePath } from '../i18n/utils';
 
 interface Props {
@@ -14,23 +14,45 @@ const others = locales.filter((l) => l !== locale);
 ---
 
 {/* In the header bar, not floating over the page: her brief asks for nothing
-    that can cover the content. */}
+    that can cover the content.
+
+    The accessible name is the visible label followed by the language spelled
+    out ("EN English", "日本語 Japanese"): it starts with what is on screen, so
+    voice control still matches it, and each half carries its own lang. */}
 {
   others.map((other) => (
     <a
       class="lang-link"
       href={alternatePath(pagePath(Astro.url.pathname), other)}
       hreflang={other}
-      lang={other}
-      aria-label={localeLinkNames[other]}
+      data-lang-link
     >
-      <span class="lang-link__label">{localeNames[other]}</span>
+      <span class="lang-link__label" lang={other}>{localeNames[other]}</span>
+      <span class="sr-only" lang="en">{localeGloss[other]}</span>
     </a>
   ))
 }
 
+<script>
+  // The page is static, so the link cannot know what follows the path. Carry
+  // the query and the fragment across, or switching language on the booking
+  // form drops the plan that was selected (/ja/book?service=temecula).
+  // Set on load too, so "open in new tab" gets the same address.
+  const carry = (a: HTMLAnchorElement) => {
+    a.href = a.pathname + location.search + location.hash;
+  };
+  document.querySelectorAll<HTMLAnchorElement>('a[data-lang-link]').forEach((a) => {
+    carry(a);
+    a.addEventListener('click', () => carry(a));
+  });
+  window.addEventListener('hashchange', () =>
+    document.querySelectorAll<HTMLAnchorElement>('a[data-lang-link]').forEach(carry),
+  );
+</script>
+
 <style>
-  /* The link is the 44px target; the pill inside is only how it looks. */
+  /* The link is the 44px target; the pill inside is only how it looks. On
+     the header's plate, so the tokens are the dark-surface ones. */
   .lang-link {
     display: inline-flex;
     align-items: center;
@@ -40,13 +62,13 @@ const others = locales.filter((l) => l !== locale);
 
   .lang-link__label {
     padding: 4px 12px;
-    border: 1px solid rgba(212, 175, 55, 0.55);
+    border: 1px solid var(--hairline);
     border-radius: 999px;
-    color: #d4af37;
+    color: var(--gold-text);
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     line-height: 1.6;
     white-space: nowrap;
     transition:
@@ -55,14 +77,14 @@ const others = locales.filter((l) => l !== locale);
   }
 
   /* 日本語 falls back to a system font in Montserrat. */
-  .lang-link[lang='ja'] .lang-link__label {
+  .lang-link__label[lang='ja'] {
     font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.08em;
+    font-size: 14px;
+    letter-spacing: 0.06em;
   }
 
   .lang-link:hover .lang-link__label {
-    border-color: #d4af37;
-    color: #f5f5fa;
+    border-color: var(--gold-text);
+    color: var(--ink);
   }
 </style>

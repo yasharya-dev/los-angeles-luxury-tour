@@ -4,8 +4,7 @@ import { useTranslations, localizePath, pagePath } from '../i18n/utils';
 import ThemeToggle from './ThemeToggle.astro';
 import LangToggle from './LangToggle.astro';
 import Icon from './Icon.astro';
-import { getImage } from 'astro:assets';
-import logo from '../assets/logo.png';
+import Monogram from './Monogram.astro';
 
 interface Props {
   locale: Locale;
@@ -17,12 +16,6 @@ const p = (path: string) => localizePath(path, locale);
 const current = pagePath(Astro.url.pathname);
 const isCurrent = (path: string) => current === p(path);
 
-// The mark is drawn at 129px and cropped to the monogram. The source is an
-// 800px PNG; this is the same picture at the size it is shown, and at 2x.
-const [mark, mark2x] = await Promise.all(
-  [129, 258].map((width) => getImage({ src: logo, width, format: 'webp' })),
-);
-
 const links = [
   { href: '/experience', label: t('nav.experience') },
   { href: '/about', label: t('nav.about') },
@@ -30,20 +23,15 @@ const links = [
 ];
 ---
 
-{/* One row at every width, as she asked: logo, language, menu. From 800px
-    the links sit in the bar and the menu button goes away. The two navs are
-    never both rendered, so assistive tech only ever meets one. */}
-<header class="site-header">
+{/* One row at every width, as she asked: logo, language, and the way to the
+    pages. Under 800px that is a menu; from 800px the links sit in the bar.
+    Each is its own <nav>, and only one is ever rendered, so a screen reader
+    always finds exactly one main navigation, open or closed.
+
+    A plate: black in both themes, so every colour below is a token. */}
+<header class="site-header plate">
   <a class="brand" href={p('/')} aria-label={t('nav.home')}>
-    <span class="brand__mark">
-      <img
-        src={mark.src}
-        srcset={`${mark.src} 1x, ${mark2x.src} 2x`}
-        alt=""
-        width="129"
-        height="129"
-      />
-    </span>
+    <Monogram size={40} />
     <span class="brand__words">
       <span class="brand__name">LOS ANGELES</span>
       <span class="brand__sub">LUXURY TOUR</span>
@@ -68,31 +56,34 @@ const links = [
     <LangToggle locale={locale} />
     <span class="tools__theme"><ThemeToggle locale={locale} /></span>
 
-    {/* <details> so the menu opens without JavaScript. The script below only
-        adds the niceties: Escape, a tap outside, and closing on resize. */}
-    <details class="menu" data-menu>
-      <summary class="menu__button" aria-label={t('nav.menu')}>
-        <Icon name="menu" class="menu__icon menu__icon--open" />
-        <Icon name="close" class="menu__icon menu__icon--close" />
-      </summary>
-      <nav class="menu__panel" aria-label={t('nav.main')}>
-        {
-          links.map((l) => (
-            <a
-              class="menu__link"
-              href={p(l.href)}
-              aria-current={isCurrent(l.href) ? 'page' : undefined}
-            >
-              {l.label}
-              <Icon name="chevron-right" size={18} />
-            </a>
-          ))
-        }
-        <div class="menu__foot">
-          <ThemeToggle locale={locale} labelled />
+    {/* <details>, so the menu opens without JavaScript. The script below adds
+        what a native disclosure lacks: Escape, a tap outside, closing when
+        focus moves on, and closing when the bar takes over at 800px. */}
+    <nav class="menu-nav" aria-label={t('nav.main')}>
+      <details class="menu" data-menu>
+        <summary class="menu__button" aria-label={t('nav.menu')}>
+          <Icon name="menu" class="menu__icon menu__icon--open" />
+          <Icon name="close" class="menu__icon menu__icon--close" />
+        </summary>
+        <div class="menu__panel">
+          {
+            links.map((l) => (
+              <a
+                class="menu__link"
+                href={p(l.href)}
+                aria-current={isCurrent(l.href) ? 'page' : undefined}
+              >
+                {l.label}
+                <Icon name="chevron-right" size={18} />
+              </a>
+            ))
+          }
+          <div class="menu__foot">
+            <ThemeToggle locale={locale} labelled />
+          </div>
         </div>
-      </nav>
-    </details>
+      </details>
+    </nav>
   </div>
 </header>
 
@@ -100,27 +91,48 @@ const links = [
   const menu = document.querySelector<HTMLDetailsElement>('[data-menu]');
   if (menu) {
     const summary = menu.querySelector('summary');
-    const close = (refocus = false) => {
-      if (!menu.open) return;
+    const close = () => {
       menu.open = false;
-      if (refocus) summary?.focus();
     };
 
+    // Escape closes it. Focus goes back to the button only if it was inside
+    // the menu: pressing Escape elsewhere must not move a keyboard user.
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close(true);
+      if (e.key !== 'Escape' || !menu.open) return;
+      const inside = menu.contains(document.activeElement);
+      close();
+      if (inside) summary?.focus();
     });
-    document.addEventListener('click', (e) => {
-      if (e.target instanceof Node && !menu.contains(e.target)) close();
+
+    // A tap or click anywhere else closes it. pointerdown, because iOS Safari
+    // does not send click for a tap on plain page content.
+    document.addEventListener('pointerdown', (e) => {
+      if (menu.open && e.target instanceof Node && !menu.contains(e.target)) close();
     });
-    // The button is hidden from 800px; a menu left open would be orphaned.
+
+    // Tabbing out of the open panel closes it, so focus is never left on a
+    // link the panel is covering.
+    menu.addEventListener('focusout', (e) => {
+      const next = e.relatedTarget;
+      if (menu.open && next instanceof Node && !menu.contains(next)) close();
+    });
+
+    // From 800px the links are in the bar and the button is gone.
     window.matchMedia('(min-width: 800px)').addEventListener('change', (e) => {
       if (e.matches) close();
+    });
+
+    // Coming back with the Back button can restore the page as it was left.
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) close();
     });
   }
 </script>
 
 <style>
-  /* Her black bar - stays dark in both themes, so its colours are literal. */
+  /* The left edge lines up with the page's own gutter. The right is 10px
+     tighter, because the menu button is a 44px box around a 24px glyph: the
+     glyph, not the box, is what should meet the gutter. */
   .site-header {
     position: relative;
     z-index: 50;
@@ -129,9 +141,9 @@ const links = [
     justify-content: space-between;
     gap: var(--gap-sm);
     min-height: 64px;
-    padding: 8px clamp(14px, 4vw, 40px);
+    padding: 8px calc(var(--gutter) - 10px) 8px var(--gutter);
     background: var(--bar);
-    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    border-bottom: 1px solid var(--hairline-soft);
   }
 
   .brand {
@@ -145,25 +157,6 @@ const links = [
     color: inherit;
   }
 
-  /* Monogram is cropped from the full lockup, so there is one logo file. */
-  .brand__mark {
-    display: block;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    position: relative;
-    flex: none;
-  }
-  .brand__mark img {
-    position: absolute;
-    width: 129px;
-    height: 129px;
-    left: -43px;
-    top: -36px;
-    max-width: none;
-  }
-
   .brand__name,
   .brand__sub {
     display: block;
@@ -175,15 +168,16 @@ const links = [
     font-size: 13px;
     letter-spacing: 0.28em;
     line-height: 1.5;
-    color: #f5f5fa;
+    color: var(--ink);
   }
-  /* The second line of the lockup, part of the logo rather than a label. */
+  /* The second line of the logo lockup. It is the logo's own lettering, set
+     small as in her artwork, not a label: the link's name carries the words. */
   .brand__sub {
     font-weight: 400;
     font-size: 9px;
     letter-spacing: 0.44em;
     line-height: 1.5;
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   .tools {
@@ -205,16 +199,16 @@ const links = [
     min-height: var(--tap);
     padding-inline: 4px;
     font-family: var(--font-label);
-    font-size: 12px;
-    letter-spacing: 0.2em;
+    font-size: 13px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(245, 245, 250, 0.88);
+    color: var(--ink-mid);
     /* Japanese has no spaces, so without this a label breaks mid-word. */
     white-space: nowrap;
   }
   .nav__link:hover,
   .nav__link[aria-current='page'] {
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   :global(html[lang='ja']) .nav__link {
@@ -232,7 +226,7 @@ const links = [
     place-items: center;
     width: var(--tap);
     height: var(--tap);
-    color: #f5f5fa;
+    color: var(--ink);
     cursor: pointer;
     list-style: none;
     border-radius: var(--radius-ctl);
@@ -241,7 +235,7 @@ const links = [
     display: none;
   }
   .menu__button:hover {
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   .menu :global(.menu__icon--close),
@@ -252,7 +246,8 @@ const links = [
     display: block;
   }
 
-  /* Full width under the bar, whatever the button's own position. */
+  /* Full width under the bar, whatever the button's own position: the header
+     is the positioned ancestor, not the <details>. */
   .menu__panel {
     position: absolute;
     top: 100%;
@@ -260,7 +255,7 @@ const links = [
     right: 0;
     padding: 4px var(--gutter) 16px;
     background: var(--bar);
-    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    border-bottom: 1px solid var(--hairline-soft);
     box-shadow: 0 18px 30px rgba(0, 0, 0, 0.28);
   }
 
@@ -269,16 +264,16 @@ const links = [
     align-items: center;
     justify-content: space-between;
     min-height: 54px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+    border-bottom: 1px solid var(--hairline-soft);
     font-family: var(--font-label);
-    font-size: 13px;
-    letter-spacing: 0.2em;
+    font-size: 14px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #f5f5fa;
+    color: var(--ink);
   }
   .menu__link:hover,
   .menu__link[aria-current='page'] {
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   :global(html[lang='ja']) .menu__link {
@@ -294,6 +289,9 @@ const links = [
   }
 
   @media (min-width: 800px) {
+    .site-header {
+      padding-inline: clamp(24px, 4vw, 40px);
+    }
     .nav {
       display: flex;
       align-items: center;
@@ -303,12 +301,13 @@ const links = [
     .tools__theme {
       display: block;
     }
-    .menu {
+    .menu-nav {
       display: none;
     }
   }
 
-  /* At 360px the lockup, the language link and the button share 328px. */
+  /* On the narrowest phones the lockup, the language link and the button
+     share about 290px, so the lockup's lettering tightens a little. */
   @media (max-width: 380px) {
     .brand__name {
       font-size: 12px;

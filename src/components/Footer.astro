@@ -41,7 +41,8 @@ if (CONTACT.facebook) {
 }
 ---
 
-<footer class="site-footer">
+{/* A plate: black in both themes, so every colour below is a token. */}
+<footer class="site-footer plate">
   {/* Monolingual per page. The stacked bilingual lockup is for OG cards. */}
   <p class="site-footer__signoff">{t('footer.signoff')}</p>
 
@@ -68,17 +69,20 @@ if (CONTACT.facebook) {
   </div>
 
   {/* Her registration as a California seller of travel. A legal line, on its
-      own row so the meta row stays readable on a phone. */}
+      own row. Two halves that each stay whole: on a narrow phone it folds
+      between them, never inside the number. */}
   <p class="site-footer__meta site-footer__registration">
-    {t('footer.registration')}
+    <span class="site-footer__whole">{t('footer.sellerOfTravel')}</span>
+    <span class="site-footer__whole">
+      {t('footer.registrationNo')}{' '}{CONTACT.sellerOfTravel}
+    </span>
   </p>
 </footer>
 
 <style>
-  /* Black in both themes, so the colours here are literal. */
   .site-footer {
     background: var(--bar-deep);
-    border-top: 1px solid rgba(212, 175, 55, 0.24);
+    border-top: 1px solid var(--hairline-soft);
     padding: clamp(40px, 7vw, 64px) var(--gutter) clamp(36px, 6vw, 56px);
     text-align: center;
   }
@@ -89,7 +93,7 @@ if (CONTACT.facebook) {
     font-size: clamp(19px, 2.6vw, 23px);
     font-style: italic;
     line-height: 1.6;
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   :global(html[lang='ja']) .site-footer__signoff {
@@ -115,16 +119,18 @@ if (CONTACT.facebook) {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    color: #d4af37;
+    color: var(--gold-text);
     transition:
       color 0.3s ease,
       background 0.3s ease;
   }
   .site-footer__icon:hover {
-    color: #f5f5fa;
-    background: rgba(212, 175, 55, 0.14);
+    color: var(--ink);
+    background: var(--btn-hover);
   }
 
+  /* --ink-soft on --bar-deep is 8.5:1: the quietest line on the page, and
+     still comfortably readable. */
   .site-footer__meta {
     display: flex;
     align-items: center;
@@ -132,12 +138,10 @@ if (CONTACT.facebook) {
     flex-wrap: wrap;
     gap: 4px clamp(12px, 3vw, 26px);
     font-family: var(--font-label);
-    font-size: 12px;
-    letter-spacing: 0.14em;
+    font-size: 13px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    /* 0.42 measured 3.80:1 on --bar-deep and failed AA. 0.7 is 9.1:1 and
-       still reads as the quietest line on the page. */
-    color: rgba(245, 245, 250, 0.7);
+    color: var(--ink-soft);
   }
 
   /* A real target for a finger, and an underline so it reads as the one
@@ -148,11 +152,11 @@ if (CONTACT.facebook) {
     min-height: var(--tap);
     color: inherit;
     text-decoration: underline;
-    text-decoration-color: rgba(245, 245, 250, 0.4);
+    text-decoration-color: var(--hairline);
     text-underline-offset: 0.3em;
   }
   .site-footer__meta a:hover {
-    color: #d4af37;
+    color: var(--gold-text);
   }
 
   :global(html[lang='ja']) .site-footer__meta {
@@ -167,8 +171,13 @@ if (CONTACT.facebook) {
      needed too, or the Japanese meta rule above outranks this one. */
   .site-footer__registration,
   :global(html[lang='ja']) .site-footer__registration {
+    gap: 0 0.5em;
     margin: 4px 0 0;
     text-transform: none;
     letter-spacing: 0.04em;
+  }
+
+  .site-footer__whole {
+    white-space: nowrap;
   }
 </style>

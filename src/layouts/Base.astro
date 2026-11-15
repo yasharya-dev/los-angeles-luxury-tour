@@ -36,6 +36,8 @@ const ogAlt =
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* The black of the header, so the phone's own chrome meets it without a seam. */}
+    <meta name="theme-color" content="#101010" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -77,10 +79,13 @@ const ogAlt =
         }
       })();
     </script>
+    {/* The theme toggle is a script. Without one it would be a dead button.
+        !important, because the component's own display rule is more specific. */}
+    <noscript><style is:inline>[data-theme-toggle]{display:none!important}</style></noscript>
   </head>
 
   <body>
-    <a class="skip-link" href="#main">{t('nav.skip')}</a>
+    <a class="skip-link plate" href="#main">{t('nav.skip')}</a>
     {offerBar && <LangOfferBar locale={locale} jaHref={jaHref} />}
     <Header locale={locale} />
     <main id="main">

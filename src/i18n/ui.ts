@@ -14,11 +14,12 @@ export const localeNames: Record<Locale, string> = {
   ja: '日本語',
 };
 
-// The language link's accessible name. It starts with the visible label, so
-// voice control still matches what is on screen, then says what it is.
-export const localeLinkNames: Record<Locale, string> = {
-  en: 'EN (English)',
-  ja: '日本語 (Japanese)',
+// The language spelled out, read after the visible label by a screen reader
+// ("EN English"). In English for both: it is the one language every reader of
+// either page is likely to recognise the other's name in.
+export const localeGloss: Record<Locale, string> = {
+  en: 'English',
+  ja: 'Japanese',
 };
 
 export const ui = {
@@ -34,7 +35,6 @@ export const ui = {
     'nav.menu': 'Menu',
     'nav.skip': 'Skip to content',
 
-    'toggle.theme': 'Switch between light and dark theme',
     'toggle.dark': 'Dark mode',
 
     'cta.begin': 'Ask about a private tour',
@@ -52,9 +52,6 @@ export const ui = {
     'tier.day': 'Day experiences',
     'tier.transport': 'Transport & support',
 
-    'price.from': 'from',
-    'price.perPerson': 'per person',
-    'price.perHour': 'an hour',
     'price.note': 'Prices set in yen are shown here at ¥163 to the dollar.',
 
     'footer.signoff': 'Have a beautiful stay in Los Angeles.',
@@ -65,8 +62,10 @@ export const ui = {
     'footer.location': 'Los Angeles',
     'footer.privacy': 'Privacy',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
-    // California requires sellers of travel to show this on advertising.
-    'footer.registration': 'California Seller of Travel Registration No. 2175215-50',
+    // California requires sellers of travel to show this on advertising. The
+    // number itself is in data/contact.ts.
+    'footer.sellerOfTravel': 'California Seller of Travel',
+    'footer.registrationNo': 'Registration No.',
   },
 
   ja: {
@@ -76,12 +75,12 @@ export const ui = {
     'nav.experience': '旅のプラン',
     'nav.about': '私たちについて',
     'nav.contact': 'お問い合わせ',
-    'nav.home': 'ロサンゼルス ラグジュアリーツアー ホーム',
+    // Starts with the lockup's own lettering, which is what is on screen.
+    'nav.home': 'Los Angeles Luxury Tour ホーム',
     'nav.main': 'メインメニュー',
     'nav.menu': 'メニュー',
     'nav.skip': '本文へ移動',
 
-    'toggle.theme': 'ライトモードとダークモードを切り替える',
     'toggle.dark': 'ダークモード',
 
     'cta.begin': 'プライベートツアーのご相談はこちら',
@@ -99,9 +98,6 @@ export const ui = {
     'tier.day': '1日の体験',
     'tier.transport': '送迎・サポート',
 
-    'price.from': '',
-    'price.perPerson': '／1名様',
-    'price.perHour': '1時間',
     'price.note': '※ドル建ての料金は$1=163円で換算し、千円単位に四捨五入しています。',
 
     'footer.signoff': '心に残る、上質な旅となりますように。',
@@ -112,7 +108,8 @@ export const ui = {
     'footer.location': 'ロサンゼルス',
     'footer.privacy': 'プライバシーポリシー',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
-    'footer.registration': 'California Seller of Travel 登録番号 2175215-50',
+    'footer.sellerOfTravel': 'California Seller of Travel',
+    'footer.registrationNo': '登録番号',
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

@@ -120,8 +120,17 @@ const tierLabel: Record<Tier, string> = {
 };
 ---
 
-<section class="hero">
-  <Photo class="hero__img" src={heroImg} alt={c.heroAlt} priority />
+<section class="hero plate">
+  {/* The photo is 1.53 wide to 1 tall and the hero is about two thirds of
+      the screen, so on an upright phone it is drawn about one screen-height
+      wide: far more than 100vw. */}
+  <Photo
+    class="hero__img"
+    src={heroImg}
+    alt={c.heroAlt}
+    sizes="(max-aspect-ratio: 4/5) 105vh, 100vw"
+    priority
+  />
   <div class="hero__scrim"></div>
   <div class="hero__inner">
     <p class="kicker hero__kicker">
@@ -310,16 +319,6 @@ const tierLabel: Record<Tier, string> = {
     margin-top: 44px;
     display: flex;
     justify-content: center;
-  }
-
-  /* Plate is always dark, so these are literal rather than tokens. */
-  .hero :global(.btn) {
-    color: #d4af37;
-    border-color: rgba(212, 175, 55, 0.75);
-  }
-  .hero :global(.btn:hover) {
-    background: rgba(212, 175, 55, 0.12);
-    color: #f5f5fa;
   }
 
   /* ---------------------------------------------------------- sections */
