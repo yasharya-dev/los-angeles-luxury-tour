@@ -24,8 +24,11 @@ interface Props {
 
 const { src, alt, sizes = '100vw', priority = false, ...rest } = Astro.props;
 
-// No point asking for a width the original cannot fill.
-const widths = [480, 768, 1080, 1440, 1920].filter((w) => w <= src.width);
+// A ladder of widths, ending on the photo's own (capped at 1920): asking for
+// more than the original holds only upscales it, and stopping at the rung
+// below would throw resolution away.
+const top = Math.min(src.width, 1920);
+const widths = [...[480, 768, 1080, 1440].filter((w) => w < top), top];
 ---
 
 <Picture
@@ -37,7 +40,7 @@ const widths = [480, 768, 1080, 1440, 1920].filter((w) => w <= src.width);
   sizes={sizes}
   quality={60}
   loading={priority ? 'eager' : 'lazy'}
-  decoding={priority ? 'sync' : 'async'}
+  decoding={priority ? undefined : 'async'}
   fetchpriority={priority ? 'high' : undefined}
   {...rest}
 />

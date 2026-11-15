@@ -4,6 +4,7 @@ import { useTranslations, localizePath } from '../i18n/utils';
 import ThemeToggle from './ThemeToggle.astro';
 import LangToggle from './LangToggle.astro';
 import Icon from './Icon.astro';
+import { getImage } from 'astro:assets';
 import logo from '../assets/logo.png';
 
 interface Props {
@@ -16,6 +17,12 @@ const p = (path: string) => localizePath(path, locale);
 const current = Astro.url.pathname.replace(/\/$/, '');
 const isCurrent = (path: string) => current === p(path).replace(/\/$/, '');
 
+// The mark is drawn at 129px and cropped to the monogram. The source is an
+// 800px PNG; this is the same picture at the size it is shown, and at 2x.
+const [mark, mark2x] = await Promise.all(
+  [129, 258].map((width) => getImage({ src: logo, width, format: 'webp' })),
+);
+
 const links = [
   { href: '/experience', label: t('nav.experience') },
   { href: '/about', label: t('nav.about') },
@@ -26,10 +33,16 @@ const links = [
 {/* One row at every width, as she asked: logo, language, menu. From 800px
     the links sit in the bar and the menu button goes away. The two navs are
     never both rendered, so assistive tech only ever meets one. */}
-<header class="site-header" data-site-header>
+<header class="site-header">
   <a class="brand" href={p('/')} aria-label={t('nav.home')}>
     <span class="brand__mark">
-      <img src={logo.src} alt="" width="40" height="40" />
+      <img
+        src={mark.src}
+        srcset={`${mark.src} 1x, ${mark2x.src} 2x`}
+        alt=""
+        width="129"
+        height="129"
+      />
     </span>
     <span class="brand__words">
       <span class="brand__name">LOS ANGELES</span>

@@ -93,6 +93,14 @@ a:hover {
   outline-offset: 3px;
 }
 
+/* The header, footer and the language offer are black in both themes. The
+   cream theme's text gold is 3.4:1 there; the bar's own gold is 9:1. */
+.site-header :focus-visible,
+.site-footer :focus-visible,
+.lang-offer :focus-visible {
+  outline-color: #d4af37;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

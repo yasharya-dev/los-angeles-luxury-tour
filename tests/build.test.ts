@@ -292,6 +292,19 @@ describe('the palette and the gold rule', () => {
   });
 });
 
+// Cream is the default for every visitor, whatever their device prefers. Dark
+// is only ever a saved choice.
+describe('the default theme', () => {
+  it('opens on cream and never reads the device preference', () => {
+    for (const route of ['/', '/ja', '/ja/contact']) {
+      const doc = html(route);
+      expect(doc, route).toContain("localStorage.getItem('llt-theme') === 'dark'");
+      expect(doc, route).not.toContain('prefers-color-scheme');
+      expect(doc, route).not.toMatch(/<html[^>]*data-theme/);
+    }
+  });
+});
+
 // One row at every width: logo, language, menu. Nothing floats over the page.
 describe('the header and footer', () => {
   it('keeps the language link in the header, not floating over the page', () => {
@@ -303,6 +316,20 @@ describe('the header and footer', () => {
         expect(doc, `${prefix}${p}`).not.toContain('lang-toggle');
       }
     }
+  });
+
+  // An icon-sized link whose whole text is "EN" needs a name that says more,
+  // and the name has to start with what is on screen.
+  it('names the language link, starting with its visible label', () => {
+    expect(html('/ja')).toMatch(/aria-label="EN \(English\)"[^>]*>\s*<span[^>]*>EN</);
+    expect(html('/')).toMatch(/aria-label="日本語 \(Japanese\)"[^>]*>\s*<span[^>]*>日本語</);
+  });
+
+  // The mark is shown at 129px; the 800px original must not be what ships.
+  it('serves the header mark at display size, not the original PNG', () => {
+    const header = html('/').match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+    expect(header).toMatch(/<img[^>]*src="\/_astro\/logo\.[^"]+\.webp"/);
+    expect(header).not.toMatch(/src="\/_astro\/logo\.[^"]+\.png"/);
   });
 
   it('gives the phone menu every link the bar has', () => {

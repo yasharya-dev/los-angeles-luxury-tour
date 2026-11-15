@@ -14,6 +14,13 @@ export const localeNames: Record<Locale, string> = {
   ja: '日本語',
 };
 
+// The language link's accessible name. It starts with the visible label, so
+// voice control still matches what is on screen, then says what it is.
+export const localeLinkNames: Record<Locale, string> = {
+  en: 'EN (English)',
+  ja: '日本語 (Japanese)',
+};
+
 export const ui = {
   en: {
     'site.title': 'Los Angeles Luxury Tour',

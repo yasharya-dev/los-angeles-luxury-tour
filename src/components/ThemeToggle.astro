@@ -35,12 +35,10 @@ const t = useTranslations(locale);
     toggles().forEach((btn) => btn.setAttribute('aria-pressed', String(dark)));
   };
 
+  // Two toggles are on a page, in the bar and in the phone menu. Astro ships
+  // this script once however many times the component is used.
   sync();
   toggles().forEach((btn) => {
-    // Two toggles can be on a page (the bar and the phone menu), and each
-    // component instance ships this script once.
-    if (btn.dataset.bound) return;
-    btn.dataset.bound = 'true';
     btn.addEventListener('click', () => {
       const dark = root.dataset.theme !== 'dark';
       if (dark) root.dataset.theme = 'dark';

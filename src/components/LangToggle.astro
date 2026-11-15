@@ -1,5 +1,5 @@
 ---
-import { localeNames, locales, type Locale } from '../i18n/ui';
+import { localeLinkNames, localeNames, locales, type Locale } from '../i18n/ui';
 import { alternatePath } from '../i18n/utils';
 
 interface Props {
@@ -8,8 +8,7 @@ interface Props {
 const { locale } = Astro.props;
 
 // Labelled in the destination language's own script: someone looking for
-// English needs to see "EN", not "英語". The visible text is the accessible
-// name, so nothing here overrides it. Maps over the array so a third locale
+// English needs to see "EN", not "英語". Maps over the array so a third locale
 // is a data change.
 const others = locales.filter((l) => l !== locale);
 ---
@@ -23,6 +22,7 @@ const others = locales.filter((l) => l !== locale);
       href={alternatePath(Astro.url.pathname, other)}
       hreflang={other}
       lang={other}
+      aria-label={localeLinkNames[other]}
     >
       <span class="lang-link__label">{localeNames[other]}</span>
     </a>

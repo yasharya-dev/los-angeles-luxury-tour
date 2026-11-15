@@ -26,7 +26,7 @@ src/
   i18n/         locale list, dictionaries, path helpers
   views/        one component per page, holding both languages' copy
   pages/        thin route files: English at the root, Japanese under /ja/
-  components/   header, footer, the two forms, toggles
+  components/   header, footer, the two forms, toggles, the icon and photo components
   styles/       tokens.css (the design tokens) and base.css (reset and utilities)
 worker/         the two form endpoints and the beta gate
 tests/          the suite, see below
@@ -40,7 +40,13 @@ Adding an offering is a data change in `src/data/offerings.ts`. It appears on th
 
 **Path-based i18n.** English at `/about`, Japanese at `/ja/about`, with `hreflang` alternates and a hand-rolled sitemap so every page in every language is a real, indexable URL. Not a client-side string swap.
 
-**The light-theme gold rule.** The brand gold `#D4AF37` is 9.0:1 on the dark background and 2.1:1 on white, which fails AA for text and the 3:1 floor for UI. So gold is two tokens: `--gold-text` for anything that carries meaning, which darkens to `#806419` in the light theme, and `--gold-deco` for decoration, which does not. A test computes the actual contrast ratio out of the built CSS against both light surfaces rather than asserting a hex, because an earlier hex-equality test passed happily while the value measured 4.37:1.
+**Cream by default, dark by choice.** The owner's palette is the default theme for every visitor, on `:root`: `#191919` ink on `#FAF9F6`, with `#F2F0E9` for alternating sections and `#B18A3A` as the accent. The dark theme is an opt-in from the toggle, never read from the device, so the site opens the way she designed it. The header, footer and reservation panel stay black and gold in both.
+
+**The gold rule.** Her accent `#B18A3A` measures about 3:1 on the cream: enough for a line, an icon or a button fill, not for text. So gold is two tokens: `--gold-deco` for decoration and the CTA fill, and `--gold-text`, a darker `#806419`, for anything at text size. The solid CTA sets ink on the gold, because white on it is 3.2:1. A test computes the actual contrast ratios out of the built CSS against both light surfaces rather than asserting a hex, because an earlier hex-equality test passed happily while the value measured 4.37:1.
+
+**One row of header, nothing floating.** Logo, language link and a menu at every width. The menu is a `<details>`, so it opens without JavaScript; a small script adds Escape, tap-outside and closing when the viewport grows past the point where the links move into the bar.
+
+**Photos go through one component.** `Photo.astro` emits AVIF and WebP at a ladder of widths with a JPEG fallback, lazy below the fold and prioritized for the image a page opens on.
 
 **URLs have no trailing slash, on both sides.** Astro builds with `trailingSlash: 'never'` and `build.format: 'file'`; the assets binding serves with `drop-trailing-slash` and `404-page`. A test fails if the two configs stop agreeing, because when they did, every page answered with a redirect and Japanese visitors got the English 404.
 
@@ -72,7 +78,7 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 
 | File | Guards |
 | --- | --- |
-| `tests/build.test.ts` | Every route in both locales, `lang` and reciprocal `hreflang`, no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity, the gold contrast maths, both paths on every card, the booking notice, no phone number, sitemap and robots |
+| `tests/build.test.ts` | Every route in both locales, `lang` and reciprocal `hreflang`, no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity, the palette and the gold contrast maths, cream as the default theme, the header and footer, both paths on every card, the booking notice, no phone number, sitemap and robots |
 | `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every plan books and consults on the site |
 | `tests/i18n.test.ts` | Path helpers and dictionary key parity |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
