@@ -20,19 +20,33 @@ interface Props {
   size?: 'tall' | 'short';
   /** Where the crop holds on a narrow screen, as an object-position. */
   focus?: string;
+  /** Cut the file itself to this shape (width over height); see Photo. */
+  aspect?: number;
+  /** Which part that cut keeps. */
+  keep?: string;
   /** The page opens on this image: fetch it first, never lazily. */
   priority?: boolean;
 }
 
-const { src, alt, size = 'short', focus = 'center', priority = false } = Astro.props;
+const {
+  src,
+  alt,
+  size = 'short',
+  focus = 'center',
+  priority = false,
+  aspect,
+  keep,
+} = Astro.props;
 
-// How wide the photo is drawn. It fills the box, so on an upright phone a
-// landscape photo is scaled up to the box's HEIGHT: a hero that is 52% of the
-// screen tall draws a 1.53:1 photo about 80% of a screen-height wide, far
-// more than 100vw. On a wide screen the box's width wins and it is 100vw.
+// How wide the photo is drawn. It fills the box, so where the screen is
+// narrower than the photo scaled to the box's HEIGHT, the height wins: a hero
+// that is 52% of an upright phone's screen draws a 1.53:1 photo about 80% of
+// a screen-height wide, far more than 100vw. Everywhere else the width wins
+// and it is 100vw. Both numbers come from the photo, so a portrait one (whose
+// width never reaches the screen's that way) simply gets 100vw.
 const share = size === 'tall' ? 52 : 32;
-const upright = size === 'tall' ? '4/5' : '3/5';
-const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / src.height)}vh, 100vw`;
+const drawn = Math.ceil(share * (aspect ?? src.width / src.height));
+const sizes = `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
 ---
 
 <section class:list={['photo-hero', 'plate', `photo-hero--${size}`]}>
@@ -42,6 +56,8 @@ const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / 
     alt={alt}
     sizes={sizes}
     priority={priority}
+    aspect={aspect}
+    keep={keep}
     style={`object-position: ${focus}`}
   />
   <div class="photo-hero__inner">

@@ -4,7 +4,9 @@
 // Each offering has a native currency. The multi-day journeys are priced in
 // USD; everything from her BUYMA listing is priced in yen, per group. Japanese
 // pages lead in yen and English pages lead in USD, so one side of every pair is
-// converted at ¥163. See the price.note string in i18n/ui.ts.
+// converted at ¥163 and marked 約. The rate itself is not printed anywhere: she
+// asked for it to go (2026-11-05), and her fixed prices in both currencies
+// replace the conversions when they arrive.
 //
 // Her BUYMA listing shows a channel discount. These are the original prices,
 // which is what she asked us to publish.

@@ -221,17 +221,6 @@ describe('content parity', () => {
     expect(html('/contact')).toContain('Up to 7 days before: free');
   });
 
-  // Her Experience page copy, and the two links she asked for in the
-  // plan-list intro.
-  it('keeps her Experience wording and links the plan-list intro both ways', () => {
-    const ja = html('/ja/experience');
-    expect(ja).toContain('あなたの旅ができるまで');
-    expect(ja).toContain('その時の気分にも、柔軟に');
-    expect(ja).toMatch(/「<a href="\/ja\/book"[^>]*>予約する<\/a>」/);
-    expect(ja).toMatch(/「<a href="\/ja\/consult"[^>]*>まずは相談する<\/a>」/);
-    expect(html('/experience')).toMatch(/<a href="\/book"[^>]*>Book<\/a>/);
-  });
-
   // Her About page: a brand page with a founder section, her headings, the
   // interview link without its tracking parameter, and the nav renamed.
   it('rebuilds the About page to her structure', () => {
@@ -767,6 +756,113 @@ describe('photographs', () => {
   });
 });
 
+// Amelia's Experience page, from section 08 of her brief of 2026-11-05: a
+// short hero, four icon labels, the plan cards, what lies beyond them, and
+// Instagram. Her Japanese is checked character for character, in her order.
+describe('the Experience page, in her order', () => {
+  const HERS = [
+    '決まった旅ではなく、あなたに合わせてつくる旅を。',
+    '旅ができるまで',
+    'ご相談',
+    'プラン提案',
+    'ご確認・調整',
+    'ご予約・手配',
+    '目的に合わせて選べる、旅のプラン',
+    'プランのその先へ',
+    '記念日旅行や、特別な体験など、あなたの“やりたい”をカタチにします。',
+    'ご相談はこちら',
+    '旅のインスピレーションはInstagramで',
+    '@losangelesluxurytour',
+  ];
+
+  it('carries her copy verbatim, in her order', () => {
+    const page = bare('/ja/experience');
+    let from = 0;
+    for (const line of HERS) {
+      const at = page.indexOf(line, from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
+    }
+  });
+
+  // What she asked to come out, and wording that exists only in her mockup
+  // image, where her written instruction says otherwise.
+  it('drops what her brief removed and takes no wording from the picture', () => {
+    const page = bare('/ja/experience');
+    for (const gone of [
+      'あなたの旅ができるまで',
+      'その時の気分にも、柔軟に',
+      'こんなご案内もできます',
+      'プランご提案',
+      'ご予約の流れ',
+    ]) {
+      expect(page, gone).not.toContain(gone);
+    }
+  });
+
+  it('opens on a short photo band with her heading and nothing else', () => {
+    for (const route of ['/experience', '/ja/experience']) {
+      const hero = html(route).match(/<section class="photo-hero[^]*?<\/section>/)?.[0] ?? '';
+      expect(hero, route).toContain('photo-hero--short');
+      expect(count(hero, /<h1/g), route).toBe(1);
+      expect(count(hero, /<p[ >]/g), `${route}: no paragraph`).toBe(0);
+      expect(count(hero, /<a /g), `${route}: no button`).toBe(0);
+    }
+  });
+
+  it('shows the four steps as an ordered list of icon and label, with no descriptions', () => {
+    for (const route of ['/experience', '/ja/experience']) {
+      const list = html(route).match(/<ol class="steps[^]*?<\/ol>/)?.[0] ?? '';
+      expect(count(list, /<li class="step"/g), route).toBe(4);
+      expect(count(list, /<svg/g), route).toBe(4);
+      expect(count(list, /<p[ >]/g), route).toBe(0);
+    }
+  });
+
+  // One component renders both lists, so they cannot drift apart.
+  it('shows the same plans, in the same order, as the homepage', () => {
+    const ids = (route: string) =>
+      [...html(route).matchAll(/<(?:article|details) class="plan [^"]*" id="plan-([a-z-]+)"/g)].map(
+        ([, id]) => id,
+      );
+    for (const prefix of ['', '/ja']) {
+      expect(ids(`${prefix}/experience`), prefix).toEqual(ids(prefix || '/'));
+      expect(ids(`${prefix}/experience`).length, prefix).toBe(offerings.length);
+    }
+  });
+
+  // Her words: one clear inquiry call to action.
+  it('has one inquiry button on the page, to the contact page', () => {
+    for (const [route, contact] of [
+      ['/experience', '/contact'],
+      ['/ja/experience', '/ja/contact'],
+    ]) {
+      const main = html(route).match(/<main[^]*<\/main>/)?.[0] ?? '';
+      expect(count(main, new RegExp(`href="${contact}"`, 'g')), route).toBe(1);
+    }
+  });
+
+  it('ends on a compact Instagram strip: one link, her line and the handle', () => {
+    for (const route of ['/experience', '/ja/experience']) {
+      const strip = html(route).match(/<section class="section section--deep ig[^]*?<\/section>/)?.[0] ?? '';
+      expect(count(strip, /<a /g), route).toBe(1);
+      expect(strip, route).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
+      expect(strip, route).toContain('@losangelesluxurytour');
+      expect(count(strip, /<img/g), `${route}: no made-up gallery`).toBe(0);
+    }
+  });
+
+  // She asked for the exchange rate to go. The figures it explained are
+  // untouched until her fixed prices arrive.
+  it('prints no exchange rate on any page', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        expect(bare(prefix + p), prefix + p).not.toMatch(/163円|¥163|\$1=/);
+      }
+    }
+  });
+});
+
 // axe cannot judge text over an image, so the page has to make it safe by
 // construction. The band's gradient belongs to the text: it reaches its full
 // depth exactly where the first line starts. This checks that depth against
@@ -784,7 +880,7 @@ describe('text over a photograph', () => {
   });
 
   it('puts every photo band on a plate, so its text takes the light ink', () => {
-    for (const route of ['/', '/ja']) {
+    for (const route of ['/', '/ja', '/experience', '/ja/experience']) {
       expect(html(route), route).toMatch(/<section class="photo-hero plate /);
     }
   });
@@ -828,6 +924,7 @@ describe('output hygiene', () => {
         const head = html(prefix + p).match(/<head>[^]*?<\/head>/)?.[0] ?? '';
         expect(head, prefix + p).not.toBe('');
         expect(head, prefix + p).not.toContain('安全＆安心');
+        expect(head, prefix + p).not.toContain('メニューから選ぶ旅ではなく');
       }
     }
   });

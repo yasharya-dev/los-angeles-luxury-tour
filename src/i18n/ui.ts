@@ -37,7 +37,6 @@ export const ui = {
 
     'toggle.dark': 'Dark mode',
 
-    'cta.start': 'Start planning',
     'cta.back': 'Back to all journeys',
 
     // A plan's three controls, the same words wherever a plan appears. The
@@ -49,8 +48,6 @@ export const ui = {
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
     'tier.transport': 'Transport & support',
-
-    'price.note': 'Prices set in yen are shown here at ¥163 to the dollar.',
 
     'footer.signoff': 'Have a beautiful stay in Los Angeles.',
     'footer.contact': 'Contact and social',
@@ -80,7 +77,6 @@ export const ui = {
 
     'toggle.dark': 'ダークモード',
 
-    'cta.start': 'お問い合わせ',
     'cta.back': 'プラン一覧へ戻る',
 
     // Hers: 「詳細を見る」 and 「このプランを申し込む」 from her brief of
@@ -92,8 +88,6 @@ export const ui = {
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',
     'tier.transport': '送迎・サポート',
-
-    'price.note': '※ドル建ての料金は$1=163円で換算し、千円単位に四捨五入しています。',
 
     'footer.signoff': '心に残る、上質な旅となりますように。',
     'footer.contact': '連絡先・SNS',
