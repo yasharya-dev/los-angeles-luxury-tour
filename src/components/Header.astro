@@ -1,6 +1,6 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { useTranslations, localizePath } from '../i18n/utils';
+import { useTranslations, localizePath, pagePath } from '../i18n/utils';
 import ThemeToggle from './ThemeToggle.astro';
 import LangToggle from './LangToggle.astro';
 import Icon from './Icon.astro';
@@ -14,8 +14,8 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
-const current = Astro.url.pathname.replace(/\/$/, '');
-const isCurrent = (path: string) => current === p(path).replace(/\/$/, '');
+const current = pagePath(Astro.url.pathname);
+const isCurrent = (path: string) => current === p(path);
 
 // The mark is drawn at 129px and cropped to the monogram. The source is an
 // 800px PNG; this is the same picture at the size it is shown, and at 2x.

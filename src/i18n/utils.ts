@@ -6,6 +6,25 @@ export function useTranslations(locale: Locale) {
   };
 }
 
+/**
+ * The page's public path, from the path Astro reports for it.
+ *
+ * The build writes about.html rather than about/index.html (astro.config:
+ * build.format 'file'), and while it does, `Astro.url.pathname` is the path of
+ * the file being written: /about.html, /ja.html, /index.html. In `astro dev`
+ * the same value is the clean /about. Anything that builds a URL from the
+ * current page (the canonical, the alternates, the language link, the
+ * current-page mark) has to go through this, or it is right in dev and wrong
+ * in production.
+ */
+export function pagePath(pathname: string): string {
+  const clean = pathname
+    .replace(/\.html$/, '')
+    .replace(/\/index$/, '')
+    .replace(/\/+$/, '');
+  return clean === '' ? '/' : clean;
+}
+
 export function localeFromPath(pathname: string): Locale {
   const seg = pathname.split('/').filter(Boolean)[0];
   return (locales as readonly string[]).includes(seg ?? '')
