@@ -2,15 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { isJapanese, phrases } from '../src/i18n/phrase';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
+import type { Text } from '../src/i18n/text';
+
+// A string is split by the model; an array was split by hand.
+const split = (text: Text) => (typeof text === 'string' ? [text] : []);
 
 // Every Japanese string the cards and plan pages actually render.
 const corpus = [
   ...offerings.flatMap((o) => [o.name.ja, o.blurb.ja]),
   ...plans.flatMap((p) => [
-    p.title.ja,
-    p.subtitle.ja,
-    ...p.intro.ja,
-    ...p.sections.flatMap((s) => [...(s.bullets?.ja ?? []), ...(s.paragraphs?.ja ?? [])]),
+    ...split(p.title.ja),
+    ...split(p.intro.ja),
+    ...split(p.experience.body.ja),
+    ...p.services.ja,
+    ...p.details.flatMap((d) =>
+      d.blocks.flatMap((b) => [...(b.paragraphs?.ja ?? []), ...(b.bullets?.ja ?? [])]),
+    ),
   ]),
   '現地在住の日本人ガイドが、移動から観光まで、お客様だけの旅をサポートします。',
   '旅のスタイルに合わせたプランをご用意しています。',
@@ -160,6 +167,12 @@ describe('phrases', () => {
   it('does not fold inside a name written with a middle dot', () => {
     expect(phrases('『ラ・ラ・ランド』のロケ地めぐり').join('|')).not.toMatch(/ラ・\|/);
     expect(phrases('ショッピング・レストラン予約').slice(0, 1)).toEqual(['ショッピング・']);
+  });
+
+  // A two-way arrow folds like a slash; an aside in brackets stays whole.
+  it('folds after a two-way arrow, and never inside an aside in brackets', () => {
+    expect(phrases('ご宿泊先⇔ドジャースタジアムの送迎')[0]).toBe('ご宿泊先⇔');
+    expect(phrases('試合終了後のお迎え（往復・復路）').join('|')).not.toContain('往復・|');
   });
 
   it('keeps a number with its counter and a time range whole', () => {

@@ -12,7 +12,8 @@
 // BudouX is a small model and now and then cuts inside a word (空|港送迎);
 // requiring a word start as well removes those. After a list mark (・ ／)
 // is always a fair place too, which is what lets a card line written as
-// "A・B・C" fold item by item. A slash before a figure is not a list mark but
+// "A・B・C" fold item by item, and so is after ⇔ (A⇔B), but never inside
+// brackets, where a short aside stays whole. A slash before a figure is not a list mark but
 // "per" (／1名様), so there the fold goes before the slash and the unit
 // stays whole. And a middle dot with a katakana run of one or two characters
 // beside it is inside a name (ラ・ラ・ランド), not between two items.
@@ -48,7 +49,10 @@ const parser = loadDefaultJapaneseParser();
 const words = new Intl.Segmenter('ja', { granularity: 'word' });
 
 const JAPANESE = /[぀-ヿ一-鿿]/;
-const LIST_MARKS = new Set(['・', '／']);
+const LIST_MARKS = new Set(['・', '／', '⇔']);
+// Brackets: inside them a short aside stays whole, list marks and all.
+const OPEN = new Set(['（', '(', '「', '『', '【']);
+const CLOSE = new Set(['）', ')', '」', '』', '】']);
 // Never start a line with one of these: closing marks and the long vowel bar.
 const NO_START = /^[、。，．・：；？！）」』】〉》〕｝ー〜…ぁぃぅぇぉっゃゅょァィゥェォッャュョ]/;
 /** Punctuation and brackets, which do not count toward a phrase's length. */
@@ -140,8 +144,16 @@ function cut(text: string): string[] {
     while (KATAKANA.test(text[at + n * step] ?? '')) n++;
     return n;
   };
+  let depth = 0;
   for (let i = 0; i < text.length - 1; i++) {
+    if (OPEN.has(text[i])) depth++;
+    else if (CLOSE.has(text[i])) depth = Math.max(0, depth - 1);
     if (!LIST_MARKS.has(text[i])) continue;
+    // （往復・復路） folds as a whole, never after its dot.
+    if (depth > 0) {
+      cuts.delete(i + 1);
+      continue;
+    }
     const [before, after] = [kana(i - 1, -1), kana(i + 1, 1)];
     const inName = text[i] === '・' && before > 0 && after > 0 && Math.min(before, after) <= 2;
     const per = text[i] === '／' && DIGIT.test(text[i + 1]);

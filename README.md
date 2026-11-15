@@ -23,7 +23,7 @@ The Worker exists for one reason: Cloudflare's free tier has no outbound email. 
 
 ```
 src/
-  data/         offerings, journeys, plans (the owner's plan format), contact details. Content lives here, not in templates
+  data/         offerings, journeys, plans (the owner's plan page, one entry per plan), cancellation terms, contact details. Content lives here, not in templates
   i18n/         locale list, dictionaries, path helpers, and where a line of Japanese may fold
   views/        one component per page, holding both languages' copy
   pages/        thin route files: English at the root, Japanese under /ja/
@@ -32,6 +32,8 @@ src/
 worker/         the two form endpoints and the beta gate
 tests/          the suite, see below
 ```
+
+A plan in the owner's own format is an entry in `src/data/plans.ts` (with a card of the same slug in `offerings.ts`); its page renders entirely from that entry, and a test fails if the page template ever holds plan-specific copy. Her cancellation terms live once, in `src/data/cancellation.ts`, and the FAQ and every plan page read them.
 
 Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in both forms' plan selects without touching a template. A plan with a `slug` has its own page and its card links there; a plan without one carries a `detail`, which is what its card opens to show. Every card shows the monogram tile until the owner's photograph for the plan arrives. Adding a locale is a config entry plus a dictionary; no new markup.
 

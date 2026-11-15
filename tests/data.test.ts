@@ -169,24 +169,45 @@ describe('plans', () => {
     }
   });
 
-  it('carries the same structure in both languages', () => {
+  // Her plan page has the same parts for every plan, in both languages: a
+  // plan missing one would render a hole in her layout.
+  it('fills every part of her plan page, in both languages', () => {
     for (const plan of plans) {
+      const id = plan.slug;
       for (const locale of locales) {
-        expect(plan.title[locale], `${plan.slug} title`).toBeTruthy();
-        expect(plan.subtitle[locale], `${plan.slug} subtitle`).toBeTruthy();
+        for (const [part, value] of Object.entries({
+          title: plan.title[locale],
+          description: plan.description[locale],
+          intro: plan.intro[locale],
+          unit: plan.unit[locale],
+          priceNote: plan.priceNote[locale],
+          experienceTitle: plan.experience.title[locale],
+          experienceBody: plan.experience.body[locale],
+          closing: plan.closing[locale],
+        })) {
+          expect(value.length, `${id} ${part} ${locale}`).toBeGreaterThan(0);
+        }
+        for (const row of [...plan.prices, ...plan.tiles]) {
+          expect(row.label[locale], `${id} label ${locale}`).toBeTruthy();
+        }
+        for (const row of plan.usage) {
+          expect(row.label[locale] && row.value[locale], `${id} usage ${locale}`).toBeTruthy();
+        }
+        for (const d of plan.details) expect(d.label[locale], `${id} details ${locale}`).toBeTruthy();
       }
-      expect(plan.intro.en.length).toBe(plan.intro.ja.length);
-      for (const row of plan.prices) {
-        expect(row.yen).toBeGreaterThan(0);
-        for (const locale of locales) {
-          expect(row.label[locale]).toBeTruthy();
-          expect(row.capacity[locale]).toBeTruthy();
+      // Her design: three equal tiles, at least one price, a fixed amount.
+      expect(plan.tiles.length, id).toBe(3);
+      expect(plan.prices.length, id).toBeGreaterThan(0);
+      for (const row of plan.prices) expect(row.yen, id).toBeGreaterThan(0);
+      expect(plan.services.en.length, id).toBe(plan.services.ja.length);
+      for (const d of plan.details) {
+        for (const b of d.blocks) {
+          if (b.bullets) expect(b.bullets.en.length, id).toBe(b.bullets.ja.length);
+          if (b.paragraphs) expect(b.paragraphs.en.length, id).toBe(b.paragraphs.ja.length);
         }
       }
-      for (const sec of plan.sections) {
-        if (sec.bullets) expect(sec.bullets.en.length).toBe(sec.bullets.ja.length);
-        if (sec.paragraphs) expect(sec.paragraphs.en.length).toBe(sec.paragraphs.ja.length);
-      }
+      // Her cancellation terms have to be on the page before the form.
+      expect(plan.details.some((d) => d.cancellation), `${id} cancellation`).toBe(true);
     }
   });
 });

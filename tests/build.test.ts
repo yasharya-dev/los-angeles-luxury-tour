@@ -627,6 +627,9 @@ describe('the header and footer', () => {
 
   // The old language switch was a pill fixed to the corner of the screen,
   // over the content. Her brief: nothing may cover the page.
+  // Nothing is pinned over a page. (Her plan page's optional booking bar was
+  // left out: on a page that short one of its two request buttons is always
+  // on screen, and a bar would only cover what is under it.)
   it('pins nothing over the page', () => {
     expect(css()).not.toMatch(/position:fixed/);
   });
@@ -1244,20 +1247,117 @@ describe('the contact page chooses', () => {
   });
 });
 
-describe('her sample plan, in her format', () => {
+// Amelia's plan page, from section 10A of her brief of 2026-11-05, drawn for
+// the Dodgers transfer and meant for every plan.
+describe('her plan page, in her order', () => {
   const page = '/experience/dodgers-transfer';
+  // The text a visitor sees inside <main>: the <title> repeats the plan's
+  // name, and would satisfy a search before the heading did.
+  const seen = (route: string) =>
+    (html(route).match(/<main[^]*<\/main>/)?.[0] ?? '')
+      .replace(/<script[^]*?<\/script>|<style[^]*?<\/style>/g, '')
+      .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[\s​]+/g, '');
 
-  it('shows both price rows in yen on the Japanese page', () => {
-    const doc = html('/ja' + page);
-    for (const s of ['片道送迎', '49,800円', '往復送迎', '79,800円', '定員1名〜4名']) {
-      expect(doc, s).toContain(s);
+  const HERS = [
+    'Dodgers game transfer',
+    'ドジャース観戦プライベート送迎',
+    '試合前から試合終了後まで。日本語対応の完全貸切送迎で、ドジャース観戦をもっと快適に。',
+    '完全貸切',
+    '1〜4名様',
+    '日本語対応',
+    '片道送迎',
+    '49,800円 ／1組',
+    '往復送迎',
+    '79,800円 ／1組',
+    '1組あたりの料金・定員4名様',
+    'このプランを申し込む',
+    'まずは相談する',
+    'The experience',
+    '観戦を、もっと自由に。もっと快適に。',
+    '大切な試合の日を、移動の心配なく楽しんでいただくために。ご宿泊先とドジャースタジアム間を、プライベート車両でご案内します。',
+    'サービス内容',
+    'ご宿泊先⇔ドジャースタジアムの送迎',
+    '試合終了後のお迎え（往復・復路）',
+    '日本語での連絡・当日のサポート',
+    'ご利用について',
+    '送迎エリア',
+    'ロサンゼルス市内・近郊',
+    'ご利用人数',
+    '1〜4名様',
+    '料金補足・追加料金',
+    '当日のご案内・注意事項',
+    '完全予約制',
+    '特別な観戦の一日を。',
+    'このプランを申し込む',
+  ];
+
+  it('carries her copy verbatim, in her order', () => {
+    const text = seen('/ja' + page);
+    let from = 0;
+    for (const line of HERS) {
+      const at = text.indexOf(line.replace(/\s+/g, ''), from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
     }
   });
 
-  it('shows her sections, labelled as she labelled them', () => {
-    const doc = html('/ja' + page);
-    for (const s of ['【サービス内容】', '【主な送迎エリア】', '【ご利用人数について】', '【料金補足】', '【ご利用前にご確認ください】']) {
-      expect(doc, s).toContain(s);
+  // One line where it fits at the shared heading size, her break where it
+  // does not, and never a smaller size to force it.
+  it('folds the title at her break and nowhere else, at the shared heading size', () => {
+    const h1 = html('/ja' + page).match(/<h1 [^>]*>[^]*?<\/h1>/)?.[0] ?? '';
+    expect(h1).toMatch(/^<h1 class="h2 /);
+    expect(h1).toMatch(/<span class="phrases"[^>]*>ドジャース観戦<wbr>プライベート送迎<\/span>/);
+  });
+
+  it('opens on a photo, then the overview', () => {
+    for (const route of [page, '/ja' + page]) {
+      const main = html(route).match(/<main[^]*<\/main>/)?.[0] ?? '';
+      expect(main.indexOf('<picture'), route).toBeGreaterThan(-1);
+      expect(main.indexOf('<picture'), route).toBeLessThan(main.indexOf('<h1'));
+      expect(main, route).toMatch(/<img [^>]*fetchpriority="high"/);
+    }
+  });
+
+  // Both ways in by the price, and the request again in the closing panel;
+  // the consultation link once, as her closing panel has none.
+  it('puts both actions by the price, and the request again at the end', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(prefix + page);
+      expect(count(doc, new RegExp(`href="${prefix}/book[?]service=dodgers-transfer"`, 'g'))).toBe(2);
+      expect(count(doc, new RegExp(`href="${prefix}/consult[?]service=dodgers-transfer"`, 'g'))).toBe(1);
+      const closing = doc.match(/<section class="closing plate"[^]*?<\/section>/)?.[0] ?? '';
+      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book[?]service=`));
+    }
+  });
+
+  // Her October terms, kept inside the two accordions she names, with her
+  // own labels; her cancellation answer is among them, from the FAQ's data.
+  it('keeps her terms inside her two accordions, with her cancellation terms', () => {
+    const accordions = html('/ja' + page).match(/<details class="detail"[^]*?<\/details>/g) ?? [];
+    expect(accordions.length).toBe(2);
+    // As read: phrases are folded with <wbr>, so the tags come out first.
+    const inside = accordions.join('').replace(/<[^>]+>/g, '');
+    for (const s of [
+      '料金補足・追加料金',
+      '【料金補足】',
+      'キャンセル料はかかりますか？',
+      '7日前まで：無料',
+      '4日前まで：30%',
+      'それ以降：100%',
+      '当日のご案内・注意事項',
+      '【ご利用前にご確認ください】',
+      '【主な送迎エリア】',
+      'ホテル以外の送迎場所もご相談可能',
+      '【ご利用人数について】',
+    ]) {
+      expect(inside, s).toContain(s);
+    }
+    // The same terms as the FAQ, word for word.
+    const faq = bare('/ja/contact');
+    for (const tier of ['7日前まで：無料', '4日前まで：30%', 'それ以降：100%']) {
+      expect(faq, tier).toContain(tier);
     }
   });
 
@@ -1268,18 +1368,19 @@ describe('her sample plan, in her format', () => {
     expect(doc).not.toMatch(/円/);
   });
 
-  it('puts both actions near the price and again at the bottom', () => {
-    for (const prefix of ['', '/ja']) {
-      const doc = html(prefix + page);
-      expect(count(doc, new RegExp(`href="${prefix}/book\\?service=dodgers-transfer"`, 'g'))).toBe(2);
-      expect(count(doc, new RegExp(`href="${prefix}/consult\\?service=dodgers-transfer"`, 'g'))).toBe(2);
-    }
-  });
-
   it('is on the list with only its lowest price', () => {
     expect(html('/ja/experience')).toContain('49,800円〜');
     expect(html('/ja/experience')).not.toContain('79,800');
     expect(html('/experience')).toContain('from ¥49,800');
+  });
+
+  // The view renders from the plan's data and the labels every plan shares,
+  // so her next plan is a data entry, not a template change.
+  it('keeps every plan-specific word in the data, not in the view', () => {
+    const view = readFileSync(join(process.cwd(), 'src/views/PlanDetail.astro'), 'utf8')
+      .replace(/\/\*[^]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    expect(view).not.toMatch(/[぀-ヿ一-鿿]/);
   });
 });
 

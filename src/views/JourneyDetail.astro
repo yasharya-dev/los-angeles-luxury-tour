@@ -4,6 +4,8 @@ import { useTranslations, localizePath } from '../i18n/utils';
 import { bySlug, bookPath, consultPath } from '../data/offerings';
 import { journeyBySlug } from '../data/journeys';
 import Divider from '../components/Divider.astro';
+import Icon from '../components/Icon.astro';
+import Phrases from '../components/Phrases.astro';
 import Reservation from '../components/Reservation.astro';
 
 interface Props {
@@ -37,7 +39,8 @@ const labels = {
 <section class="section head">
   <div class="measure measure--wide">
     <a class="back" href={p('/experience')}>
-      <span aria-hidden="true">&larr;</span> {t('cta.back')}
+      <Icon name="arrow-left" size={18} />
+      {t('cta.back')}
     </a>
     <p class="kicker head__kicker">{journey.kicker[locale]}</p>
     <h1 class="h2 head__title">
@@ -49,7 +52,7 @@ const labels = {
         <span class="price__unit">{offering.priceNote[locale]}</span>
       )}
     </p>
-    <p class="body head__lead">{journey.lead[locale]}</p>
+    <p class="body head__lead"><Phrases text={journey.lead[locale]} /></p>
   </div>
 </section>
 
@@ -63,8 +66,12 @@ const labels = {
             <li class="row">
               <span class="row__time">{row.time}</span>
               <div class="row__text">
-                <p class="row__title">{row.title[locale]}</p>
-                {row.note && <p class="caption row__note">{row.note[locale]}</p>}
+                <p class="row__title"><Phrases text={row.title[locale]} /></p>
+                {row.note && (
+                  <p class="caption row__note">
+                    <Phrases text={row.note[locale]} />
+                  </p>
+                )}
               </div>
             </li>
           ))}
@@ -82,14 +89,22 @@ const labels = {
     <div class="list">
       <h2 class="h3 block__title">{labels.includes}</h2>
       <ul class="list__items">
-        {journey.includes[locale].map((item) => <li class="list__item">{item}</li>)}
+        {journey.includes[locale].map((item) => (
+          <li class="list__item">
+            <Phrases text={item} />
+          </li>
+        ))}
       </ul>
     </div>
 
     <div class="list">
       <h2 class="h3 block__title">{labels.excludes}</h2>
       <ul class="list__items list__items--muted">
-        {journey.excludes[locale].map((item) => <li class="list__item">{item}</li>)}
+        {journey.excludes[locale].map((item) => (
+          <li class="list__item">
+            <Phrases text={item} />
+          </li>
+        ))}
       </ul>
     </div>
   </div>
@@ -116,24 +131,19 @@ const labels = {
     padding-block: clamp(48px, 7vw, 84px) clamp(40px, 6vw, 60px);
   }
 
+  /* A real target for a finger, at the label size the rest of the site uses. */
   .back {
-    display: inline-block;
-    margin-bottom: 30px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--tap);
+    margin-bottom: 18px;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--ink-soft);
   }
   .back:hover {
     color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .back {
-    font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    text-transform: none;
   }
 
   .head__title {
@@ -162,7 +172,7 @@ const labels = {
   }
 
   .price__unit {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink-soft);
   }
 
@@ -273,9 +283,14 @@ const labels = {
   }
 
   .ask {
-    font-size: 14px;
-    color: var(--ink-soft);
-    border-bottom: 1px solid var(--hairline-soft);
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
   }
   .ask:hover {
     color: var(--gold-text);
