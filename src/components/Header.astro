@@ -1,6 +1,6 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { useTranslations, localizePath } from '../i18n/utils';
+import { useTranslations, localizePath, pagePath } from '../i18n/utils';
 import ThemeToggle from './ThemeToggle.astro';
 import logo from '../assets/logo.png';
 
@@ -11,8 +11,8 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
-const current = Astro.url.pathname.replace(/\/$/, '');
-const isCurrent = (path: string) => current === p(path).replace(/\/$/, '');
+const current = pagePath(Astro.url.pathname);
+const isCurrent = (path: string) => current === p(path);
 
 const links = [
   { href: '/experience', label: t('nav.experience') },

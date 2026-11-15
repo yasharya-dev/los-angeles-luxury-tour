@@ -3,6 +3,7 @@ import {
   alternatePath,
   localeFromPath,
   localizePath,
+  pagePath,
 } from '../src/i18n/utils';
 import { locales, ui } from '../src/i18n/ui';
 
@@ -23,6 +24,44 @@ describe('localizePath', () => {
 
   it('tolerates a missing leading slash', () => {
     expect(localizePath('about', 'ja')).toBe('/ja/about');
+  });
+});
+
+// The build writes about.html, and while it does Astro reports that file's
+// path as the page's. In dev it reports the clean one. Both have to come out
+// as the public path, or every URL built from "this page" is wrong in
+// production only.
+describe('pagePath', () => {
+  it('drops the .html the build adds', () => {
+    expect(pagePath('/about.html')).toBe('/about');
+    expect(pagePath('/ja/about.html')).toBe('/ja/about');
+    expect(pagePath('/ja/experience/temecula.html')).toBe('/ja/experience/temecula');
+  });
+
+  it('turns the two home files into their paths', () => {
+    expect(pagePath('/index.html')).toBe('/');
+    expect(pagePath('/ja.html')).toBe('/ja');
+    expect(pagePath('/ja/index.html')).toBe('/ja');
+  });
+
+  it('leaves a clean path alone, as astro dev reports it', () => {
+    expect(pagePath('/')).toBe('/');
+    expect(pagePath('/ja')).toBe('/ja');
+    expect(pagePath('/about')).toBe('/about');
+    expect(pagePath('/ja/about/')).toBe('/ja/about');
+  });
+
+  // The language link is where this used to bite: /ja.html read as an English
+  // page called "ja.html", so its English counterpart was itself.
+  it('lets the Japanese home find the English one', () => {
+    expect(alternatePath(pagePath('/ja.html'), 'en')).toBe('/');
+    expect(alternatePath(pagePath('/index.html'), 'ja')).toBe('/ja');
+    expect(alternatePath(pagePath('/ja/book.html'), 'en')).toBe('/book');
+  });
+
+  it('only strips a trailing .html, not one inside a segment', () => {
+    expect(pagePath('/notes.html.bak')).toBe('/notes.html.bak');
+    expect(pagePath('/html')).toBe('/html');
   });
 });
 
