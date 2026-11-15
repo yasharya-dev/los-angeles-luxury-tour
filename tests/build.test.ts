@@ -183,11 +183,12 @@ describe('content parity', () => {
   });
 });
 
-describe('the light theme gold rule', () => {
-  // #D4AF37 is 9.0:1 on the dark plate but only about 2:1 on the light one, so
-  // the light theme swaps in a darker gold for anything meaning-carrying.
+describe('the palette and the gold rule', () => {
+  // Cream is the default theme, on :root, with the four colours from Amelia's
+  // brief. Her accent gold measures about 3:1 on the cream: fine for a line or
+  // a button fill, not for text. So text gold is its own, darker token.
   //
-  // This computes real ratios rather than asserting a hex value. The earlier
+  // This computes real ratios rather than asserting a hex value. An earlier
   // version checked only that the token equalled #8a6d1f, which passed happily
   // while that colour measured 4.37:1 against the warm paper background. The
   // token was never the thing that mattered.
@@ -218,20 +219,29 @@ describe('the light theme gold rule', () => {
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
   };
 
-  const lightBlock = () =>
-    css().match(/data-theme=light\]\{[^}]*\}/)?.[0] ?? '';
+  const creamBlock = () => css().match(/:root\{[^}]*--bg:[^}]*\}/)?.[0] ?? '';
+  const darkBlock = () => css().match(/data-theme=dark\]\{[^}]*\}/)?.[0] ?? '';
 
   const token = (block: string, name: string) =>
     block.match(new RegExp(`--${name}:(#[0-9a-f]{6})`, 'i'))?.[1] ?? '';
 
-  it('defines a light theme block', () => {
-    expect(lightBlock(), 'light theme block not found').not.toBe('');
+  it('defines the cream theme as the default and dark as the override', () => {
+    expect(creamBlock(), ':root block not found').not.toBe('');
+    expect(darkBlock(), 'dark theme block not found').not.toBe('');
+  });
+
+  it('uses the four colours from her brief', () => {
+    const block = creamBlock();
+    expect(token(block, 'ink').toLowerCase()).toBe('#191919');
+    expect(token(block, 'bg').toLowerCase()).toBe('#faf9f6');
+    expect(token(block, 'bg-deep').toLowerCase()).toBe('#f2f0e9');
+    expect(token(block, 'gold-deco').toLowerCase()).toBe('#b18a3a');
   });
 
   // Both light surfaces, because the sections alternate between them and the
   // darker one is the binding constraint.
   it('clears AA for meaning-carrying gold on every light surface', () => {
-    const block = lightBlock();
+    const block = creamBlock();
     const gold = token(block, 'gold-text');
     expect(gold, '--gold-text missing').toMatch(/^#[0-9a-f]{6}$/i);
 
@@ -246,14 +256,18 @@ describe('the light theme gold rule', () => {
     }
   });
 
+  // The solid CTA sets its label on the gold fill. White would be 3.2:1.
+  it('clears AA for the label on the gold CTA, in both themes', () => {
+    for (const [name, block] of [['cream', creamBlock()], ['dark', darkBlock()]] as const) {
+      const ratio = contrast(token(block, 'on-cta'), token(block, 'cta'));
+      expect(ratio, `${name} CTA label is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('keeps the bright gold usable on the dark plate', () => {
     // --bar never changes with the theme, which is what makes the literal
     // #d4af37 on the header, footer, hero and skip link safe.
     expect(contrast('#d4af37', '#101010')).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it('keeps the decorative wedge gold bright', () => {
-    expect(lightBlock()).toMatch(/--wedge:#d4af37/i);
   });
 
   // form.hidden = true is how the contact form gets out of the way after a
@@ -263,9 +277,9 @@ describe('the light theme gold rule', () => {
     expect(css()).toMatch(/\[hidden\]\{display:none!important\}/);
   });
 
-  it('does not override the dark plate tokens in light', () => {
-    const block = lightBlock();
-    for (const t of ['--bar:', '--bar-deep:', '--pill:']) {
+  it('does not override the black plate tokens in the dark theme', () => {
+    const block = darkBlock();
+    for (const t of ['--bar:', '--bar-deep:']) {
       expect(block, t).not.toContain(t);
     }
   });
@@ -275,6 +289,42 @@ describe('the light theme gold rule', () => {
     const rule = css().match(/\.skip-link\{[^}]*\}/)?.[0] ?? '';
     expect(rule, '.skip-link rule not found').not.toBe('');
     expect(rule).not.toMatch(/color:var\(--gold-text\)/);
+  });
+});
+
+// One row at every width: logo, language, menu. Nothing floats over the page.
+describe('the header and footer', () => {
+  it('keeps the language link in the header, not floating over the page', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        const doc = html(prefix + p);
+        const header = doc.match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+        expect(header, `${prefix}${p} header`).toContain('hreflang=');
+        expect(doc, `${prefix}${p}`).not.toContain('lang-toggle');
+      }
+    }
+  });
+
+  it('gives the phone menu every link the bar has', () => {
+    const header = html('/ja').match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+    for (const href of ['/ja/experience', '/ja/about', '/ja/contact']) {
+      expect(count(header, new RegExp(`href="${href}"`, 'g')), href).toBe(2);
+    }
+    expect(header).toContain('<details');
+    expect(header).toContain('aria-label="メニュー"');
+  });
+
+  // Her brief: Email, Instagram and Facebook as icons; LINE and Threads out of
+  // the footer. An icon-only link needs a name.
+  it('links the footer by icon, each with an accessible name', () => {
+    for (const prefix of ['', '/ja']) {
+      const footer = html(prefix + '/').match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? '';
+      expect(footer).toContain('href="mailto:losangelesluxurytour@gmail.com"');
+      expect(footer).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
+      expect(count(footer, /<a [^>]*aria-label="[^"]+"/g)).toBeGreaterThanOrEqual(2);
+      expect(footer).not.toContain('line.me');
+      expect(footer).not.toContain('threads.net');
+    }
   });
 });
 

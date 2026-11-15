@@ -34,17 +34,17 @@
 
 .label {
   font-family: var(--font-label);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--ink-mid);
 }
 
 html[lang='ja'] .label {
   font-family: var(--font-body);
-  font-size: 13px;
-  letter-spacing: 0.14em;
+  font-size: 15px;
+  letter-spacing: 0.08em;
   text-transform: none;
 }
 
@@ -58,15 +58,17 @@ html[lang='ja'] .label {
 
 .input {
   width: 100%;
+  min-height: 50px;
   background: var(--surface);
-  border: 1px solid var(--card-edge);
+  /* --field-edge, not a gold tint: a control's edge has to clear 3:1. */
+  border: 1px solid var(--field-edge);
   color: var(--ink);
   font-family: var(--font-body);
   /* Below 16px, iOS Safari zooms the page when the field takes focus. */
   font-size: 16px;
   line-height: 1.7;
-  padding: 13px 14px;
-  border-radius: 0;
+  padding: 11px 14px;
+  border-radius: var(--radius-ctl);
   transition: border-color 0.3s ease;
 }
 
@@ -92,7 +94,7 @@ html[lang='ja'] .label {
 .form__err {
   margin: 0;
   color: var(--err);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -102,7 +104,8 @@ html[lang='ja'] .label {
   margin: 0;
   padding: 16px 18px;
   border: 1px solid var(--hairline-soft);
-  font-size: 13.5px;
+  border-radius: var(--radius-ctl);
+  font-size: 14px;
   line-height: 1.9;
   color: var(--ink-mid);
 }
@@ -121,6 +124,7 @@ html[lang='ja'] .label {
 
 .ok {
   border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
   padding: clamp(32px, 5vw, 48px);
   text-align: center;
 }

@@ -1,0 +1,43 @@
+---
+/*
+  Every photograph on the site goes through here: AVIF and WebP at a ladder
+  of widths with a JPEG fallback, so a phone downloads a phone-sized file.
+  Below the fold by default (lazy, async decode); pass `priority` for the one
+  image a page opens on.
+*/
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: ImageMetadata;
+  /** Empty for a purely decorative photo. */
+  alt: string;
+  /** How wide the image is laid out, for the browser to pick a file. */
+  sizes?: string;
+  /** The page's opening image: fetched early, never lazy. */
+  priority?: boolean;
+  class?: string;
+  // Astro hands a child component the parent's style-scope attribute; it has
+  // to reach the <img> or the parent's scoped rules will not match it.
+  [attr: `data-astro-cid-${string}`]: unknown;
+}
+
+const { src, alt, sizes = '100vw', priority = false, ...rest } = Astro.props;
+
+// No point asking for a width the original cannot fill.
+const widths = [480, 768, 1080, 1440, 1920].filter((w) => w <= src.width);
+---
+
+<Picture
+  src={src}
+  alt={alt}
+  formats={['avif', 'webp']}
+  fallbackFormat="jpg"
+  widths={widths}
+  sizes={sizes}
+  quality={60}
+  loading={priority ? 'eager' : 'lazy'}
+  decoding={priority ? 'sync' : 'async'}
+  fetchpriority={priority ? 'high' : undefined}
+  {...rest}
+/>

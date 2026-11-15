@@ -1,83 +1,68 @@
 ---
 import { localeNames, locales, type Locale } from '../i18n/ui';
-import { useTranslations, alternatePath } from '../i18n/utils';
+import { alternatePath } from '../i18n/utils';
 
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 
 // Labelled in the destination language's own script: someone looking for
-// English needs to see "EN", not "英語". Maps over the array so a third
-// locale is a data change.
+// English needs to see "EN", not "英語". The visible text is the accessible
+// name, so nothing here overrides it. Maps over the array so a third locale
+// is a data change.
 const others = locales.filter((l) => l !== locale);
 ---
 
-<nav class="lang-toggle" aria-label={t('nav.language')}>
-  {
-    others.map((other) => (
-      <a
-        class="lang-toggle__link"
-        href={alternatePath(Astro.url.pathname, other)}
-        hreflang={other}
-        lang={other}
-        aria-label={t('toggle.lang')}
-      >
-        {localeNames[other]}
-      </a>
-    ))
-  }
-</nav>
+{/* In the header bar, not floating over the page: her brief asks for nothing
+    that can cover the content. */}
+{
+  others.map((other) => (
+    <a
+      class="lang-link"
+      href={alternatePath(Astro.url.pathname, other)}
+      hreflang={other}
+      lang={other}
+    >
+      <span class="lang-link__label">{localeNames[other]}</span>
+    </a>
+  ))
+}
 
 <style>
-  .lang-toggle {
-    position: fixed;
-    right: clamp(16px, 3vw, 28px);
-    bottom: clamp(16px, 3vw, 28px);
-    z-index: 40;
-    display: flex;
-    gap: 6px;
-  }
-
-  .lang-toggle__link {
+  /* The link is the 44px target; the pill inside is only how it looks. */
+  .lang-link {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-width: 52px;
-    height: 40px;
-    padding: 0 16px;
-    border-radius: 999px;
+    min-height: var(--tap);
+    padding-inline: 4px;
+  }
+
+  .lang-link__label {
+    padding: 4px 12px;
     border: 1px solid rgba(212, 175, 55, 0.55);
-    background: var(--pill);
-    backdrop-filter: blur(6px);
-    box-shadow: var(--shadow-pill);
+    border-radius: 999px;
     color: #d4af37;
     font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.6;
+    white-space: nowrap;
     transition:
       border-color 0.3s ease,
       color 0.3s ease;
   }
 
   /* 日本語 falls back to a system font in Montserrat. */
-  .lang-toggle__link[lang='ja'] {
+  .lang-link[lang='ja'] .lang-link__label {
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
+    font-size: 13px;
+    letter-spacing: 0.08em;
   }
 
-  .lang-toggle__link:hover {
+  .lang-link:hover .lang-link__label {
     border-color: #d4af37;
     color: #f5f5fa;
-  }
-
-  @media print {
-    .lang-toggle {
-      display: none;
-    }
   }
 </style>

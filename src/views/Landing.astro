@@ -4,6 +4,7 @@ import { useTranslations, localizePath } from '../i18n/utils';
 import { byTier, capabilities, tierOrder, type Tier } from '../data/offerings';
 import Divider from '../components/Divider.astro';
 import Reservation from '../components/Reservation.astro';
+import Photo from '../components/Photo.astro';
 import heroImg from '../assets/hero-dtla.jpg';
 
 interface Props {
@@ -120,14 +121,7 @@ const tierLabel: Record<Tier, string> = {
 ---
 
 <section class="hero">
-  <img
-    class="hero__img"
-    src={heroImg.src}
-    alt={c.heroAlt}
-    width={heroImg.width}
-    height={heroImg.height}
-    fetchpriority="high"
-  />
+  <Photo class="hero__img" src={heroImg} alt={c.heroAlt} priority />
   <div class="hero__scrim"></div>
   <div class="hero__inner">
     <p class="kicker hero__kicker">
@@ -185,7 +179,7 @@ const tierLabel: Record<Tier, string> = {
   </ul>
 </section>
 
-<section class="section section--deep section--wedged" id="journeys">
+<section class="section section--deep" id="journeys">
   <div class="measure measure--wide center offers__head">
     <h2 class="h2 section__title">
       {c.offersTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}

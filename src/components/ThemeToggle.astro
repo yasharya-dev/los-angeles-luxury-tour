@@ -4,66 +4,110 @@ import { useTranslations } from '../i18n/utils';
 
 interface Props {
   locale: Locale;
+  /** Show the words next to the mark, for the row in the phone menu. */
+  labelled?: boolean;
 }
-const { locale } = Astro.props;
+const { locale, labelled = false } = Astro.props;
 const t = useTranslations(locale);
 ---
 
+{/* Cream is the default. Pressed means the dark theme is on. */}
 <button
-  class="theme-toggle"
+  class:list={['theme-toggle', { 'theme-toggle--labelled': labelled }]}
   type="button"
-  aria-label={t('toggle.theme')}
+  aria-label={labelled ? undefined : t('toggle.theme')}
   aria-pressed="false"
-  title={t('toggle.theme')}
-  data-theme-toggle></button>
+  title={labelled ? undefined : t('toggle.theme')}
+  data-theme-toggle
+>
+  <span class="theme-toggle__mark" aria-hidden="true"></span>
+  {labelled && <span class="theme-toggle__text">{t('toggle.dark')}</span>}
+</button>
 
 <script>
-  const KEY = 'lalt-theme';
+  const KEY = 'llt-theme';
   const root = document.documentElement;
+  const toggles = () =>
+    document.querySelectorAll<HTMLElement>('[data-theme-toggle]');
 
-  function sync(btn: HTMLElement) {
-    const isLight = root.dataset.theme === 'light';
-    btn.setAttribute('aria-pressed', String(isLight));
-  }
+  const sync = () => {
+    const dark = root.dataset.theme === 'dark';
+    toggles().forEach((btn) => btn.setAttribute('aria-pressed', String(dark)));
+  };
 
-  document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((btn) => {
-    sync(btn);
+  sync();
+  toggles().forEach((btn) => {
+    // Two toggles can be on a page (the bar and the phone menu), and each
+    // component instance ships this script once.
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = 'true';
     btn.addEventListener('click', () => {
-      const next = root.dataset.theme === 'light' ? 'dark' : 'light';
-      root.dataset.theme = next;
+      const dark = root.dataset.theme !== 'dark';
+      if (dark) root.dataset.theme = 'dark';
+      else delete root.dataset.theme;
       try {
-        localStorage.setItem(KEY, next);
+        localStorage.setItem(KEY, dark ? 'dark' : 'light');
       } catch {
         /* private mode: the choice just will not persist */
       }
-      document
-        .querySelectorAll<HTMLElement>('[data-theme-toggle]')
-        .forEach(sync);
+      sync();
     });
   });
 </script>
 
 <style>
-  /* Half-filled circle: a sun/moon glyph would need two icons and a swap.
-     This reads as "two states" at 30px and costs no markup. */
+  /* The button is the 44px target; the mark inside is the 26px drawing. */
   .theme-toggle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 1px solid rgba(212, 175, 55, 0.5);
-    background: linear-gradient(90deg, #d4af37 0 50%, transparent 50% 100%);
-    cursor: pointer;
-    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: var(--tap);
+    min-height: var(--tap);
     padding: 0;
-    transition: transform 0.3s ease, border-color 0.3s ease;
+    border: 0;
+    background: none;
+    color: #f5f5fa;
+    cursor: pointer;
   }
 
-  .theme-toggle:hover {
+  /* Half-filled circle: reads as "two states" and costs no icon swap. */
+  .theme-toggle__mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid rgba(212, 175, 55, 0.6);
+    background: linear-gradient(90deg, transparent 0 50%, #d4af37 50% 100%);
+    transition:
+      transform 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .theme-toggle:hover .theme-toggle__mark {
     border-color: #d4af37;
     transform: rotate(180deg);
   }
 
-  .theme-toggle[aria-pressed='true'] {
-    background: linear-gradient(90deg, transparent 0 50%, #d4af37 50% 100%);
+  .theme-toggle[aria-pressed='true'] .theme-toggle__mark {
+    background: linear-gradient(90deg, #d4af37 0 50%, transparent 50% 100%);
+  }
+
+  .theme-toggle--labelled {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .theme-toggle__text {
+    font-family: var(--font-label);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  :global(html[lang='ja']) .theme-toggle__text {
+    font-family: var(--font-body);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: none;
   }
 </style>
