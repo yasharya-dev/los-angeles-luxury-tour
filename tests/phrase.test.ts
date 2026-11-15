@@ -88,6 +88,16 @@ describe('phrases', () => {
     expect(phrases('ひとり旅プライベートプラン')).toEqual(['ひとり旅', 'プライベートプラン']);
   });
 
+  // The dictionary reads 安心して as 安 + 心して. A fold between two kanji on
+  // its say-so put 安 at the end of one line and 心して at the start of the next.
+  it('does not trust the dictionary between two kanji', () => {
+    const parts = phrases(
+      'お一人旅はもちろん、初めてロサンゼルスを訪れる方にも安心してお楽しみいただけるよう、日本語で丁寧にサポートいたします。',
+    );
+    expect(parts.join('|')).not.toContain('安|心');
+    expect(parts).toContain('安心してお楽しみいただけるよう、');
+  });
+
   it('keeps a number with its counter and a time range whole', () => {
     const parts = phrases('9:00〜18:00・ホテル発着・受賞ワイナリー3か所');
     expect(parts[0]).toBe('9:00〜18:00・');

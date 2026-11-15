@@ -17,12 +17,13 @@
 // BudouX also leaves a long compound noun whole (ドジャース観戦チケット購入代行
 // is one phrase), and a phrase wider than its column folds wherever it runs
 // out. So a phrase over LONG characters may also fold at a word start inside
-// it, but only at a change the eye already reads as a seam: kanji to
-// katakana, katakana to kanji, into or out of a Latin word, or between two
-// kanji words. ICU's dictionary is weak on katakana compounds and on numbers
-// (ワイ|ナ|リー, 9:|00), so a fold never lands inside a katakana run, next to
-// a digit or a symbol, after a hiragana prefix (お|出迎え, 買い|物), or after an
-// opening bracket.
+// it, but only where the script itself changes, which the eye already reads
+// as a seam: kanji to katakana, katakana to kanji, into or out of a Latin
+// word. Never between two characters of the same script, because the
+// dictionary is not reliable there (it reads 安心して as 安|心して and ワイナリー
+// as ワイ|ナ|リー); never next to a digit or a symbol (9:|00, 3|試合); never
+// before hiragana, which would start a line on a particle; and never from
+// hiragana into kanji, which is a prefix or an inflection (お|出迎え, 買い|物).
 //
 // Runs in Astro frontmatter only. Nothing here ships to the browser.
 
@@ -46,14 +47,25 @@ const KATAKANA = /[ァ-ヺー-ヿ]/;
 const HIRAGANA = /[぀-ゟ]/;
 const LATIN = /[A-Za-z]/;
 
+type Script = 'kanji' | 'katakana' | 'hiragana' | 'latin' | 'other';
+const scriptOf = (ch: string): Script =>
+  KANJI.test(ch)
+    ? 'kanji'
+    : KATAKANA.test(ch)
+      ? 'katakana'
+      : HIRAGANA.test(ch)
+        ? 'hiragana'
+        : LATIN.test(ch)
+          ? 'latin'
+          : 'other';
+
 /** Whether a long phrase may fold between these two characters. */
 function seam(before: string, after: string): boolean {
-  if (KATAKANA.test(before) && KATAKANA.test(after)) return false;
-  if (HIRAGANA.test(before) && KANJI.test(after)) return false;
-  const left = KANJI.test(before) || KATAKANA.test(before) || HIRAGANA.test(before) || LATIN.test(before);
-  const right = KANJI.test(after) || KATAKANA.test(after) || LATIN.test(after);
-  if (LATIN.test(before) && LATIN.test(after)) return false;
-  return left && right;
+  const [a, b] = [scriptOf(before), scriptOf(after)];
+  if (a === 'other' || b === 'other') return false;
+  if (a === b || b === 'hiragana') return false;
+  if (a === 'hiragana' && b === 'kanji') return false;
+  return true;
 }
 
 /** True when the text has kana or kanji in it. English is left alone. */
