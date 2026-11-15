@@ -1,7 +1,7 @@
 ---
 import '../styles/form.css';
 import { type Locale } from '../i18n/ui';
-import { useTranslations, localizePath } from '../i18n/utils';
+import { useTranslations } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
 import { byTier, tierOrder, type Tier } from '../data/offerings';
 
@@ -10,7 +10,6 @@ interface Props {
 }
 const { locale } = Astro.props;
 const t = useTranslations(locale);
-const p = (path: string) => localizePath(path, locale);
 
 const EM = String.fromCharCode(0x2014);
 

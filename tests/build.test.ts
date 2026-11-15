@@ -187,10 +187,11 @@ describe('locale correctness', () => {
 
 describe('content parity', () => {
   it('renders every offering in both locales', () => {
-    const en = count(html('/'), /<article class="plan /g);
-    const ja = count(html('/ja'), /<article class="plan /g);
-    expect(en).toBe(offerings.length);
-    expect(ja).toBe(offerings.length);
+    // A card is an <article> when it links to the plan's own page, and a
+    // <details> when it opens in place.
+    const cards = /<(?:article|details) class="plan /g;
+    expect(count(html('/'), cards)).toBe(offerings.length);
+    expect(count(html('/ja'), cards)).toBe(offerings.length);
   });
 
   // A failed send has to say so and hand over the email address, rather than
@@ -330,27 +331,66 @@ describe('the homepage, in her six sections', () => {
       expect(count(list, /<svg/g), route).toBe(3);
       expect(count(list, /<p[ >]/g), `${route}: no descriptions`).toBe(0);
     }
-    const ja = html('/ja');
-    expect(ja).toMatch(/高級車で\s*<br class="reason__br"[^>]*>\s*完全貸切/);
-    expect(ja).toMatch(/オーダーメイドの\s*<br class="reason__br"[^>]*>\s*旅/);
-    expect(ja).toMatch(/>\s*日本語で安心\s*</);
+    // Each title with its break written as "/". Nothing else is taken out, so
+    // a space between two of her lines (it shows, in Japanese, once the break
+    // is switched off on a wide screen) fails this.
+    const titles = [...html('/ja').matchAll(/<h3 class="reason__title"[^>]*>([^]*?)<\/h3>/g)].map(
+      ([, inner]) =>
+        inner
+          .replace(/<br class="reason__br"[^>]*>/g, '/')
+          .replace(/<[^>]+>/g, '')
+          .trim(),
+    );
+    expect(titles).toEqual(['日本語で安心', '高級車で/完全貸切', 'オーダーメイドの/旅']);
   });
 
+  // A plan with its own page links to it. The rest open in place and hold
+  // what the visitor came for: the description and both ways to act on it.
   it('lists every plan as a card with its price and a way to its details', () => {
+    const text = (markup: string) => markup.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
       const doc = html(prefix || '/');
       for (const o of offerings) {
+        const tag = o.slug ? 'article' : 'details';
         // [^] is "any character, newlines included", with no backslash to lose
         // inside a template literal.
         const card =
-          doc.match(new RegExp(`<article class="plan[^"]*" id="plan-${o.id}"[^]*?</article>`))?.[0] ?? '';
+          doc.match(new RegExp(`<${tag} class="plan[^"]*" id="plan-${o.id}"[^]*?</${tag}>`))?.[0] ?? '';
         expect(card, `${prefix} ${o.id}`).not.toBe('');
-        expect(card.replace(/<[^>]+>/g, ''), `${prefix} ${o.id} price`).toContain(o.price[locale]);
-        const target = o.slug ? `${prefix}/experience/${o.slug}` : `${prefix}/experience#plan-${o.id}`;
-        expect(card, `${prefix} ${o.id} link`).toContain(`href="${target}"`);
-        // The link's name starts with its visible label and says which plan.
-        expect(card, `${prefix} ${o.id} name`).toMatch(/<a class="plan__more[^>]*aria-label="[^"]+: [^"]+"/);
+        expect(text(card), `${prefix} ${o.id} price`).toContain(text(o.price[locale]));
+        if (o.slug) {
+          expect(card, `${prefix} ${o.id} link`).toContain(`href="${prefix}/experience/${o.slug}"`);
+          // The link's name starts with its visible label and says which plan.
+          expect(card, `${prefix} ${o.id} name`).toMatch(
+            /<a class="plan__more[^>]*aria-label="[^"]+: [^"]+"/,
+          );
+        } else {
+          expect(card, `${prefix} ${o.id} summary`).toMatch(/<summary class="plan__head"/);
+          expect(text(card), `${prefix} ${o.id} description`).toContain(
+            text(o.detail?.[locale].body ?? 'no detail'),
+          );
+          expect(card, `${prefix} ${o.id} book`).toContain(`href="${prefix}/book?service=${o.id}"`);
+          expect(card, `${prefix} ${o.id} ask`).toContain(`href="${prefix}/consult?service=${o.id}"`);
+        }
       }
+    }
+  });
+
+  // One action, one label. 「このプランを申し込む」 is hers, for the plan page;
+  // the older 「このプランを予約する」 was ours and said something stronger than a
+  // request.
+  it('names the booking request the same way wherever a plan can be requested', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        expect(html(prefix + p), prefix + p).not.toMatch(
+          /このプランを予約する|Book this plan|Reserve this journey/,
+        );
+      }
+    }
+    const pages = ['', '/experience', ...[...journeys, ...plans].map((j) => `/experience/${j.slug}`)];
+    for (const page of pages) {
+      expect(html(`/ja${page}`), `/ja${page}`).toContain('このプランを申し込む');
+      expect(html(page || '/'), page || '/').toContain('Request this plan');
     }
   });
 
@@ -536,6 +576,23 @@ describe('the default theme', () => {
     expect(css()).not.toContain('prefers-color-scheme');
   });
 
+  // A phone set to force every page dark (Chrome on Android does it) leaves a
+  // page alone when its scheme says "only". Dark stays the visitor's choice.
+  it('opts the cream theme out of a forced dark mode', () => {
+    // The keyword may sit on either side; the minifier writes it second.
+    expect(cream()).toMatch(/(?:^|;)color-scheme:(?:only light|light only)(?:;|$)/);
+    expect(dark()).toMatch(/(?:^|;)color-scheme:dark(?:;|$)/);
+  });
+
+  // Pulled past its top or its end, a phone shows the canvas behind the page.
+  // It is the black of the bars, so the header and the footer run to the edge
+  // of the screen, and the body lays the cream over it.
+  it('paints the canvas in the black of the bars, and the page over it', () => {
+    expect(block('html')).toMatch(/(?:^|;)background:var\(--bar\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)background:var\(--bg\)(?:;|$)/);
+    expect(block('body')).toMatch(/(?:^|;)min-height:100svh(?:;|$)/);
+  });
+
   // The toggle is a script. Without one it is hidden rather than left dead.
   it('hides the theme toggle when there is no JavaScript', () => {
     expect(html('/ja')).toMatch(
@@ -632,6 +689,22 @@ describe('the header and footer', () => {
     }
   });
 
+  // Her footer, in her order: the wish, the icons, the privacy link on a row
+  // of its own, then the two legal lines and nothing else.
+  it('ends the footer with the privacy link and the two legal lines', () => {
+    for (const [route, privacy] of [
+      ['/', '/privacy'],
+      ['/ja', '/ja/privacy'],
+    ]) {
+      const tail = footer(route).split('</nav>')[1] ?? '';
+      const lines = [...tail.matchAll(/<p class="site-footer__(\w+)[^>]*>([\s\S]*?)<\/p>/g)];
+      expect(lines.map(([, kind]) => kind), route).toEqual(['privacy', 'meta', 'meta']);
+      expect(lines[0][2], route).toContain(`href="${privacy}"`);
+      expect(lines[1][2].trim(), route).toBe('© 2026 Los Angeles Luxury Tour');
+      expect(lines[2][2], route).toContain('California Seller of Travel');
+    }
+  });
+
   // On a 360px phone the line used to fold inside the number: 2175215- / 50.
   it('keeps the registration number in one piece', () => {
     for (const route of ['/', '/ja']) {
@@ -694,7 +767,71 @@ describe('photographs', () => {
   });
 });
 
+// axe cannot judge text over an image, so the page has to make it safe by
+// construction. The band's gradient belongs to the text: it reaches its full
+// depth exactly where the first line starts. This checks that depth against
+// the worst a photograph can do, a pure white pixel, so the text clears AA
+// over any photo, including the ones she has yet to send.
+describe('text over a photograph', () => {
+  it('darkens the photo behind the text enough for any photograph', () => {
+    const rules = css();
+    const ink = rules.match(/\.photo-hero\[data-astro-cid-[^\]]+\]\{[^}]*--ink:(#[0-9a-f]{3,8})/)?.[1] ?? '';
+    const depth = rules.match(/(#[0-9a-f]{8}) var\(--rise\)/)?.[1] ?? '';
+    expect(ink, 'the ink over the photo').not.toBe('');
+    expect(depth, 'the gradient stop where the text starts').not.toBe('');
+    const behind = over(parseHex(depth), [255, 255, 255]);
+    expect(ratio(parseHex(ink).rgb, behind)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('puts every photo band on a plate, so its text takes the light ink', () => {
+    for (const route of ['/', '/ja']) {
+      expect(html(route), route).toMatch(/<section class="photo-hero plate /);
+    }
+  });
+});
+
+// Where a Japanese line may fold is decided at build time, by a phrase model
+// and by ICU's dictionary, and either can change under us: a BudouX release, a
+// Node upgrade. The folds are part of her copy, so they are pinned here. A
+// change shows up as a diff of this file to read and accept, not as a line
+// that quietly moved on the site.
+describe('Japanese line folds', () => {
+  it('folds every line where it did when this was last reviewed', async () => {
+    const lines = new Set<string>();
+    for (const p of PATHS) {
+      for (const [, inner] of html(`/ja${p === '/' ? '' : p}`).matchAll(
+        /<span class="phrases"[^>]*>([^]*?)<\/span>/g,
+      )) {
+        lines.add(
+          inner
+            .replace(/<wbr[^>]*>/g, ' | ')
+            .replace(/<br[^>]*>/g, ' // ')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim(),
+        );
+      }
+    }
+    expect(lines.size).toBeGreaterThan(20);
+    await expect([...lines].sort().join('\n') + '\n').toMatchFileSnapshot(
+      './__snapshots__/japanese-folds.txt',
+    );
+  });
+});
+
 describe('output hygiene', () => {
+  // What a search result or a LINE link preview shows. Wording she took off
+  // the site must not live on there.
+  it('keeps retired wording out of every page head', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        const head = html(prefix + p).match(/<head>[^]*?<\/head>/)?.[0] ?? '';
+        expect(head, prefix + p).not.toBe('');
+        expect(head, prefix + p).not.toContain('安全＆安心');
+      }
+    }
+  });
+
   it('leaks no design-tool artifacts', () => {
     for (const p of PATHS) {
       const doc = html(p);
