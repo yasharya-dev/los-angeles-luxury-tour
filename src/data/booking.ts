@@ -113,11 +113,18 @@ export function checkBooking(
   }
 
   const date = input.date ?? '';
-  if (!isDate(date) || date < yesterday()) return { ok: false, problem: 'date' };
+  if (!isDate(date) || date < yesterday() || date > threeYearsOut()) {
+    return { ok: false, problem: 'date' };
+  }
   const party = guestOptions(offering.id).find((g) => g.value === input.guests);
   if (!party) return { ok: false, problem: 'guests' };
 
   return { ok: true, booking: { service: offering.id, type, route, date, guests: party.value } };
+}
+
+/** As far ahead as a request can sensibly be made. */
+function threeYearsOut(): string {
+  return new Date(Date.now() + 3 * 366 * 86_400_000).toISOString().slice(0, 10);
 }
 
 /** Yesterday in UTC: the earliest date anyone anywhere can still call today. */

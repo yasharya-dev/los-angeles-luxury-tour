@@ -254,7 +254,9 @@ const terms = cancellation[locale];
     object-fit: cover;
   }
 
-  @media (min-width: 720px) {
+  /* Once the column is narrower than the screen, the photo sits in it as a
+     picture: rounded, with air above it. */
+  @media (min-width: 681px) {
     .plan-page {
       padding-top: 32px;
     }
@@ -525,7 +527,10 @@ const terms = cancellation[locale];
 
   /* ------------------------------------------------------------ closing */
 
+  /* A hairline keeps the panel a panel in the dark theme, where its black
+     would otherwise be the page's own. */
   .closing {
+    border: 1px solid var(--hairline);
     margin-top: clamp(32px, 6vw, 44px);
     padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
     border-radius: var(--radius-card);

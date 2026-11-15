@@ -45,7 +45,7 @@ const copy = {
     name: 'Your name',
     email: 'Email',
     line: 'LINE ID',
-    linePlaceholder: 'If you would like to hear back on LINE',
+    linePlaceholder: 'To hear back on LINE',
     notes: 'Requests or notes',
     notesPlaceholder: 'Pickup point, wishes, anything you would like us to know.',
     optional: ' (optional)',
@@ -55,7 +55,7 @@ const copy = {
     send: 'Send booking request',
     sending: 'Sending',
     sendNote: 'Your booking is not final yet.',
-    formErr: 'A few fields still need attention. See the marks above.',
+    formErr: 'Please check the marked fields above.',
     sendErr: 'Something went wrong sending that. Please email us directly at',
     required: 'required',
   },
@@ -81,7 +81,7 @@ const copy = {
     send: '予約リクエストを送信する',
     sending: '送信中',
     sendNote: 'この時点では予約は確定していません。',
-    formErr: '未記入の項目があります。上の印をご確認ください。',
+    formErr: '上の印の項目をご確認ください。',
     sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
     required: '必須',
   },
@@ -212,7 +212,13 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       <option value="">{c.guestsPlaceholder}</option>
       {guestOptions(id).map((g) => <option value={g.value}>{g.label[locale]}</option>)}
     </select>
-    {plan?.over && <p class="caption over-note">{plan.over.note[locale]}</p>}
+    {
+      plan?.over && (
+        <p class="caption over-note" id="n-over">
+          <Phrases text={plan.over.note[locale]} />
+        </p>
+      )
+    }
     <p class="err" id="e-guests" hidden>{err.guests}</p>
   </div>
 
@@ -378,6 +384,21 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     input.addEventListener('change', sync);
   });
   sync();
+
+  // Her note for five or more describes the guests list while it shows. (At
+  // rest a hidden description would still be read out.)
+  const guests = form?.querySelector('select[name="guests"]');
+  const note = form?.querySelector('#n-over');
+  const syncGuests = () => {
+    if (!guests || !note) return;
+    // Through unknown: the shared Worker types make Element and the select clash.
+    if ((guests as unknown as HTMLSelectElement).value === 'over') {
+      guests.setAttribute('aria-describedby', 'n-over');
+    }
+    else guests.removeAttribute('aria-describedby');
+  };
+  guests?.addEventListener('change', syncGuests);
+  syncGuests();
 </script>
 
 <style>
@@ -415,6 +436,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
   }
   .pick__name {
     margin: 2px 0 0;
+    text-wrap: balance;
     font-size: 16px;
     font-weight: 600;
     line-height: 1.5;
@@ -428,6 +450,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     color: var(--gold-text);
   }
   .pick__unit {
+    white-space: nowrap;
     font-size: 14px;
     color: var(--ink-soft);
   }
@@ -461,12 +484,38 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     border-color: var(--gold-text);
     box-shadow: inset 0 0 0 1px var(--gold-text);
   }
+  /* A group with an error is marked like a field with one. */
+  .option:has(.input--err) {
+    border-color: var(--err);
+  }
+  /* Drawn here: WebKit's own empty circle is too faint to read as a choice. */
   .option input {
     flex: none;
+    display: grid;
+    place-content: center;
     width: 20px;
     height: 20px;
     margin: 0;
-    accent-color: var(--gold-text);
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1.5px solid var(--field-edge);
+    border-radius: 50%;
+    background: var(--surface);
+  }
+  .option input::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gold-text);
+    transform: scale(0);
+    transition: transform 0.15s ease;
+  }
+  .option input:checked {
+    border-color: var(--gold-text);
+  }
+  .option input:checked::before {
+    transform: scale(1);
   }
   .option input:focus-visible {
     outline: 2px solid var(--gold-text);

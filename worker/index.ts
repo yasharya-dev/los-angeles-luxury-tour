@@ -264,7 +264,9 @@ function page(lang: string, body: string, status: number): Response {
       `<meta name="viewport" content="width=device-width,initial-scale=1">` +
       `<meta name="robots" content="noindex">` +
       `<title>Los Angeles Luxury Tour</title>` +
-      `<body style="font:16px/1.8 system-ui,sans-serif;max-width:32rem;margin:12vh auto;padding:0 20px;color:#191919">` +
+      `<style>body{max-width:32rem;margin:12vh auto;padding:0 20px;background:#faf9f6;color:#191919;` +
+      `font:16px/1.9 "Noto Serif JP",Georgia,serif;word-break:keep-all;overflow-wrap:anywhere}` +
+      `a{color:#806419;text-underline-offset:.3em}</style><body>` +
       `${body}</body></html>`,
     { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
   );

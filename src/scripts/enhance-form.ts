@@ -61,9 +61,23 @@ export function enhanceForm(form: HTMLFormElement): void {
   const local = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
     .toISOString()
     .slice(0, 10);
+  // And no further out than the Worker takes: three years.
+  const far = `${Number(local.slice(0, 4)) + 3}${local.slice(4)}`;
   form
     .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
-    .forEach((d) => (d.min = local));
+    .forEach((d) => {
+      d.min = local;
+      d.max = far;
+    });
+
+  // Bring a field to fix into view with its label, then focus it. Safari does
+  // not scroll a focused radio or select into view by itself.
+  const reveal = (input: Field) => {
+    const box = input.closest('fieldset, .field') ?? input;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    input.focus({ preventScroll: true });
+  };
 
   const reset = () => {
     submit.disabled = false;
@@ -136,7 +150,7 @@ export function enhanceForm(form: HTMLFormElement): void {
       const invalid = !valid(input);
       showError(input, invalid);
       if (invalid && !bad) {
-        input.focus();
+        reveal(input);
         bad = true;
       }
     }
@@ -174,12 +188,14 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (input || body.error === 'missing') {
       if (input) {
         showError(input, true);
-        input.focus();
+        reveal(input);
       }
       formErr.hidden = false;
       return;
     }
     sendErr.hidden = false;
+    // Focus went with the button while it was disabled; put it back on it.
+    submit.focus();
   });
 }
 

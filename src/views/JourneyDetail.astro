@@ -77,7 +77,9 @@ const labels = {
           ))}
         </ol>
         {journey.scheduleNote && (
-          <p class="caption note">{journey.scheduleNote[locale]}</p>
+          <p class="caption note">
+            <Phrases text={journey.scheduleNote[locale]} />
+          </p>
         )}
       </div>
     </section>
@@ -111,7 +113,9 @@ const labels = {
 
   {
     !journey.schedule && journey.scheduleNote && (
-      <p class="caption note measure center">{journey.scheduleNote[locale]}</p>
+      <p class="caption note measure center">
+        <Phrases text={journey.scheduleNote[locale]} />
+      </p>
     )
   }
 </section>
@@ -204,7 +208,7 @@ const labels = {
      Mincho figures here would read as an accident. */
   .row__time {
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 18px);
+    font-size: clamp(16px, 2vw, 18px);
     color: var(--gold-text);
     white-space: nowrap;
     min-width: 3.5em;
@@ -212,7 +216,7 @@ const labels = {
 
   .row__title {
     margin: 0;
-    font-size: clamp(15px, 1.9vw, 17px);
+    font-size: clamp(16px, 1.9vw, 17px);
     color: var(--ink);
   }
 
@@ -250,7 +254,7 @@ const labels = {
   .list__item {
     position: relative;
     padding: 9px 0 9px 20px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.85;
     color: var(--ink-mid);
   }
