@@ -66,9 +66,9 @@ const others = locales.filter((l) => l !== locale);
     border-radius: 999px;
     color: var(--gold-text);
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
     line-height: 1.6;
     white-space: nowrap;
     transition:
@@ -86,5 +86,12 @@ const others = locales.filter((l) => l !== locale);
   .lang-link:hover .lang-link__label {
     border-color: var(--gold-text);
     color: var(--ink);
+  }
+
+  /* See the header: the row is short of room on a 320px screen. */
+  @media (max-width: 345px) {
+    .lang-link__label {
+      padding-inline: 9px;
+    }
   }
 </style>

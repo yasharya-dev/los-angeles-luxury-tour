@@ -1,0 +1,89 @@
+---
+import { CONTACT } from '../data/contact';
+import type { Locale } from '../i18n/ui';
+import Icon from './Icon.astro';
+import Phrases from './Phrases.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+// Her brief asks for a compact strip in place of the full-width block: her
+// line and the handle, the whole of it one link. No thumbnails: the only
+// pictures on file are not from her Instagram, and showing them as if they
+// were would be a made-up gallery.
+const title = {
+  en: 'Travel inspiration, on Instagram',
+  ja: ['旅のインスピレーションは', 'Instagramで'],
+}[locale];
+---
+
+<section class="section section--deep ig">
+  <a class="ig__link panel" href={CONTACT.instagram} rel="me noopener">
+    <Icon name="instagram" size={30} class="ig__icon" />
+    <span class="ig__text">
+      <span class="ig__title"><Phrases text={title} /></span>
+      {/* A handle is an identifier: never uppercased, in either language. */}
+      <span class="ig__handle">{CONTACT.instagramHandle}</span>
+    </span>
+    <Icon name="arrow-right" size={20} class="ig__arrow" />
+  </a>
+</section>
+
+<style>
+  .ig {
+    padding-block: clamp(24px, 4vw, 36px);
+  }
+
+  .ig__link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 640px;
+    min-height: 72px;
+    margin-inline: auto;
+    padding: 12px clamp(14px, 3vw, 22px);
+    color: var(--ink);
+    transition: border-color 0.3s ease;
+  }
+  .ig__link:hover {
+    color: var(--ink);
+    border-color: var(--hairline);
+  }
+
+  .ig__link :global(.ig__icon),
+  .ig__link :global(.ig__arrow) {
+    flex: none;
+    color: var(--gold-text);
+  }
+
+  .ig__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ig__title,
+  .ig__handle {
+    display: block;
+  }
+
+  .ig__title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  :global(html[lang='ja']) .ig__title {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .ig__handle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+  }
+</style>

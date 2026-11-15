@@ -118,12 +118,9 @@ describe('ui dictionaries', () => {
     }
   });
 
-  // price.note is intentionally empty on EN (no yen conversion shown there),
-  // so it is the one permitted blank.
-  it('has no accidentally empty strings', () => {
+  it('has no empty strings', () => {
     for (const locale of locales) {
       for (const [key, value] of Object.entries(ui[locale])) {
-        if (key === 'price.note') continue;
         expect(value.trim(), `${locale}.${key}`).not.toBe('');
       }
     }

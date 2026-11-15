@@ -1,96 +1,53 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { BR } from '../i18n/text';
-import { useTranslations, localizePath } from '../i18n/utils';
-import {
-  byTier,
-  capabilities,
-  tierOrder,
-  type Tier,
-  bookPath,
-  consultPath,
-} from '../data/offerings';
+import { localizePath } from '../i18n/utils';
 import type { IconName } from '../data/icons';
 import Icon from '../components/Icon.astro';
 import InstagramStrip from '../components/InstagramStrip.astro';
 import PhotoHero from '../components/PhotoHero.astro';
 import Phrases from '../components/Phrases.astro';
-import PlanCard from '../components/PlanCard.astro';
-import heroImg from '../assets/hero-malibu.jpg';
+import PlanList from '../components/PlanList.astro';
+import heroImg from '../assets/hero-dusk.jpg';
 
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
-const EM = String.fromCharCode(0x2014);
 const LDQ = String.fromCharCode(0x201c);
 const RDQ = String.fromCharCode(0x201d);
 
-// Amelia's Experience page from her brief of 2026-11-05 (section 08): a short
-// hero, how a trip comes together as four labels, the plans as compact cards,
-// what lies beyond them, and Instagram. Her Japanese is verbatim; the English
-// is derived from it.
+// Amelia's Experience page, from her brief of 2026-11-05 (section 08): a
+// short hero, how a trip comes together as four labels, the plans as the
+// same compact cards the homepage shows, what lies beyond them, and
+// Instagram. Her Japanese is verbatim; the English is derived from it.
 const stepIcons: IconName[] = ['chat', 'doc', 'check-circle', 'plane'];
 
 const copy = {
   en: {
     title: 'Not a set tour. A trip built around you.',
-    heroAlt: 'Waves breaking below a house on the Malibu coast',
+    heroAlt: 'A palm tree and a plane crossing the evening sky above a beach town',
 
     howTitle: 'How your trip comes together',
-    steps: ['Consult', 'Proposal', 'Review & adjust', 'Booking & arrangements'],
+    steps: ['Consultation', 'Plan proposal', 'Review and adjust', 'Booking and arrangements'],
 
     plansTitle: 'Plans to choose from, by what you came for',
-
-    bookLabel: 'Book this plan',
-    askLabel: 'or ask a question first',
 
     beyondTitle: 'Beyond the plans',
     beyondBody: `An anniversary trip, a special experience: we take what you ${LDQ}want to do${RDQ} and make it real.`,
     beyondCta: 'Talk to us',
-
-    details: {
-      'solo-plan': {
-        body: `One game with round-trip stadium transfers, a full day of sightseeing, hotel check-in assistance, and easy stops ${EM} supermarkets, restaurants, wherever the day leads. Additional games can be added at $150 each.`,
-        excl: 'Hotel and airfare are not included.',
-      },
-      charter: {
-        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighbourhoods, whatever the day is for. LAX pickup can be built in.',
-        excl: 'Meals, event tickets, and activity fees are not included.',
-      },
-      'la-day-tour': {
-        body: 'Eight hours, collected from LAX and delivered to your hotel. Restaurants, shopping, and help at check-in, so the first day of the trip is not the hardest one.',
-        excl: 'Meals, event tickets, and activity fees are not included.',
-      },
-      'dodgers-game': {
-        body: 'Eight hours fully chartered around the game, with the ticket arranged for you. Collected from the airport or your hotel, and no waiting in the rideshare line afterwards.',
-        excl: 'Food and merchandise at the stadium are not included.',
-      },
-      'airport-transfer': {
-        body: 'LAX to your hotel and back again. Met at the terminal exit, helped through check-in, and a shopping stop on the way if you would like one.',
-        excl: '',
-      },
-      'dodgers-ticket': {
-        body: 'Tickets bought on your behalf, with the section and seat chosen to suit you. Stadium tours and pre-game tours can be booked the same way.',
-        excl: 'The face value of the ticket is charged separately.',
-      },
-    } as Record<string, { body: string; excl: string }>,
   },
 
   ja: {
     title: ['決まった旅ではなく、', BR, 'あなたに合わせて', 'つくる旅を。'],
-    heroAlt: 'マリブの海岸。波打ち際に建つ邸宅',
+    heroAlt: '夕暮れの空を横切る飛行機と、海辺の街のヤシの木',
 
     howTitle: '旅ができるまで',
     steps: ['ご相談', 'プラン提案', 'ご確認・調整', 'ご予約・手配'],
 
     plansTitle: ['目的に合わせて選べる、', '旅のプラン'],
-
-    bookLabel: 'このプランを予約する',
-    askLabel: 'まずは相談する',
 
     beyondTitle: 'プランのその先へ',
     beyondBody: [
@@ -100,52 +57,19 @@ const copy = {
       'カタチにします。',
     ],
     beyondCta: 'ご相談はこちら',
-
-    details: {
-      'solo-plan': {
-        body: '観戦1試合（スタジアム往復送迎付き）、終日観光ツアー、ホテルチェックインのお手伝い。スーパーやレストランへの立ち寄りも、柔軟にご一緒します。観戦の追加は1試合$150にて。',
-        excl: '※ホテル代・航空券は含まれません。',
-      },
-      charter: {
-        body: '6時間の貸切。1〜7名様まで、日本語ガイドと専属ドライバーがご一緒します。観光もショッピングも街歩きも、その日のご希望のままに。LAXでのお迎えも承ります。',
-        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
-      },
-      'la-day-tour': {
-        body: '8時間の貸切。LAXでお迎えし、ホテルまでお送りします。レストランやショッピング、チェックインのお手伝いまで。旅のはじめの一日を、いちばん大変な日にしないために。',
-        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
-      },
-      'dodgers-game': {
-        body: '観戦を中心に8時間を完全貸切。チケットの手配も承ります。空港またはホテルまでお迎えにあがり、試合後に配車の列へ並ぶ必要もありません。',
-        excl: '※球場でのお食事代・グッズ代は含まれません。',
-      },
-      'airport-transfer': {
-        body: 'LAXとホテルの往復。ターミナル出口でお出迎えし、チェックインまでサポートいたします。ご希望に応じて、買い物への立ち寄りも可能です。',
-        excl: '',
-      },
-      'dodgers-ticket': {
-        body: '観戦チケットを代わりにお求めします。セクションも座席もご希望に合わせてお選びいただけます。スタジアムツアーやプリゲームツアーも同様に承ります。',
-        excl: '※チケット代金は別途申し受けます。',
-      },
-    } as Record<string, { body: string; excl: string }>,
   },
 } as const;
 
 const c = copy[locale];
-
-const tierLabel: Record<Tier, string> = {
-  signature: t('tier.signature'),
-  day: t('tier.day'),
-  transport: t('tier.transport'),
-};
 ---
 
-{/* 01 Hero: her heading, nothing else, on a short photo band. */}
-<PhotoHero src={heroImg} alt={c.heroAlt} size="short" focus="70% 60%" priority>
+{/* 01 Hero: her heading and nothing else, on a short photo band. */}
+<PhotoHero src={heroImg} alt={c.heroAlt} size="short" focus="50% 30%" priority>
   <h1 class="h2 hero__title"><Phrases text={c.title} /></h1>
 </PhotoHero>
 
-{/* 02 How it works: four labels in a row, or two by two where a row of four
-    would squeeze 「ご確認・調整」 under its size. */}
+{/* 02 How it works: four icon labels. One row where all four fit at full
+    size, two by two on a phone, which is the fallback she gave. */}
 <section class="section how">
   <h2 class="h2 center how__title">{c.howTitle}</h2>
   <ol class="steps measure--cards">
@@ -155,6 +79,7 @@ const tierLabel: Record<Tier, string> = {
           <span class="step__icon">
             <Icon name={stepIcons[i]} size={26} />
           </span>
+          {/* The list is ordered, so a screen reader already says the number. */}
           <span class="step__n" aria-hidden="true">{i + 1}</span>
           <span class="step__label">{label}</span>
         </li>
@@ -163,53 +88,14 @@ const tierLabel: Record<Tier, string> = {
   </ol>
 </section>
 
-{/* 03 The plans, as the same compact cards the homepage uses. A plan with
-    its own page links to it; the rest open in place, with both ways to act
-    inside. No introduction and no exchange rate, as she asked. */}
+{/* 03 The plans: her heading, no introduction, no exchange rate. */}
 <section class="section section--deep" id="plans">
   <h2 class="h2 center plans__title"><Phrases text={c.plansTitle} /></h2>
-
-  <div class="tiers measure--grid">
-    {
-      tierOrder.map((tier) => (
-        <section class="tier" aria-labelledby={`tier-${tier}`}>
-          <h3 class="kicker tier__label" id={`tier-${tier}`}>
-            {tierLabel[tier]}
-          </h3>
-          <ul class="tier__list">
-            {byTier(tier).map((o) => {
-              const detail = c.details[o.id];
-              return (
-                <li>
-                  {o.slug ? (
-                    <PlanCard locale={locale} offering={o} href={p(`/experience/${o.slug}`)} level={4} />
-                  ) : (
-                    <PlanCard locale={locale} offering={o} level={4}>
-                      {detail && <p class="body">{detail.body}</p>}
-                      {detail?.excl && <p class="caption reveal__excl">{detail.excl}</p>}
-                      <p class="reveal__actions">
-                        <a class="btn btn--solid" href={p(bookPath(o))}>
-                          {c.bookLabel}
-                        </a>
-                        <a class="reveal__ask" href={p(consultPath(o))}>
-                          {c.askLabel}
-                        </a>
-                      </p>
-                    </PlanCard>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))
-    }
-  </div>
-
-  <p class="caption center plans__foot measure"><Phrases text={capabilities[locale]} /></p>
+  <PlanList locale={locale} />
 </section>
 
-{/* 05 Beyond the plans: her heading, her line, one way in. */}
+{/* 05 Beyond the plans: her heading, her line, and the page's one inquiry
+    button. */}
 <section class="section beyond">
   <div class="measure measure--wide center">
     <h2 class="h2">{c.beyondTitle}</h2>
@@ -225,20 +111,6 @@ const tierLabel: Record<Tier, string> = {
 {/* 06 Instagram, as a strip. */}
 <InstagramStrip locale={locale} />
 
-<script>
-  // A homepage card for a plan without its own page links to that plan's card
-  // here (#plan-charter). The card is a <details>: open the one the address
-  // names, on arrival and if the fragment changes, so the visitor lands on
-  // the details they asked for rather than a closed card.
-  const openTarget = () => {
-    const id = decodeURIComponent(location.hash.slice(1));
-    const target = id ? document.getElementById(id) : null;
-    if (target instanceof HTMLDetailsElement) target.open = true;
-  };
-  openTarget();
-  window.addEventListener('hashchange', openTarget);
-</script>
-
 <style>
   /* On the photograph's plate, so --ink is the ivory of a dark surface. */
   .hero__title {
@@ -249,12 +121,13 @@ const tierLabel: Record<Tier, string> = {
   /* -------------------------------------------------------------- steps */
 
   .how__title {
-    margin-bottom: clamp(18px, 3vw, 28px);
+    margin-bottom: clamp(20px, 3vw, 30px);
   }
 
   /* Two by two on a phone. A row of four gives each label a quarter of the
-     screen, and the longest one is six characters: at 15px it does not fit a
-     76px column. From 440px all four sit in one row, each on one line. */
+     screen, and 「ご確認・調整」 is six characters: it does not fit a 76px
+     column at any size she would accept. From 560px all four sit in one row,
+     each label on one line. */
   .steps {
     position: relative;
     list-style: none;
@@ -262,11 +135,11 @@ const tierLabel: Record<Tier, string> = {
     padding: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 8px;
+    gap: 22px 12px;
+    max-width: 640px;
   }
 
   .step {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -275,6 +148,7 @@ const tierLabel: Record<Tier, string> = {
   }
 
   .step__icon {
+    position: relative;
     display: grid;
     place-items: center;
     width: 56px;
@@ -296,9 +170,9 @@ const tierLabel: Record<Tier, string> = {
 
   .step__label {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     line-height: 1.5;
     color: var(--ink);
     text-wrap: balance;
@@ -306,17 +180,16 @@ const tierLabel: Record<Tier, string> = {
   :global(html[lang='ja']) .step__label {
     font-family: var(--font-body);
     font-size: 15px;
-    letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
-  @media (min-width: 440px) {
+  @media (min-width: 560px) {
     .steps {
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
+      gap: 12px;
     }
-    /* A dashed line through the four icons, from the first to the last: it
-       says "in this order". Each icon's disc sits on top of it. */
+    /* A dashed line through the four icons, first to last: it says "in this
+       order". It runs behind them; each icon's disc covers it. */
     .steps::before {
       content: '';
       position: absolute;
@@ -325,68 +198,12 @@ const tierLabel: Record<Tier, string> = {
       right: 12.5%;
       border-top: 1px dashed var(--hairline);
     }
-    .step__icon {
-      position: relative;
-    }
   }
 
   /* -------------------------------------------------------------- plans */
 
   .plans__title {
     margin-bottom: clamp(22px, 4vw, 34px);
-  }
-
-  .tiers {
-    display: grid;
-    gap: clamp(26px, 4vw, 40px);
-  }
-
-  .tier__label {
-    margin-bottom: 12px;
-  }
-
-  .tier__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 12px;
-  }
-
-  @media (min-width: 900px) {
-    .tier__list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      align-items: start;
-    }
-  }
-
-  .plans__foot {
-    margin-top: clamp(22px, 4vw, 32px);
-  }
-
-  /* What a card reveals when it opens in place. */
-  .reveal__excl {
-    margin-top: 8px;
-  }
-
-  .reveal__actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px var(--gap-lg);
-    margin: 16px 0 0;
-  }
-
-  .reveal__ask {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--tap);
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: underline;
-    text-decoration-color: var(--hairline);
-    text-underline-offset: 0.3em;
   }
 
   /* ------------------------------------------------------------- beyond */

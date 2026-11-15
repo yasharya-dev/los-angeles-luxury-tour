@@ -26,18 +26,7 @@ const tierLabel: Record<Tier, string> = {
   transport: t('tier.transport'),
 };
 
-const labels = {
-  en: {
-    perGroup: 'per group',
-    book: 'Book this plan',
-    ask: 'or ask a question first',
-  },
-  ja: {
-    perGroup: '／1組',
-    book: 'このプランを予約する',
-    ask: 'まずは相談する',
-  },
-}[locale];
+const perGroup = { en: 'per group', ja: '／1組' }[locale];
 ---
 
 {/* Her format: title, subtitle, the price table, then the two actions she
@@ -58,7 +47,7 @@ const labels = {
             <span class="price__label">{row.label[locale]}</span>
             <span class="price__figure">
               <span class="price__amount">{yenAmount(row.yen, locale)}</span>
-              <span class="price__unit">{labels.perGroup}</span>
+              <span class="price__unit">{perGroup}</span>
             </span>
             <span class="price__cap">{row.capacity[locale]}</span>
           </li>
@@ -67,8 +56,8 @@ const labels = {
     </ul>
 
     <p class="actions">
-      <a class="btn btn--solid" href={p(bookPath(offering))}>{labels.book}</a>
-      <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+      <a class="btn btn--solid" href={p(bookPath(offering))}>{t('plan.request')}</a>
+      <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
     </p>
   </div>
 </section>
@@ -106,8 +95,8 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions actions--foot">
-    <a class="btn" href={p(bookPath(offering))}>{labels.book}</a>
-    <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+    <a class="btn" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
 

@@ -1,9 +1,13 @@
 ---
 /*
   A photograph with a few lines of text over it: the opening of the homepage,
-  and the shorter bands on the inner pages. A plate (dark in both themes), so
-  the text and controls on it take the dark-surface tokens; the ink is warmed
-  to ivory, which is what her brief asks for over a photograph.
+  and the shorter bands on the inner pages. The text sits in the lower part of
+  the frame, as in her picture, over a gradient that is clear at the top of
+  the photograph and deep behind the words.
+
+  A plate (dark in both themes), so the text and controls on it take the
+  dark-surface tokens; the ink is warmed to ivory, which is what her brief
+  asks for over a photograph.
 */
 import type { ImageMetadata } from 'astro';
 import Photo from './Photo.astro';
@@ -22,13 +26,15 @@ interface Props {
 
 const { src, alt, size = 'short', focus = 'center', priority = false } = Astro.props;
 
-// How wide the photo is drawn. It fills the box, so on an upright phone a
-// landscape photo is scaled up to the box's HEIGHT: a hero that is 52% of the
-// screen tall draws a 1.53:1 photo about 80% of a screen-height wide, far
-// more than 100vw. On a wide screen the box's width wins and it is 100vw.
+// How wide the photo is drawn. It fills the box, so where the screen is
+// narrower than the photo scaled to the box's HEIGHT, the height wins: a hero
+// that is 52% of an upright phone's screen draws a 1.53:1 photo about 80% of
+// a screen-height wide, far more than 100vw. Everywhere else the width wins
+// and it is 100vw. Both numbers come from the photo, so a portrait one (whose
+// width never reaches the screen's that way) simply gets 100vw.
 const share = size === 'tall' ? 52 : 32;
-const upright = size === 'tall' ? '4/5' : '3/5';
-const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / src.height)}vh, 100vw`;
+const drawn = Math.ceil((share * src.width) / src.height);
+const sizes = `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
 ---
 
 <section class:list={['photo-hero', 'plate', `photo-hero--${size}`]}>
@@ -40,9 +46,10 @@ const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / 
     priority={priority}
     style={`object-position: ${focus}`}
   />
-  <div class="photo-hero__scrim"></div>
   <div class="photo-hero__inner">
-    <slot />
+    <div class="photo-hero__text">
+      <slot />
+    </div>
   </div>
 </section>
 
@@ -50,10 +57,12 @@ const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / 
   .photo-hero {
     position: relative;
     display: grid;
-    place-items: center;
+    align-items: end;
     overflow: hidden;
     background: var(--bar);
     --ink: #fbf7ec;
+    /* How far the gradient climbs above the first line of text. */
+    --rise: clamp(56px, 10vh, 96px);
   }
 
   /* Her brief: about half the screen under the header, so the next section
@@ -74,24 +83,29 @@ const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / 
     object-fit: cover;
   }
 
-  /* A soft dark wash, heavier toward the bottom where the button sits. Enough
-     for ivory text to clear 4.5:1 over the brightest part of the sky. */
-  .photo-hero__scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(8, 8, 8, 0.5) 0%,
-      rgba(8, 8, 8, 0.46) 45%,
-      rgba(8, 8, 8, 0.7) 100%
-    );
-  }
-
+  /* The gradient belongs to the text, not to the photograph: it starts clear
+     one --rise above the first line and is at 62% where that line begins, so
+     the top of the picture stays as it was taken however tall the band is.
+     At 62% a pure white pixel comes out at 5.4:1 under the ivory text, so
+     every line clears 4.5:1 over any photograph, hers included. */
   .photo-hero__inner {
     position: relative;
     width: 100%;
+    padding-top: var(--rise);
+    background: linear-gradient(
+      180deg,
+      rgba(8, 8, 8, 0) 0,
+      rgba(8, 8, 8, 0.1) calc(var(--rise) * 0.3),
+      rgba(8, 8, 8, 0.36) calc(var(--rise) * 0.68),
+      rgba(8, 8, 8, 0.62) var(--rise),
+      rgba(8, 8, 8, 0.78) 100%
+    );
+  }
+
+  .photo-hero__text {
     max-width: 860px;
-    padding: clamp(28px, 6vh, 56px) var(--gutter);
+    margin-inline: auto;
+    padding: 0 var(--gutter) clamp(26px, 5vh, 48px);
     text-align: center;
   }
 </style>

@@ -37,22 +37,23 @@ export const ui = {
 
     'toggle.dark': 'Dark mode',
 
-    'cta.start': 'Start planning',
     'cta.back': 'Back to all journeys',
 
+    // A plan's three controls, the same words wherever a plan appears. The
+    // booking form takes a request that she confirms, so it is "request".
+    'plan.details': 'Details',
+    'plan.request': 'Request this plan',
+    'plan.ask': 'or ask a question first',
 
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
     'tier.transport': 'Transport & support',
-
-    'price.note': 'Prices set in yen are shown here at ¥163 to the dollar.',
 
     'footer.signoff': 'Have a beautiful stay in Los Angeles.',
     'footer.contact': 'Contact and social',
     'footer.email': 'Email',
     'footer.instagram': 'Instagram',
     'footer.facebook': 'Facebook',
-    'footer.location': 'Los Angeles',
     'footer.privacy': 'Privacy',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
     // California requires sellers of travel to show this on advertising. The
@@ -76,22 +77,23 @@ export const ui = {
 
     'toggle.dark': 'ダークモード',
 
-    'cta.start': 'お問い合わせ',
     'cta.back': 'プラン一覧へ戻る',
 
+    // Hers: 「詳細を見る」 and 「このプランを申し込む」 from her brief of
+    // 2026-11-05, 「まずは相談する」 from 2026-10-22.
+    'plan.details': '詳細を見る',
+    'plan.request': 'このプランを申し込む',
+    'plan.ask': 'まずは相談する',
 
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',
     'tier.transport': '送迎・サポート',
-
-    'price.note': '※ドル建ての料金は$1=163円で換算し、千円単位に四捨五入しています。',
 
     'footer.signoff': '心に残る、上質な旅となりますように。',
     'footer.contact': '連絡先・SNS',
     'footer.email': 'メール',
     'footer.instagram': 'Instagram',
     'footer.facebook': 'Facebook',
-    'footer.location': 'ロサンゼルス',
     'footer.privacy': 'プライバシーポリシー',
     'footer.rights': '© 2026 Los Angeles Luxury Tour',
     'footer.sellerOfTravel': 'California Seller of Travel',

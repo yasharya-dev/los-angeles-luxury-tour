@@ -25,15 +25,11 @@ const labels = {
     includes: 'What is included',
     excludes: 'Not included',
     schedule: 'The shape of the day',
-    book: 'Reserve this journey',
-    ask: 'or ask a question first',
   },
   ja: {
     includes: '料金に含まれるもの',
     excludes: '料金に含まれないもの',
     schedule: '1日の流れ',
-    book: 'このプランを予約する',
-    ask: 'まずは相談する',
   },
 }[locale];
 ---
@@ -54,7 +50,6 @@ const labels = {
       )}
     </p>
     <p class="body head__lead">{journey.lead[locale]}</p>
-    {t('price.note') && <p class="caption rate">{t('price.note')}</p>}
   </div>
 </section>
 
@@ -111,8 +106,8 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions">
-    <a class="btn" href={p(bookPath(offering))}>{labels.book}</a>
-    <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+    <a class="btn" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
 
@@ -169,12 +164,6 @@ const labels = {
   .price__unit {
     font-size: 13px;
     color: var(--ink-soft);
-  }
-
-  .rate {
-    margin-top: 18px;
-    color: var(--ink-soft);
-    font-size: 12px;
   }
 
   .block__title {

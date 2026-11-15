@@ -8,6 +8,11 @@ export const ICONS = {
   'chevron-right': '<path d="M9.5 6l6 6-6 6"/>',
   'chevron-down': '<path d="M6 9.5l6 6 6-6"/>',
   'arrow-right': '<path d="M4.5 12h15M13.5 6l6 6-6 6"/>',
+  'check-circle': '<circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.3l2.6 2.6 5-5.4"/>',
+  doc: '<path d="M7 3.5h7.5l4 4V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14.5 3.5v4h4M8.8 12.2h6.4M8.8 15.7h4.4"/>',
+  // Drawn nose-up, then turned to climb to the upper right.
+  plane:
+    '<path transform="rotate(45 12 12)" d="M12 2.8c.8 0 1.3 1 1.3 2.3V10l6.4 4.2v1.7l-6.4-1.9v4l1.9 1.5v1.4L12 20l-3.2.9v-1.4l1.9-1.5v-4l-6.4 1.9v-1.7L10.7 10V5.1c0-1.3.5-2.3 1.3-2.3z"/>',
   mail: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.6 7.2l8.4 6 8.4-6"/>',
   instagram:
     '<rect x="3.5" y="3.5" width="17" height="17" rx="4.6"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/>',

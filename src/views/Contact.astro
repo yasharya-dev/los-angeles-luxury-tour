@@ -209,14 +209,10 @@ const c = copy[locale];
 // The same three ways to write directly, in both languages. LINE first: it is
 // what most of her guests already have open. Each link's name starts with its
 // visible label and adds the handle, for anyone who needs to type it.
+const mail = locale === 'ja' ? 'メール' : 'Email';
 const channels: { icon: IconName; label: string; name: string; href: string }[] = [
   { icon: 'line', label: 'LINE', name: `LINE ${CONTACT.lineId}`, href: CONTACT.lineUrl },
-  {
-    icon: 'mail',
-    label: locale === 'ja' ? 'メール' : 'Email',
-    name: `${locale === 'ja' ? 'メール' : 'Email'} ${CONTACT.email}`,
-    href: `mailto:${CONTACT.email}`,
-  },
+  { icon: 'mail', label: mail, name: `${mail} ${CONTACT.email}`, href: `mailto:${CONTACT.email}` },
   {
     icon: 'instagram',
     label: 'Instagram',
@@ -279,6 +275,21 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
           ))
         }
       </ul>
+
+      {/* The two a guest may have to type. A LINE ID is how she is added from
+          another device, and an email link does nothing on a phone with no
+          mail app set up. As text, each can be read out, copied or selected;
+          with the footer down to icons, this is the one place they are. */}
+      <dl class="direct__ids">
+        <div>
+          <dt>LINE ID</dt>
+          <dd>{CONTACT.lineId}</dd>
+        </div>
+        <div>
+          <dt>{mail}</dt>
+          <dd>{CONTACT.email}</dd>
+        </div>
+      </dl>
     </div>
   </div>
 </section>
@@ -366,8 +377,10 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     color: var(--gold-text);
   }
 
+  /* Two even lines when it folds, not one long line and a last word alone. */
   .path__title {
     margin: 0 0 4px;
+    text-wrap: balance;
   }
 
   .path__cta {
@@ -389,9 +402,9 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     gap: 14px;
     margin: 0 0 6px;
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--ink);
   }
@@ -453,6 +466,34 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
       min-height: 56px;
       font-size: 15px;
     }
+  }
+
+  /* An identifier is set as issued: never uppercased, never tracked apart.
+     One touch selects the whole of it. */
+  .direct__ids {
+    display: grid;
+    gap: 2px;
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+  .direct__ids div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 10px;
+  }
+  .direct__ids dt {
+    font-weight: 600;
+  }
+  .direct__ids dd {
+    margin: 0;
+    color: var(--ink-mid);
+    overflow-wrap: anywhere;
+    -webkit-user-select: all;
+    user-select: all;
   }
 
   /* ---------------------------------------------------------------- faq */

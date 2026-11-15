@@ -12,7 +12,13 @@
 // BudouX is a small model and now and then cuts inside a word (空|港送迎);
 // requiring a word start as well removes those. After a list mark (・ ／)
 // is always a fair place too, which is what lets a card line written as
-// "A・B・C" fold item by item.
+// "A・B・C" fold item by item. A slash before a figure is not a list mark but
+// "per" (／1名様), so there the fold goes before the slash and the unit
+// stays whole.
+//
+// Neither source knows a compound verb: 申し受けます comes back as 申し|受けます.
+// A fold is never placed between a verb's one-kana ending and the kanji that
+// follows it (申し|受け, 立ち|寄り, 問い|合わせ, 買い|物).
 //
 // BudouX also leaves a long compound noun whole (ドジャース観戦チケット購入代行
 // is one phrase), and a phrase wider than its column folds wherever it runs
@@ -24,6 +30,14 @@
 // as ワイ|ナ|リー); never next to a digit or a symbol (9:|00, 3|試合); never
 // before hiragana, which would start a line on a particle; and never from
 // hiragana into kanji, which is a prefix or an inflection (お|出迎え, 買い|物).
+// One more seam the eye reads: a polite お or ご that starts a word after kana
+// (入力して|お申し込みください, 安心して|お楽しみいただけるよう).
+//
+// A space inside Japanese text is different: the author put it there, so it
+// is the boundary. Each side of it is taken on its own, and a side short
+// enough to be one phrase stays whole. That is how a plan title folds exactly
+// where Amelia asked (ドジャース観戦 プライベート送迎: after 観戦, never before
+// 送迎), whatever the model would have proposed.
 //
 // Runs in Astro frontmatter only. Nothing here ships to the browser.
 
@@ -42,6 +56,9 @@ const MARKS = /[、。，．・：；？！（）「」『』【】〈〉《》�
 const LONG = 10;
 
 const KANJI = /[一-鿿々]/;
+// The one-kana endings that join two verb stems. No particles among them.
+const JOINS = new Set([...'いきぎしちびみりえけげせべめれ']);
+const DIGIT = /[0-9０-９]/;
 // Letters and the long-vowel bar; not the middle dot, which is a list mark.
 const KATAKANA = /[ァ-ヺー-ヿ]/;
 const HIRAGANA = /[぀-ゟ]/;
@@ -80,39 +97,12 @@ export function isJapanese(text: string): boolean {
 export function phrases(text: string): string[] {
   if (!isJapanese(text)) return [text];
 
-  const wordStarts = new Set<number>();
-  for (const s of words.segment(text)) wordStarts.add(s.index);
-
-  const cuts = new Set<number>();
-  let at = 0;
-  for (const chunk of parser.parse(text)) {
-    at += chunk.length;
-    if (at < text.length && wordStarts.has(at)) cuts.add(at);
-  }
-  for (let i = 0; i < text.length - 1; i++) {
-    if (LIST_MARKS.has(text[i])) cuts.add(i + 1);
-  }
-
-  // Kinsoku: a closing mark stays with what it closes.
-  const fair = (cut: number) => !NO_START.test(text.slice(cut));
-
-  // Open up any phrase that is still too long to fit a card column.
-  const edges = [0, ...[...cuts].filter(fair).sort((a, b) => a - b), text.length];
-  for (let i = 0; i < edges.length - 1; i++) {
-    const [start, end] = [edges[i], edges[i + 1]];
-    if (end - start <= LONG) continue;
-    for (const w of wordStarts) {
-      if (w > start && w < end && seam(text[w - 1], text[w])) cuts.add(w);
-    }
-  }
-
-  const pieces: string[] = [];
-  let from = 0;
-  for (const cut of [...cuts].filter(fair).sort((a, b) => a - b)) {
-    pieces.push(text.slice(from, cut));
-    from = cut;
-  }
-  pieces.push(text.slice(from));
+  // Each side keeps its space, so joining still gives the input back.
+  const sides = text.split(/(?<= )/);
+  const pieces =
+    sides.length > 1
+      ? sides.flatMap((side) => (side.trim().length <= LONG ? [side] : cut(side)))
+      : cut(text);
 
   // A phrase of one character is exactly the stranded character this exists
   // to prevent (受賞ワイナリー3か|所). Fold it back into its neighbour.
@@ -125,4 +115,52 @@ export function phrases(text: string): string[] {
     else out.push(piece);
   }
   return out;
+}
+
+/** The model's and the dictionary's boundaries, for text with no spaces. */
+function cut(text: string): string[] {
+  if (!isJapanese(text)) return [text];
+
+  const wordStarts = new Set<number>();
+  for (const s of words.segment(text)) wordStarts.add(s.index);
+
+  const cuts = new Set<number>();
+  let at = 0;
+  for (const chunk of parser.parse(text)) {
+    at += chunk.length;
+    if (at < text.length && wordStarts.has(at)) cuts.add(at);
+  }
+  for (let i = 0; i < text.length - 1; i++) {
+    if (!LIST_MARKS.has(text[i])) continue;
+    const per = text[i] === '／' && DIGIT.test(text[i + 1]);
+    if (per) cuts.delete(i + 1);
+    cuts.add(per ? i : i + 1);
+  }
+
+  // Kinsoku: a closing mark stays with what it closes. And a compound verb
+  // stays in one piece.
+  const compound = (cut: number) =>
+    cut >= 2 && KANJI.test(text[cut - 2]) && JOINS.has(text[cut - 1]) && KANJI.test(text[cut]);
+  const fair = (cut: number) => cut > 0 && !NO_START.test(text.slice(cut)) && !compound(cut);
+
+  // Open up any phrase that is still too long to fit a card column.
+  const edges = [0, ...[...cuts].filter(fair).sort((a, b) => a - b), text.length];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const [start, end] = [edges[i], edges[i + 1]];
+    if (end - start <= LONG) continue;
+    for (const w of wordStarts) {
+      if (w <= start || w >= end) continue;
+      const polite = (text[w] === 'お' || text[w] === 'ご') && HIRAGANA.test(text[w - 1]);
+      if (polite || seam(text[w - 1], text[w])) cuts.add(w);
+    }
+  }
+
+  const pieces: string[] = [];
+  let from = 0;
+  for (const cut of [...cuts].filter(fair).sort((a, b) => a - b)) {
+    pieces.push(text.slice(from, cut));
+    from = cut;
+  }
+  pieces.push(text.slice(from));
+  return pieces;
 }

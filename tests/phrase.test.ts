@@ -95,7 +95,55 @@ describe('phrases', () => {
       'お一人旅はもちろん、初めてロサンゼルスを訪れる方にも安心してお楽しみいただけるよう、日本語で丁寧にサポートいたします。',
     );
     expect(parts.join('|')).not.toContain('安|心');
-    expect(parts).toContain('安心してお楽しみいただけるよう、');
+    expect(parts.join('|')).toContain('安心して|お楽しみいただけるよう、');
+  });
+
+  // A space in Japanese is the author's own boundary. Her plan title folds
+  // after 観戦 and nowhere else (brief of 2026-11-05); left to the model it
+  // would also offer ドジャース|観戦 and プライベート|送迎.
+  it('folds a spaced title at its space and nowhere else', () => {
+    expect(phrases('ドジャース観戦 プライベート送迎')).toEqual([
+      'ドジャース観戦 ',
+      'プライベート送迎',
+    ]);
+    expect(phrases('テメキュラ ワイナリー1日旅')).toEqual(['テメキュラ ', 'ワイナリー1日旅']);
+  });
+
+  // A long side is still opened up, on its own.
+  it('still splits a long side of a spaced line', () => {
+    const parts = phrases('貸切プライベートツアー 6時間貸切・ガイドと専属ドライバー・LAX送迎対応');
+    expect(parts.join('')).toBe('貸切プライベートツアー 6時間貸切・ガイドと専属ドライバー・LAX送迎対応');
+    expect(parts.length).toBeGreaterThan(2);
+    expect(parts.some((part) => part.endsWith(' '))).toBe(true);
+  });
+
+  // 申し受けます is one verb. The dictionary reads it as 申し + 受け + ます, and a
+  // fold there put 「別途申し」 at the end of a line.
+  it('keeps a compound verb in one piece', () => {
+    expect(phrases('※チケット代金は別途申し受けます。').join('|')).not.toContain('申し|受け');
+    expect(phrases('ご希望に応じて、買い物への立ち寄りも可能です。').join('|')).not.toMatch(
+      /買い\|物|立ち\|寄/,
+    );
+  });
+
+  // A slash before a figure means "per": the unit after it stays whole, and
+  // the fold goes before the slash.
+  it('folds before a slash that means per, not after it', () => {
+    expect(phrases('（$2,650〜）／1名様')).toEqual(['（$2,650〜）', '／1名様']);
+    expect(phrases('／1グループ（1〜7名様）')[0]).toBe('／1グループ');
+    expect(phrases('スタジアムツアー／プリゲームツアーも')).toEqual([
+      'スタジアムツアー／',
+      'プリゲームツアーも',
+    ]);
+  });
+
+  // Thirteen characters with no seam of script in them: on a narrow card the
+  // line ran out mid-word, 「…お申し込みくだ / さい。」.
+  it('opens a long phrase before a polite prefix', () => {
+    expect(phrases('ご希望の日程・人数などを入力してお申し込みください。').slice(-2)).toEqual([
+      '入力して',
+      'お申し込みください。',
+    ]);
   });
 
   it('keeps a number with its counter and a time range whole', () => {

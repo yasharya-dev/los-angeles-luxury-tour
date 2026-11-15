@@ -19,8 +19,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Matches "engines" in package.json.
-          node-version: 22
+          # One exact version, the one in .nvmrc. Where a Japanese line folds
+          # is decided at build time with ICU's dictionary, which ships with
+          # Node, so the build must not drift with whatever 22 is newest.
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
