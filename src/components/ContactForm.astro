@@ -54,10 +54,8 @@ const copy = {
     send: 'Send',
     sending: 'Sending',
     reply: 'You will hear back within 24 hours.',
-    formErr: 'A few fields still need attention. See the marks above.',
+    formErr: 'Please check the marked fields above.',
     sendErr: 'Something went wrong sending that. Please email us directly at',
-    okTitle: 'Thank you. Your message is on its way.',
-    okBody: 'You will hear back within 24 hours.',
     required: 'required',
   },
 
@@ -101,10 +99,8 @@ const copy = {
     send: '送信する',
     sending: '送信中',
     reply: '24時間以内にご返信いたします。',
-    formErr: '未記入の項目があります。上の印をご確認ください。',
+    formErr: '上の印の項目をご確認ください。',
     sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
-    okTitle: 'ありがとうございます。メッセージをお送りしました。',
-    okBody: '24時間以内にご返信いたします。',
     required: '必須',
   },
 } as const;
@@ -123,17 +119,17 @@ const c = copy[locale];
       class="form"
       method="post"
       action={CONTACT.formEndpoint}
-      novalidate
       data-enhance
       data-inquiry-form
     >
       <input type="hidden" name="locale" value={locale} />
 
-      {/* Honeypot - the Worker drops anything that arrives with it filled. */}
+      {/* Honeypot: the Worker drops anything that arrives with it filled.
+          Named so that no browser's autofill has a value for it. */}
       <div class="hp" aria-hidden="true">
         <label>
-          Company
-          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+          Leave this empty
+          <input type="text" name="llt-check" tabindex="-1" autocomplete="off" />
         </label>
       </div>
 
@@ -148,7 +144,6 @@ const c = copy[locale];
           type="text"
           required
           autocomplete="name"
-          aria-describedby="e-name"
         />
         <p class="err" id="e-name" hidden>{c.nameErr}</p>
       </div>
@@ -165,7 +160,7 @@ const c = copy[locale];
           required
           autocomplete="email"
           inputmode="email"
-          aria-describedby="e-email"
+          pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
         />
         <p class="err" id="e-email" hidden>{c.emailErr}</p>
       </div>
@@ -222,8 +217,7 @@ const c = copy[locale];
           id="f-hoping"
           name="hoping"
           rows="5"
-          required
-          aria-describedby="e-hoping"></textarea>
+          required></textarea>
         <p class="err" id="e-hoping" hidden>{c.hopingErr}</p>
       </div>
 
@@ -249,7 +243,7 @@ const c = copy[locale];
           <div
             class="cf-turnstile"
             data-sitekey={turnstileKey}
-            data-theme="auto"
+            data-theme="light"
           />
         )
       }
@@ -268,10 +262,6 @@ const c = copy[locale];
       </div>
     </form>
 
-    <div class="ok" data-form-ok hidden>
-      <p class="h3 ok__title">{c.okTitle}</p>
-      <p class="body">{c.okBody}</p>
-    </div>
   </div>
 </section>
 

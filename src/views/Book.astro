@@ -1,63 +1,189 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { localizePath } from '../i18n/utils';
+import { useTranslations, localizePath } from '../i18n/utils';
+import { byTier, offerings, tierOrder, type Tier } from '../data/offerings';
 import BookingForm from '../components/BookingForm.astro';
+import Icon from '../components/Icon.astro';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
+  /** The plan being requested. Without one, the page asks which. */
+  id?: string;
 }
-const { locale } = Astro.props;
+const { locale, id } = Astro.props;
+const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
-// The page for people who already know their plan. The other path, for
-// people who do not, is one link away at the bottom.
+// Her request form (brief of 2026-11-05, section 10B). Every plan has its own
+// booking page, so the form knows its plan without script. /book itself is
+// the first step for a visitor who has not chosen one yet: the contact
+// page's 予約する leads there.
 const copy = {
   en: {
-    kicker: 'Booking',
-    title: ['Book a plan'],
-    lead: 'Choose a plan, tell us when and how many, and we will check availability.',
+    title: 'Request a booking',
+    intro: 'Tell us what you would like. We will check availability and get back to you.',
+    choose: 'Choose a plan',
     asideText: 'Not decided yet?',
     asideLink: 'Talk to us first',
   },
   ja: {
-    kicker: 'ご予約',
-    title: ['ご希望のプランを、', 'お申し込みください。'],
-    lead: 'プラン、ご希望日、人数をご入力ください。空き状況を確認のうえ、ご連絡いたします。',
+    title: 'ご予約リクエスト',
+    intro: ['ご希望の内容をお聞かせください。', '空き状況を確認のうえ、', 'ご連絡いたします。'],
+    choose: 'プランを選択してください',
     asideText: 'プランがまだお決まりでない方は、',
     asideLink: 'ご相談フォームへ',
   },
 } as const;
 
 const c = copy[locale];
+const en = locale === 'en' ? undefined : 'en';
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+
+// An old link to /book?service=<id> goes on to that plan's page.
+const ids = offerings.map((o) => o.id);
+const prefix = p('/book');
 ---
 
 <section class="section head">
-  <div class="measure measure--wide center">
-    <p class="kicker">{c.kicker}</p>
-    <h1 class="h2 head__title">
-      {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h1>
-    <p class="body">{c.lead}</p>
+  <div class="measure measure--narrow">
+    <p class="kicker" lang={en}>Booking request</p>
+    <h1 class="h2 head__title">{c.title}</h1>
+    <p class="body"><Phrases text={c.intro} /></p>
   </div>
 </section>
 
-<BookingForm locale={locale} />
-
-<section class="section section--deep aside">
-  <p class="body center measure">
-    {c.asideText} <a href={p('/consult')}>{c.asideLink}</a>
-  </p>
+<section class="section form-section">
+  <div class="measure measure--narrow">
+    {
+      id ? (
+        <BookingForm locale={locale} id={id} />
+      ) : (
+        <>
+          <h2 class="kicker picker__title">{c.choose}</h2>
+          {tierOrder.map((tier) => (
+            <section class="picker" aria-labelledby={`pick-${tier}`}>
+              <h3 class="picker__tier" id={`pick-${tier}`}>
+                {tierLabel[tier]}
+              </h3>
+              <ul class="picker__list" role="list">
+                {byTier(tier).map((o) => (
+                  <li>
+                    <a class="pick-row panel" href={p(`/book/${o.id}`)}>
+                      <span class="pick-row__text">
+                        <span class="pick-row__name">
+                          <Phrases text={o.name[locale]} />
+                        </span>
+                        <span class="pick-row__price">{o.price[locale]}</span>
+                      </span>
+                      <Icon name="chevron-right" size={20} class="pick-row__chevron" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </>
+      )
+    }
+  </div>
 </section>
+
+{
+  !id && (
+    <section class="section section--deep aside">
+      <p class="body center measure">
+        {c.asideText} <a href={p('/consult')}>{c.asideLink}</a>
+      </p>
+    </section>
+  )
+}
+
+{
+  !id && (
+    <script is:inline define:vars={{ ids, prefix }}>
+      const wanted = new URLSearchParams(location.search).get('service');
+      if (wanted && ids.includes(wanted)) location.replace(prefix + '/' + wanted);
+    </script>
+  )
+}
 
 <style>
   .head {
-    padding-block: clamp(64px, 9vw, 110px) clamp(40px, 6vw, 64px);
+    padding-block: clamp(36px, 7vw, 64px) 0;
+  }
+  .head .kicker {
+    margin-bottom: 10px;
   }
   .head__title {
-    margin-block: 26px;
+    margin-bottom: 12px;
   }
+
+  .form-section {
+    padding-top: clamp(22px, 4vw, 32px);
+  }
+
+  .picker__title {
+    margin-bottom: 14px;
+  }
+  .picker + .picker {
+    margin-top: 22px;
+  }
+  .picker__tier {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .picker__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .pick-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 10px 14px;
+    color: var(--ink);
+    transition: border-color 0.3s ease;
+  }
+  .pick-row:hover {
+    color: var(--ink);
+    border-color: var(--hairline);
+  }
+  .pick-row__text {
+    flex: 1;
+    min-width: 0;
+  }
+  .pick-row__name,
+  .pick-row__price {
+    display: block;
+  }
+  .pick-row__name {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .pick-row__price {
+    font-size: 14px;
+    color: var(--gold-text);
+  }
+  .pick-row :global(.pick-row__chevron) {
+    flex: none;
+    color: var(--gold-text);
+  }
+
   .aside {
-    padding-block: clamp(40px, 6vw, 64px);
+    padding-block: clamp(32px, 6vw, 48px);
   }
   .aside .measure {
     margin-inline: auto;

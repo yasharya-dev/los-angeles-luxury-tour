@@ -1,0 +1,22 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Book from '../../../views/Book.astro';
+import { offerings } from '../../../data/offerings';
+
+// One booking page per plan, so the form knows its plan without script.
+export function getStaticPaths() {
+  return offerings.map((o) => ({ params: { id: o.id } }));
+}
+
+const locale = 'ja' as const;
+const { id } = Astro.params;
+const offering = offerings.find((o) => o.id === id)!;
+---
+
+<Base
+  locale={locale}
+  title={`ご予約リクエスト：${offering.name.ja}｜Los Angeles Luxury Tour`}
+  description="ご希望の内容をお聞かせください。空き状況を確認のうえ、ご連絡いたします。"
+>
+  <Book locale={locale} id={id} />
+</Base>

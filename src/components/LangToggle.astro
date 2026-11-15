@@ -36,7 +36,7 @@ const others = locales.filter((l) => l !== locale);
 <script>
   // The page is static, so the link cannot know what follows the path. Carry
   // the query and the fragment across, or switching language on the booking
-  // form drops the plan that was selected (/ja/book?service=temecula).
+  // form drops the plan that was selected (/ja/consult?service=temecula).
   // Set on load too, so "open in new tab" gets the same address.
   const carry = (a: HTMLAnchorElement) => {
     a.href = a.pathname + location.search + location.hash;

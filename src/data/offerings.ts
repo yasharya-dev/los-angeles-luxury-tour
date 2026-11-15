@@ -265,9 +265,9 @@ export function bySlug(slug: string): Offering | undefined {
   return offerings.find((o) => o.slug === slug);
 }
 
-/** The booking form, with this plan pre-selected. */
+/** The plan's own booking page. */
 export function bookPath(o: Pick<Offering, 'id'>): string {
-  return `/book?service=${o.id}`;
+  return `/book/${o.id}`;
 }
 
 /** The consultation form, with this plan pre-selected. */

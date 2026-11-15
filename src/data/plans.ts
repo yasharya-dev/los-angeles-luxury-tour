@@ -16,10 +16,20 @@ import type { IconName } from './icons';
 
 type Copy = Record<Locale, string>;
 
-/** One row of the price card: a label and a fixed yen amount per group. */
+/** One row of the price card: a label and a fixed yen amount per group. On
+    the booking form each row is a choice (her 送迎タイプ); `id` is what the
+    form sends, and `route` says the choice needs a direction too. */
 export interface PriceRow {
+  id: string;
   label: Copy;
   yen: number;
+  route?: boolean;
+}
+
+/** A direction for a one-way choice: her 送迎区間. */
+export interface Route {
+  id: string;
+  label: Copy;
 }
 
 /** One of the three tiles under the introduction. */
@@ -75,6 +85,12 @@ export interface Plan {
   details: Details[];
   /** The line in the closing panel. */
   closing: Record<Locale, Text>;
+  /** The directions a one-way choice offers. */
+  routes?: Route[];
+  /** The most guests the booking form offers. */
+  capacity: number;
+  /** A choice past capacity, and what the form says when it is chosen. */
+  over?: { label: Copy; note: Copy };
 }
 
 export const plans: Plan[] = [
@@ -105,9 +121,22 @@ export const plans: Plan[] = [
       { icon: 'chat', label: { en: 'In Japanese', ja: '日本語対応' } },
     ],
     prices: [
-      { label: { en: 'One way', ja: '片道送迎' }, yen: 49800 },
-      { label: { en: 'Round trip', ja: '往復送迎' }, yen: 79800 },
+      { id: 'one-way', label: { en: 'One way', ja: '片道送迎' }, yen: 49800, route: true },
+      { id: 'round-trip', label: { en: 'Round trip', ja: '往復送迎' }, yen: 79800 },
     ],
+    routes: [
+      { id: 'to-stadium', label: { en: 'Hotel to stadium', ja: 'ホテル → スタジアム' } },
+      { id: 'to-hotel', label: { en: 'Stadium to hotel', ja: 'スタジアム → ホテル' } },
+    ],
+    capacity: 4,
+    // Hers, marked "if applicable": a party of five otherwise has no way in.
+    over: {
+      label: { en: '5 or more (ask us)', ja: '5名様以上（要相談）' },
+      note: {
+        en: 'For 5 or more guests, we will advise on the vehicle and the price individually.',
+        ja: '5名様以上の場合は、車両や料金を個別にご案内します。',
+      },
+    },
     unit: { en: 'per group', ja: '／1組' },
     priceNote: { en: 'Per group, up to 4 guests', ja: '1組あたりの料金・定員4名様' },
     experience: {
@@ -152,7 +181,7 @@ export const plans: Plan[] = [
             heading: { en: 'Pricing notes', ja: '【料金補足】' },
             bullets: {
               en: [
-                'The price shown covers the transfer between your hotel and Dodger Stadium.',
+                'The price shown covers the transfer between where you are staying and Dodger Stadium.',
                 'No extra charge for ordinary delays caused by game-day traffic or road restrictions.',
                 'Large changes of time, additional stops or a change of area may carry an extra charge.',
                 'Game tickets, parking and other out-of-pocket costs are not included in the price shown.',
@@ -196,7 +225,7 @@ export const plans: Plan[] = [
               en: [
                 'Los Angeles and its surroundings.',
                 'Downtown, Hollywood, West Hollywood, Beverly Hills, Santa Monica, the Torrance area and more.',
-                'Heading to Anaheim or Orange County? Ask us; we are glad to arrange it.',
+                'Heading to Anaheim or Orange County? Please ask us.',
               ],
               ja: [
                 'ロサンゼルス市内・近郊',

@@ -118,7 +118,7 @@ describe('offerings', () => {
   // so the form opens on it. Nothing renders with nothing to click.
   it('books and consults on the site, with the plan carried through', () => {
     for (const o of offerings) {
-      expect(bookPath(o)).toBe(`/book?service=${o.id}`);
+      expect(bookPath(o)).toBe(`/book/${o.id}`);
       expect(consultPath(o)).toBe(`/consult?service=${o.id}`);
     }
   });
