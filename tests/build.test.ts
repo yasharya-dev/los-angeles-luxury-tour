@@ -221,20 +221,6 @@ describe('content parity', () => {
     expect(html('/contact')).toContain('Up to 7 days before: free');
   });
 
-  // Her About page: a brand page with a founder section, her headings, the
-  // interview link without its tracking parameter, and the nav renamed.
-  it('rebuilds the About page to her structure', () => {
-    const ja = html('/ja/about');
-    for (const s of ['ABOUT US｜私たちについて', 'FOUNDER｜代表紹介', 'OUR STORY｜', 'THE EXPERIENCE｜', 'MEDIA &amp; PRESS｜', 'PARTNERSHIP｜', '次は、あなたのロサンゼルスを。']) {
-      expect(ja, s).toContain(s);
-    }
-    expect(ja).toContain('href="https://boldjourney.com/meet-amelia-perrin/"');
-    expect(ja).not.toContain('fbclid');
-    expect(ja).toContain('>私たちについて<');
-    expect(ja).not.toContain('アメリアについて');
-    expect(html('/about')).toContain('>About us<');
-  });
-
   it('renders the same FAQ count in both locales', () => {
     const en = count(html('/contact'), /class="faq__item/g);
     const ja = count(html('/ja/contact'), /class="faq__item/g);
@@ -860,6 +846,108 @@ describe('the Experience page, in her order', () => {
         expect(bare(prefix + p), prefix + p).not.toMatch(/163円|¥163|\$1=/);
       }
     }
+  });
+});
+
+// Amelia's About page, from section 09 of her brief of 2026-11-05: five short
+// parts where there were seven long ones.
+describe('the About page, in her five parts', () => {
+  const HERS = [
+    '贅沢とは、人生の価値になる体験。',
+    '旅の価値は、訪れた場所の数ではなく、そこでどんな時間を過ごしたか。',
+    '一人ひとりの希望に寄り添い、心に残るロサンゼルスの旅をお届けします。',
+    '旅を愛してきたからこそ、届けたい時間があります。',
+    '日本で育ち、現在は南カリフォルニアで暮らしています。',
+    'これまでに訪れたさまざまな国で、心に残るホスピタリティや、旅がもたらす特別な時間を体験してきました。',
+    '華やかさだけでなく、さりげない心配りや心地よさを大切にし、安心して楽しめる旅をご案内しています。',
+    '行き先だけでなく、過ごし方まで、あなたらしく。',
+    '観光地を巡るだけでなく、あなたのペースやご希望に合わせて、ロサンゼルスの魅力を深く感じられる旅をご提案します。',
+    '現地のリアルな情報と、日本語でのきめ細やかなサポートで、初めての方でも安心してお楽しみいただけます。',
+    'BoldJourney',
+    '代表者インタビュー掲載',
+    '記事を読む',
+    'あなただけのロサンゼルスを。',
+    '旅のご相談はこちら',
+  ];
+
+  it('carries her copy verbatim, in her order', () => {
+    const page = bare('/ja/about');
+    let from = 0;
+    for (const line of HERS) {
+      const at = page.indexOf(line, from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
+    }
+  });
+
+  // Her name line, 「Amelia Kay Perrin | Founder」, under her portrait. The bar
+  // is a separator and is hidden from a screen reader.
+  it('names the founder as she wrote it, under her portrait', () => {
+    for (const route of ['/about', '/ja/about']) {
+      const figure = html(route).match(/<figure class="founder__figure[^]*?<\/figure>/)?.[0] ?? '';
+      expect(count(figure, /<img /g), route).toBe(1);
+      expect(figure.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(), route).toBe(
+        'Amelia Kay Perrin | Founder',
+      );
+      expect(figure, route).toMatch(/<span class="founder__bar"[^>]*aria-hidden="true"/);
+    }
+  });
+
+  // What her new structure has no place for. All of it is in the tag round-2.
+  it('drops the parts her brief replaced', () => {
+    const page = bare('/ja/about');
+    for (const gone of [
+      'OURSTORY',
+      'PARTNERSHIP',
+      '私たちが考えるLuxuryとは',
+      '人が喜ぶ瞬間を',
+      'ミヤネ屋',
+      'パートナーシップのお問い合わせ',
+      '英語記事',
+    ]) {
+      expect(page, gone).not.toContain(gone);
+    }
+  });
+
+  // She names the parts in English, in both languages. On the Japanese page
+  // they are marked as English, so a screen reader says them as English.
+  it('labels the parts in English, marked as English on the Japanese page', () => {
+    const ja = html('/ja/about');
+    for (const label of ['About us', 'Founder', 'The experience', 'Media &amp; press']) {
+      expect(ja, label).toMatch(new RegExp(`class="kicker[^"]*"[^>]*lang="en"[^>]*>${label}<`));
+      expect(html('/about'), label).toContain(`>${label}<`);
+    }
+  });
+
+  it('follows the founder with one full-width photo, cut to a band', () => {
+    for (const route of ['/about', '/ja/about']) {
+      const band = html(route).match(/<div class="band"[^]*?<\/div>/)?.[0] ?? '';
+      expect(count(band, /<img /g), route).toBe(1);
+      expect(band, route).toMatch(/<img [^>]*alt="[^"]+"/);
+      const [, w, h] = band.match(/<img [^>]*width="(\d+)" height="(\d+)"/) ?? [];
+      expect(Number(w) / Number(h), route).toBeCloseTo(2.5, 1);
+    }
+  });
+
+  it('shows one media credit with its article, and ends on one gold button', () => {
+    for (const [route, contact] of [
+      ['/about', '/contact'],
+      ['/ja/about', '/ja/contact'],
+    ]) {
+      const doc = html(route);
+      expect(count(doc, /<li class="press__item"/g), route).toBe(1);
+      expect(doc, route).toContain('href="https://boldjourney.com/meet-amelia-perrin/"');
+      expect(doc, route).not.toContain('fbclid');
+      const main = doc.match(/<main[^]*<\/main>/)?.[0] ?? '';
+      expect(count(main, /class="btn[ "]/g), route).toBe(1);
+      expect(main, route).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${contact}"`));
+    }
+  });
+
+  it('keeps the nav name she chose', () => {
+    expect(html('/ja/about')).toContain('>私たちについて<');
+    expect(html('/ja/about')).not.toContain('アメリアについて');
+    expect(html('/about')).toContain('>About us<');
   });
 });
 
