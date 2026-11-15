@@ -90,13 +90,83 @@ describe('locale correctness', () => {
     }
   });
 
-  it('declares reciprocal hreflang alternates', () => {
-    for (const p of PATHS) {
-      for (const route of [p, '/ja' + p]) {
+  // Every URL a page derives from "the page I am on", checked by value. An
+  // earlier version of these only asserted that a hreflang attribute existed,
+  // and passed for months while the build was writing /ja.html into all of
+  // them: the canonical, the alternates and the language link.
+  const SITE = 'https://losangelesluxurytour.com';
+  const routes = PATHS.map((p) => ({ en: p, ja: p === '/' ? '/ja' : `/ja${p}` }));
+
+  it('gives every page a canonical and og:url that are its own public URL', () => {
+    for (const pair of routes) {
+      for (const route of [pair.en, pair.ja]) {
         const doc = html(route);
-        expect(doc, `${route} en alt`).toMatch(/hreflang="en"/);
-        expect(doc, `${route} ja alt`).toMatch(/hreflang="ja"/);
-        expect(doc, `${route} x-default`).toMatch(/hreflang="x-default"/);
+        expect(doc, route).toContain(`<link rel="canonical" href="${SITE}${route}">`);
+        expect(doc, route).toContain(`<meta property="og:url" content="${SITE}${route}">`);
+      }
+    }
+  });
+
+  it('declares reciprocal hreflang alternates that point at real pages', () => {
+    for (const pair of routes) {
+      for (const route of [pair.en, pair.ja]) {
+        const doc = html(route);
+        expect(doc, `${route} en`).toContain(`hreflang="en" href="${SITE}${pair.en}"`);
+        expect(doc, `${route} ja`).toContain(`hreflang="ja" href="${SITE}${pair.ja}"`);
+        expect(doc, `${route} x-default`).toContain(`hreflang="x-default" href="${SITE}${pair.en}"`);
+      }
+    }
+  });
+
+  // The canonical of a page and its sitemap entry are the same string.
+  it('agrees with the sitemap', () => {
+    const xml = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
+    for (const pair of routes) {
+      if (NOT_IN_SITEMAP.includes(pair.en)) continue;
+      for (const route of [pair.en, pair.ja]) {
+        expect(xml, route).toContain(`<loc>${SITE}${route}</loc>`);
+      }
+    }
+  });
+
+  // On the Japanese home this link used to lead back to the Japanese home.
+  it('sends every language link to the same page in the other language', () => {
+    for (const pair of routes) {
+      for (const [route, other, target] of [
+        [pair.en, 'ja', pair.ja],
+        [pair.ja, 'en', pair.en],
+      ] as const) {
+        const links = html(route).match(new RegExp(`<a [^>]*hreflang="${other}"[^>]*>`, 'g')) ?? [];
+        expect(links.length, `${route} has no link to ${other}`).toBeGreaterThan(0);
+        for (const link of links) {
+          expect(link, route).toContain(`href="${target}"`);
+        }
+      }
+    }
+  });
+
+  // The build's own file names must never leak into a link.
+  it('links to no .html path anywhere', () => {
+    for (const p of [...PATHS, '/404']) {
+      for (const prefix of ['', '/ja']) {
+        const leaks = html(prefix + p).match(/(?:href|content)="[^"]*\.html["#?]/g) ?? [];
+        expect(leaks, prefix + p).toEqual([]);
+      }
+    }
+  });
+
+  it('marks the current page in the nav, and only there', () => {
+    for (const pair of routes) {
+      for (const route of [pair.en, pair.ja]) {
+        const header = html(route).match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+        const marked = header.match(/<a [^>]*aria-current="page"[^>]*>/g) ?? [];
+        const isNavPage = ['/experience', '/about', '/contact'].includes(pair.en);
+        if (isNavPage) {
+          expect(marked.length, route).toBeGreaterThan(0);
+          for (const link of marked) expect(link, route).toContain(`href="${route}"`);
+        } else {
+          expect(marked, route).toEqual([]);
+        }
       }
     }
   });

@@ -5,7 +5,7 @@ import Footer from '../components/Footer.astro';
 import LangToggle from '../components/LangToggle.astro';
 import LangOfferBar from '../components/LangOfferBar.astro';
 import { type Locale } from '../i18n/ui';
-import { useTranslations, alternatePath } from '../i18n/utils';
+import { useTranslations, alternatePath, pagePath } from '../i18n/utils';
 
 interface Props {
   locale: Locale;
@@ -17,7 +17,7 @@ interface Props {
 const { locale, title, description, offerBar = true } = Astro.props;
 const t = useTranslations(locale);
 
-const pathname = Astro.url.pathname;
+const pathname = pagePath(Astro.url.pathname);
 const enHref = alternatePath(pathname, 'en');
 const jaHref = alternatePath(pathname, 'ja');
 const site = Astro.site?.origin ?? 'https://losangelesluxurytour.com';
