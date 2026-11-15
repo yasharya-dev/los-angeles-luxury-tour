@@ -25,7 +25,9 @@
 */
 
 :root {
-  color-scheme: light;
+  /* "only": a phone set to force pages dark (Chrome on Android does) leaves
+     this one alone. Dark here is the visitor's choice, from the toggle. */
+  color-scheme: only light;
 
   /* Surfaces */
   --bg: #faf9f6;

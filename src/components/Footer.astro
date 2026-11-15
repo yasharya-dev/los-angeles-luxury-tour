@@ -62,15 +62,17 @@ if (CONTACT.facebook) {
     }
   </nav>
 
-  <div class="site-footer__meta">
-    <span>{t('footer.location')}</span>
+  {/* Her order: the wish, the icons, the privacy link on its own row, then
+      the two legal lines. */}
+  <p class="site-footer__privacy">
     <a href={p('/privacy')}>{t('footer.privacy')}</a>
-    <span>{t('footer.rights')}</span>
-  </div>
+  </p>
 
-  {/* Her registration as a California seller of travel. A legal line, on its
-      own row. Two halves that each stay whole: on a narrow phone it folds
-      between them, never inside the number. */}
+  <p class="site-footer__meta">{t('footer.rights')}</p>
+
+  {/* Her registration as a California seller of travel. Two halves that each
+      stay whole: on a narrow phone the line folds between them, never inside
+      the number. */}
   <p class="site-footer__meta site-footer__registration">
     <span class="site-footer__whole">{t('footer.sellerOfTravel')}</span>
     <span class="site-footer__whole">
@@ -129,52 +131,54 @@ if (CONTACT.facebook) {
     background: var(--btn-hover);
   }
 
-  /* --ink-soft on --bar-deep is 8.5:1: the quietest line on the page, and
-     still comfortably readable. */
-  .site-footer__meta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 4px clamp(12px, 3vw, 26px);
-    font-family: var(--font-label);
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
+  /* The one text link in the footer: a real target for a finger, and
+     underlined so it reads as a link among plain lines. */
+  .site-footer__privacy {
+    margin: 0 0 4px;
   }
-
-  /* A real target for a finger, and an underline so it reads as the one
-     link in a row of plain text. */
-  .site-footer__meta a {
+  .site-footer__privacy a {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
-    color: inherit;
+    padding-inline: 8px;
+    font-family: var(--font-label);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mid);
     text-decoration: underline;
     text-decoration-color: var(--hairline);
     text-underline-offset: 0.3em;
   }
-  .site-footer__meta a:hover {
+  .site-footer__privacy a:hover {
     color: var(--gold-text);
   }
-
-  :global(html[lang='ja']) .site-footer__meta {
+  :global(html[lang='ja']) .site-footer__privacy a {
     font-family: var(--font-body);
-    font-size: 14px;
     letter-spacing: 0.06em;
     text-transform: none;
   }
 
-  /* A registration number is an identifier: never uppercased, never tracked
-     apart, so it reads back exactly as issued. The lang-scoped selector is
-     needed too, or the Japanese meta rule above outranks this one. */
-  .site-footer__registration,
-  :global(html[lang='ja']) .site-footer__registration {
-    gap: 0 0.5em;
-    margin: 4px 0 0;
-    text-transform: none;
+  /* The legal lines, as issued: a name and a registration number are never
+     uppercased or tracked apart. --ink-soft on --bar-deep is 8.5:1, the
+     quietest text on the page and still comfortably readable. */
+  .site-footer__meta {
+    margin: 0;
+    font-family: var(--font-label);
+    font-size: 14px;
+    line-height: 1.9;
     letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+  :global(html[lang='ja']) .site-footer__meta {
+    font-family: var(--font-body);
+  }
+
+  .site-footer__registration {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 0.5em;
   }
 
   .site-footer__whole {

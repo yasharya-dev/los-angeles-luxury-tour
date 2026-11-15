@@ -1,8 +1,6 @@
 /* Language rules key off [lang] on <html>, so a third locale needs no new
    markup. Sizes follow Amelia's brief of 2026-11-05: body text 16px and up on
-   a phone, Japanese labels 14px and up, 44px tap targets. English labels set
-   in tracked capitals run a size smaller (13px), since capitals at 14px with
-   that tracking read larger than the Japanese beside them. */
+   a phone, labels 14px and up in both languages, 44px tap targets. */
 
 @import './tokens.css';
 
@@ -14,8 +12,12 @@
   box-sizing: border-box;
 }
 
+/* The canvas is the black of the header and the footer, and the body lays
+   the page's cream over it. A phone shows the canvas when a page is pulled
+   past its top or its end, and a cream band there would cut the black bars
+   off from the edge of the screen. */
 html {
-  background: var(--bg);
+  background: var(--bar);
   scroll-behavior: smooth;
 }
 
@@ -272,9 +274,9 @@ html[lang='ja'] .body {
 .kicker {
   margin: 0;
   font-family: var(--font-label);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.26em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--gold-text);
 }
