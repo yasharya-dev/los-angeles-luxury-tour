@@ -10,7 +10,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "wrangler dev",
-    "deploy": "astro build && wrangler deploy",
+    "deploy": "npm test && wrangler deploy",
     "astro": "astro",
     "check": "astro check",
     "test": "astro build && vitest run",

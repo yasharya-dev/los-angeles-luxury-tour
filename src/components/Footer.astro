@@ -3,6 +3,7 @@ import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
 import Icon from './Icon.astro';
+import Phrases from './Phrases.astro';
 import type { IconName } from '../data/icons';
 
 interface Props {
@@ -44,7 +45,8 @@ if (CONTACT.facebook) {
 {/* A plate: black in both themes, so every colour below is a token. */}
 <footer class="site-footer plate">
   {/* Monolingual per page. The stacked bilingual lockup is for OG cards. */}
-  <p class="site-footer__signoff">{t('footer.signoff')}</p>
+  {/* Folded at a phrase on a narrow phone, never before its last 「に。」. */}
+  <p class="site-footer__signoff"><Phrases text={t('footer.signoff')} /></p>
 
   <nav class="site-footer__links" aria-label={t('footer.contact')}>
     {

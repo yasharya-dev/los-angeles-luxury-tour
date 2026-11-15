@@ -69,8 +69,6 @@ const copy = {
 
     viewJourney: 'View this journey',
     detailsLabel: 'Details',
-    bookLabel: 'Book this plan',
-    askLabel: 'or ask a question first',
 
     requestKicker: 'Arranged on request, quoted individually',
     requestBody: `Shopping and proxy purchasing. Restaurant reservations. In-restaurant accompaniment ${EM} menu help, dish explanations, conversation support, photos.`,
@@ -92,32 +90,6 @@ const copy = {
     closingBody:
       'Write in Japanese or English. You will usually hear back within 24 hours.',
 
-    details: {
-      'solo-plan': {
-        body: `One game with round-trip stadium transfers, a full day of sightseeing, hotel check-in assistance, and easy stops ${EM} supermarkets, restaurants, wherever the day leads. Additional games can be added at $150 each.`,
-        excl: 'Hotel and airfare are not included.',
-      },
-      charter: {
-        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighbourhoods, whatever the day is for. LAX pickup can be built in.',
-        excl: 'Meals, event tickets, and activity fees are not included.',
-      },
-      'la-day-tour': {
-        body: 'Eight hours, collected from LAX and delivered to your hotel. Restaurants, shopping, and help at check-in, so the first day of the trip is not the hardest one.',
-        excl: 'Meals, event tickets, and activity fees are not included.',
-      },
-      'dodgers-game': {
-        body: 'Eight hours fully chartered around the game, with the ticket arranged for you. Collected from the airport or your hotel, and no waiting in the rideshare line afterwards.',
-        excl: 'Food and merchandise at the stadium are not included.',
-      },
-      'airport-transfer': {
-        body: 'LAX to your hotel and back again. Met at the terminal exit, helped through check-in, and a shopping stop on the way if you would like one.',
-        excl: '',
-      },
-      'dodgers-ticket': {
-        body: 'Tickets bought on your behalf, with the section and seat chosen to suit you. Stadium tours and pre-game tours can be booked the same way.',
-        excl: 'The face value of the ticket is charged separately.',
-      },
-    } as Record<string, { body: string; excl: string }>,
 
     blurbs: {
       'dodgers-journey': `Four nights, six days, three games. The stadium tour, the murals, the food ${EM} a fan${RSQ}s week in Los Angeles, handled end to end.`,
@@ -183,8 +155,6 @@ const copy = {
 
     viewJourney: 'このプランを見る',
     detailsLabel: '詳細を見る',
-    bookLabel: 'このプランを予約する',
-    askLabel: 'まずは相談する',
 
     requestKicker: 'ご相談ベースで承ります｜個別お見積り',
     requestBody:
@@ -207,32 +177,6 @@ const copy = {
     closingTitle: ['ロサンゼルスで、', 'どんな時間を過ごしたいですか？'],
     closingBody: '日本語でお気軽にどうぞ。通常24時間以内にご返信いたします。',
 
-    details: {
-      'solo-plan': {
-        body: '観戦1試合（スタジアム往復送迎付き）、終日観光ツアー、ホテルチェックインのお手伝い。スーパーやレストランへの立ち寄りも、柔軟にご一緒します。観戦の追加は1試合$150にて。',
-        excl: '※ホテル代・航空券は含まれません。',
-      },
-      charter: {
-        body: '6時間の貸切。1〜7名様まで、日本語ガイドと専属ドライバーがご一緒します。観光もショッピングも街歩きも、その日のご希望のままに。LAXでのお迎えも承ります。',
-        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
-      },
-      'la-day-tour': {
-        body: '8時間の貸切。LAXでお迎えし、ホテルまでお送りします。レストランやショッピング、チェックインのお手伝いまで。旅のはじめの一日を、いちばん大変な日にしないために。',
-        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
-      },
-      'dodgers-game': {
-        body: '観戦を中心に8時間を完全貸切。チケットの手配も承ります。空港またはホテルまでお迎えにあがり、試合後に配車の列へ並ぶ必要もありません。',
-        excl: '※球場でのお食事代・グッズ代は含まれません。',
-      },
-      'airport-transfer': {
-        body: 'LAXとホテルの往復。ターミナル出口でお出迎えし、チェックインまでサポートいたします。ご希望に応じて、買い物への立ち寄りも可能です。',
-        excl: '',
-      },
-      'dodgers-ticket': {
-        body: '観戦チケットを代わりにお求めします。セクションも座席もご希望に合わせてお選びいただけます。スタジアムツアーやプリゲームツアーも同様に承ります。',
-        excl: '※チケット代金は別途申し受けます。',
-      },
-    } as Record<string, { body: string; excl: string }>,
 
     blurbs: {
       'dodgers-journey':
@@ -329,7 +273,7 @@ const tierLabel: Record<Tier, string> = {
           </h3>
 
           {byTier(tier).map((o) => {
-            const detail = c.details[o.id];
+            const detail = o.detail?.[locale];
             return (
               <article class="card">
                 <div class="card__head">
@@ -358,10 +302,10 @@ const tierLabel: Record<Tier, string> = {
                       {detail?.excl && <p class="caption excl">{detail.excl}</p>}
                       <p class="card__actions">
                         <a class="card__book" href={p(bookPath(o))}>
-                          {c.bookLabel}
+                          {t('plan.request')}
                         </a>
                         <a class="card__ask" href={p(consultPath(o))}>
-                          {c.askLabel}
+                          {t('plan.ask')}
                         </a>
                       </p>
                     </div>

@@ -40,6 +40,11 @@ export const ui = {
     'cta.start': 'Start planning',
     'cta.back': 'Back to all journeys',
 
+    // A plan's three controls, the same words wherever a plan appears. The
+    // booking form takes a request that she confirms, so it is "request".
+    'plan.details': 'Details',
+    'plan.request': 'Request this plan',
+    'plan.ask': 'or ask a question first',
 
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
@@ -78,6 +83,11 @@ export const ui = {
     'cta.start': 'お問い合わせ',
     'cta.back': 'プラン一覧へ戻る',
 
+    // Hers: 「詳細を見る」 and 「このプランを申し込む」 from her brief of
+    // 2026-11-05, 「まずは相談する」 from 2026-10-22.
+    'plan.details': '詳細を見る',
+    'plan.request': 'このプランを申し込む',
+    'plan.ask': 'まずは相談する',
 
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',

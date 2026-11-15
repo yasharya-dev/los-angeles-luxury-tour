@@ -1,14 +1,13 @@
 ---
 import { type Locale } from '../i18n/ui';
 import { BR } from '../i18n/text';
-import { useTranslations, localizePath } from '../i18n/utils';
-import { byTier, capabilities, tierOrder, type Offering, type Tier } from '../data/offerings';
+import { localizePath } from '../i18n/utils';
 import type { IconName } from '../data/icons';
 import Divider from '../components/Divider.astro';
 import Icon from '../components/Icon.astro';
 import PhotoHero from '../components/PhotoHero.astro';
 import Phrases from '../components/Phrases.astro';
-import PlanCard from '../components/PlanCard.astro';
+import PlanList from '../components/PlanList.astro';
 import Reservation from '../components/Reservation.astro';
 import heroImg from '../assets/hero-dtla.jpg';
 
@@ -16,7 +15,6 @@ interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
 // Amelia's homepage, in her six sections (brief of 2026-11-05): hero, value,
@@ -81,16 +79,6 @@ const copy = {
 
 const c = copy[locale];
 
-const tierLabel: Record<Tier, string> = {
-  signature: t('tier.signature'),
-  day: t('tier.day'),
-  transport: t('tier.transport'),
-};
-
-// A plan with its own page links to it; the rest link to their card on the
-// Experience page, which holds their details.
-const detailsHref = (o: Offering) =>
-  p(o.slug ? `/experience/${o.slug}` : `/experience#plan-${o.id}`);
 ---
 
 {/* 01 Hero. About half the screen, so the next section starts in view. */}
@@ -134,11 +122,10 @@ const detailsHref = (o: Offering) =>
         <li class="reason panel">
           <Icon name={reasonIcons[i]} size={36} class="reason__icon" />
           <h3 class="reason__title">
+            {/* On one line each: any space between two of these would show
+                inside the Japanese title once the break is switched off. */}
             {title.map((line, n) => (
-              <>
-                {n > 0 && <br class="reason__br" />}
-                {line}
-              </>
+              <>{n > 0 && <br class="reason__br" />}<span class="reason__line">{line}</span></>
             ))}
           </h3>
         </li>
@@ -147,7 +134,8 @@ const detailsHref = (o: Offering) =>
   </ul>
 </section>
 
-{/* 04 Plans: every plan, as compact cards under its tier. */}
+{/* 04 Plans: every plan, as compact cards under its tier. The same list
+    the Experience page shows. */}
 <section class="section section--deep" id="plans">
   <div class="measure measure--wide center plans__head">
     <h2 class="h2">{c.plansTitle}</h2>
@@ -155,26 +143,7 @@ const detailsHref = (o: Offering) =>
     <p class="body"><Phrases text={c.plansLead} /></p>
   </div>
 
-  <div class="tiers measure--grid">
-    {
-      tierOrder.map((tier) => (
-        <section class="tier" aria-labelledby={`tier-${tier}`}>
-          <h3 class="kicker tier__label" id={`tier-${tier}`}>
-            {tierLabel[tier]}
-          </h3>
-          <ul class="tier__list">
-            {byTier(tier).map((o) => (
-              <li>
-                <PlanCard locale={locale} offering={o} href={detailsHref(o)} level={4} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))
-    }
-  </div>
-
-  <p class="caption center plans__foot measure"><Phrases text={capabilities[locale]} /></p>
+  <PlanList locale={locale} />
 </section>
 
 {/* 05 and 06: the reservation note, then the contact call, close together. */}
@@ -198,9 +167,9 @@ const detailsHref = (o: Offering) =>
   .hero__eyebrow {
     margin: 0;
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--ink);
   }
@@ -305,6 +274,8 @@ const detailsHref = (o: Offering) =>
     gap: 12px;
     padding: clamp(16px, 3.2vw, 28px) 0;
     text-align: center;
+    /* The title is sized from the card it has to fit, below. */
+    container-type: inline-size;
   }
 
   .reason :global(.reason__icon) {
@@ -323,17 +294,47 @@ const detailsHref = (o: Offering) =>
     text-wrap: balance;
   }
 
-  /* Her longest line is eight full-width characters, so the size follows the
-     screen: 12.6px at 360, 13.1px at 375, 13.7px at 390 and her 14px floor
-     from 400px. At 14px on a 360px phone the line is 109px and the card has
-     103px, so it would fold after 「オーダーメイド」. */
+  /* Her longest line, 「オーダーメイドの」, is eight full-width characters and
+     must not fold, so the size is the card's width over 8.2: the line fits
+     with a little air even in a fallback font. That is 12.6px on a 360px
+     phone, 13.2px at 375, 13.8px at 390 and her 14px floor from about 400px.
+     (The vw line is for a browser without container units.) */
   :global(html[lang='ja']) .reason__title {
     padding-inline: 0;
     font-family: var(--font-body);
     font-size: clamp(12.5px, 3.5vw, 17px);
+    font-size: clamp(12.5px, calc(100cqi / 8.2), 17px);
     letter-spacing: 0;
     line-height: 1.55;
     text-wrap: initial;
+  }
+  /* Each of her lines stays whole: the only folds are the two she wrote. */
+  :global(html[lang='ja']) .reason__line {
+    white-space: nowrap;
+  }
+
+  /* Under 350px (an iPhone in Display Zoom is 320) a third of the screen
+     cannot hold her line at any honest size. The cards become three rows,
+     icon beside title, at full size. */
+  @media (max-width: 349px) {
+    .reasons__list {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      margin-inline: 0;
+    }
+    .reason {
+      flex-direction: row;
+      gap: 14px;
+      padding: 12px 16px;
+      text-align: left;
+    }
+    .reason__br {
+      display: none;
+    }
+    .reason__title,
+    :global(html[lang='ja']) .reason__title {
+      font-size: 15px;
+    }
   }
 
   /* From here the cards are wide enough for each title on one line. */
@@ -351,35 +352,6 @@ const detailsHref = (o: Offering) =>
 
   .plans__head {
     margin-bottom: clamp(24px, 4vw, 36px);
-  }
-
-  .tiers {
-    display: grid;
-    gap: clamp(26px, 4vw, 40px);
-  }
-
-  .tier__label {
-    margin-bottom: 12px;
-  }
-
-  .tier__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 12px;
-  }
-
-  @media (min-width: 900px) {
-    .tier__list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      align-items: start;
-    }
-  }
-
-  .plans__foot {
-    margin-top: clamp(22px, 4vw, 32px);
   }
 
   /* ----------------------------------------------------------- closing */
