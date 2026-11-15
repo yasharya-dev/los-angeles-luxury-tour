@@ -1,10 +1,22 @@
 ---
 import { type Locale } from '../i18n/ui';
+import { BR } from '../i18n/text';
 import { useTranslations, localizePath } from '../i18n/utils';
-import { byTier, tierOrder, type Tier, bookPath, consultPath } from '../data/offerings';
-import { CONTACT } from '../data/contact';
-import Divider from '../components/Divider.astro';
-import InstagramBlock from '../components/InstagramBlock.astro';
+import {
+  byTier,
+  capabilities,
+  tierOrder,
+  type Tier,
+  bookPath,
+  consultPath,
+} from '../data/offerings';
+import type { IconName } from '../data/icons';
+import Icon from '../components/Icon.astro';
+import InstagramStrip from '../components/InstagramStrip.astro';
+import PhotoHero from '../components/PhotoHero.astro';
+import Phrases from '../components/Phrases.astro';
+import PlanCard from '../components/PlanCard.astro';
+import heroImg from '../assets/hero-malibu.jpg';
 
 interface Props {
   locale: Locale;
@@ -14,83 +26,31 @@ const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
 const EM = String.fromCharCode(0x2014);
-const RSQ = String.fromCharCode(0x2019);
 const LDQ = String.fromCharCode(0x201c);
 const RDQ = String.fromCharCode(0x201d);
 
+// Amelia's Experience page from her brief of 2026-11-05 (section 08): a short
+// hero, how a trip comes together as four labels, the plans as compact cards,
+// what lies beyond them, and Instagram. Her Japanese is verbatim; the English
+// is derived from it.
+const stepIcons: IconName[] = ['chat', 'doc', 'check-circle', 'plane'];
+
 const copy = {
   en: {
-    kicker: 'The experience',
-    title: ['Not a set tour. A trip built around you.'],
+    title: 'Not a set tour. A trip built around you.',
+    heroAlt: 'Waves breaking below a house on the Malibu coast',
 
-    howKicker: 'How your trip comes together',
-    steps: [
-      {
-        n: '01',
-        title: 'Tell us what you want to see',
-        body: [
-          'Dates, how many of you, the places you have in mind, anything you are wondering about.',
-          'Nothing needs to be decided yet. Start by telling us the trip you are picturing.',
-        ],
-      },
-      {
-        n: '02',
-        title: 'We build the trip around it',
-        body: [
-          'Destinations, restaurants, tickets, how the hours are spent.',
-          'We propose how to spend your time in Los Angeles, shaped to what you want and what interests you.',
-        ],
-      },
-      {
-        n: '03',
-        title: 'On the day, enjoy it in Japanese',
-        body: [
-          'A Japanese guide who lives here takes you through it.',
-          'The driving and the local back-and-forth are handled, so you can enjoy your time in Los Angeles to the full.',
-        ],
-      },
-      {
-        n: '04',
-        title: 'Flexible, down to the mood of the moment',
-        body: [
-          'Destinations and how long you stay adjust to the traffic and to how you feel that day.',
-          'You are not bound to the plan you set. The time that is only possible right then matters too.',
-        ],
-      },
-    ],
-    quote: `${LDQ}Sometimes my role is to listen not only to what they say, but also to what they mean.${RDQ}`,
-    quoteAttr: 'Los Angeles Luxury Tour',
+    howTitle: 'How your trip comes together',
+    steps: ['Consult', 'Proposal', 'Review & adjust', 'Booking & arrangements'],
 
-    journeysKicker: 'The plans',
-    journeysTitle: ['Plans to choose from, by what you came for.'],
-    journeysLead: 'A range of plans to suit where you want to go and how you want to spend the day.',
-    journeysBook: { before: 'Know the plan you want? ', link: 'Book', after: '.' },
-    journeysAsk: { before: 'Still deciding? ', link: 'Ask us first', after: '.' },
+    plansTitle: 'Plans to choose from, by what you came for',
 
-    viewJourney: 'View this journey',
-    detailsLabel: 'Details',
     bookLabel: 'Book this plan',
     askLabel: 'or ask a question first',
 
-    requestKicker: 'Arranged on request, quoted individually',
-    requestBody: `Shopping and proxy purchasing. Restaurant reservations. In-restaurant accompaniment ${EM} menu help, dish explanations, conversation support, photos.`,
-    requestLink: 'Ask for a quote',
-
-    beyondKicker: 'Beyond the plans',
-    beyondTitle: ['What we can arrange for you'],
-    beyond: [
-      'The luxury restaurants people are talking about',
-      'Views that take your breath away',
-      'Refined boutiques and little shops',
-      'First-class hotels and cafes',
-      'The newest spots that delight',
-      'Experiences no guidebook lists',
-    ],
-    honest: 'Every journey is different. Nothing on this page is a fixed menu.',
-
-    closingTitle: ['How would you like to spend your time in Los Angeles?'],
-    closingBody:
-      'Write in Japanese or English. You will usually hear back within 24 hours.',
+    beyondTitle: 'Beyond the plans',
+    beyondBody: `An anniversary trip, a special experience: we take what you ${LDQ}want to do${RDQ} and make it real.`,
+    beyondCta: 'Talk to us',
 
     details: {
       'solo-plan': {
@@ -118,94 +78,28 @@ const copy = {
         excl: 'The face value of the ticket is charged separately.',
       },
     } as Record<string, { body: string; excl: string }>,
-
-    blurbs: {
-      'dodgers-journey': `Four nights, six days, three games. The stadium tour, the murals, the food ${EM} a fan${RSQ}s week in Los Angeles, handled end to end.`,
-      'mansion-dinner':
-        'A Hollywood or Santa Monica residence, reserved for one evening. A chef trusted by VIPs finishes each course in front of you.',
-      'solo-plan': `Four nights, six days, designed for one guest ${EM} reassurance from airport to airport.`,
-      temecula: `Wine country at an adult${RSQ}s pace ${EM} three award-winning wineries, Old Town, olive oil tasting, door to door from your hotel.`,
-      charter: `The city at your pace ${EM} sightseeing, shopping, neighborhoods ${EM} with guide and private transport.`,
-      'la-day-tour': `A full day from the moment you land ${EM} eight hours, collected at LAX, delivered to your hotel.`,
-      'dodgers-game': `Eight hours chartered around the game, with the ticket arranged ${EM} and no rideshare line afterwards.`,
-      'airport-transfer': `Met at the terminal, driven both ways ${EM} check-in help and a shopping stop if you want one.`,
-      'dodgers-ticket': `Section and seat chosen for you ${EM} stadium and pre-game tours booked the same way.`,
-    } as Record<string, string>,
   },
 
   ja: {
-    kicker: '旅のプラン',
-    title: ['決まった旅ではなく、', 'あなたに合わせてつくる旅を。'],
+    title: ['決まった旅ではなく、', BR, 'あなたに合わせて', 'つくる旅を。'],
+    heroAlt: 'マリブの海岸。波打ち際に建つ邸宅',
 
-    howKicker: 'あなたの旅ができるまで',
-    steps: [
-      {
-        n: '01',
-        title: '「行ってみたい」を、お聞かせください',
-        body: [
-          '日程や人数、行ってみたい場所、気になること。',
-          'まだ具体的に決まっていなくても大丈夫です。まずは、思い描いている旅についてお聞かせください。',
-        ],
-      },
-      {
-        n: '02',
-        title: 'ご希望に合わせて、旅を組み立てます',
-        body: [
-          '行き先、レストラン、チケット、時間の使い方まで。',
-          'お客様のご希望や興味に合わせて、ロサンゼルス滞在中の過ごし方をご提案します。',
-        ],
-      },
-      {
-        n: '03',
-        title: '当日は、日本語で安心してお楽しみください',
-        body: [
-          '現地在住の日本人ガイドがご案内します。',
-          '移動も、現地でのやりとりもおまかせいただき、ロサンゼルスでの時間を心ゆくまでお楽しみください。',
-        ],
-      },
-      {
-        n: '04',
-        title: 'その時の気分にも、柔軟に',
-        body: [
-          '当日の交通状況やお客様の気分に合わせて、行き先や滞在時間も柔軟に調整します。',
-          '決めたプランに縛られず、その時だから楽しめる時間も大切にします。',
-        ],
-      },
-    ],
-    quote: '「お客様の言葉だけでなく、その奥にある想いに、耳を傾けること。」',
-    quoteAttr: 'Los Angeles Luxury Tour',
+    howTitle: '旅ができるまで',
+    steps: ['ご相談', 'プラン提案', 'ご確認・調整', 'ご予約・手配'],
 
-    journeysKicker: 'プラン一覧',
-    journeysTitle: ['目的に合わせて選べる、', '旅のプラン。'],
-    journeysLead: '行き先や過ごし方に合わせて、さまざまなプランをご用意しています。',
-    journeysBook: { before: 'ご希望のプランが決まっている方は「', link: '予約する', after: '」へ。' },
-    journeysAsk: { before: 'まだご検討中の方は、「', link: 'まずは相談する', after: '」からお気軽にご相談ください。' },
+    plansTitle: ['目的に合わせて選べる、', '旅のプラン'],
 
-    viewJourney: 'このプランを見る',
-    detailsLabel: '詳細を見る',
     bookLabel: 'このプランを予約する',
     askLabel: 'まずは相談する',
 
-    requestKicker: 'ご相談ベースで承ります｜個別お見積り',
-    requestBody:
-      'ショッピング代行・購入代行、レストラン予約代行、飲食店での同行サポート（英語メニューの注文補助、料理説明、会話サポート、写真撮影）。',
-    requestLink: 'お見積りを相談する',
-
-    beyondKicker: 'プランのその先へ',
-    beyondTitle: ['こんなご案内もできます'],
-    beyond: [
-      '話題のラグジュアリーレストラン',
-      '心を奪われる絶景スポット',
-      '洗練されたブティックや雑貨店',
-      '一流のホテル＆カフェ情報',
-      '女心をくすぐる最新スポット',
-      '観光ガイドには載っていない特別な体験',
+    beyondTitle: 'プランのその先へ',
+    beyondBody: [
+      '記念日旅行や、',
+      '特別な体験など、',
+      `あなたの${LDQ}やりたい${RDQ}を`,
+      'カタチにします。',
     ],
-    honest:
-      'どの旅も、一つとして同じではありません。ここにあるのは決まったメニューではなく、出発点です。',
-
-    closingTitle: ['ロサンゼルスで、', 'どんな時間を過ごしたいですか？'],
-    closingBody: '日本語でお気軽にどうぞ。通常24時間以内にご返信いたします。',
+    beyondCta: 'ご相談はこちら',
 
     details: {
       'solo-plan': {
@@ -233,27 +127,6 @@ const copy = {
         excl: '※チケット代金は別途申し受けます。',
       },
     } as Record<string, { body: string; excl: string }>,
-
-    blurbs: {
-      'dodgers-journey':
-        '4泊6日・観戦3試合。スタジアムツアーも、壁画も、グルメも。ファンの夢を詰め込んだ一週間を、まるごとお任せください。',
-      'mansion-dinner':
-        'ハリウッドやサンタモニカの豪邸を、一夜だけ貸し切りに。VIPに愛されるシェフが、目の前でコースを仕上げます。',
-      'solo-plan':
-        '4泊6日、1名様のための旅。空港から空港まで、「安全＆安心」をおそばに。',
-      temecula:
-        '大人の余裕旅。受賞歴のあるワイナリー3か所とオールドタウンを、ホテルの玄関から玄関まで。',
-      charter:
-        '観光も、ショッピングも、街歩きも。ガイドと専用車で、あなたのペースのままに。',
-      'la-day-tour':
-        '到着したその日から。8時間貸切、LAXお迎え、ホテルまでお送りします。',
-      'dodgers-game':
-        '観戦を中心に8時間を完全貸切。チケット手配込み、帰りの列にも並びません。',
-      'airport-transfer':
-        'ターミナル出口でお出迎えし、往復とも。チェックインのお手伝いと買い物立ち寄りも。',
-      'dodgers-ticket':
-        'セクションも座席もご希望のままに。スタジアムツアーの手配も承ります。',
-    } as Record<string, string>,
   },
 } as const;
 
@@ -266,477 +139,263 @@ const tierLabel: Record<Tier, string> = {
 };
 ---
 
-<section class="section head">
-  <div class="measure measure--wide center">
-    <p class="kicker">{c.kicker}</p>
-    <h1 class="h2 head__title">
-      {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h1>
-  </div>
-</section>
+{/* 01 Hero: her heading, nothing else, on a short photo band. */}
+<PhotoHero src={heroImg} alt={c.heroAlt} size="short" focus="70% 60%" priority>
+  <h1 class="h2 hero__title"><Phrases text={c.title} /></h1>
+</PhotoHero>
 
-<section class="section section--deep">
-  <div class="measure--grid center how__head">
-    <p class="kicker">{c.howKicker}</p>
-  </div>
+{/* 02 How it works: four labels in a row, or two by two where a row of four
+    would squeeze 「ご確認・調整」 under its size. */}
+<section class="section how">
+  <h2 class="h2 center how__title">{c.howTitle}</h2>
   <ol class="steps measure--cards">
     {
-      c.steps.map((step) => (
+      c.steps.map((label, i) => (
         <li class="step">
-          <span class="step__n" aria-hidden="true">
-            {step.n}
+          <span class="step__icon">
+            <Icon name={stepIcons[i]} size={26} />
           </span>
-          <div class="step__text">
-            <h2 class="h3 step__title">{step.title}</h2>
-            {step.body.map((line) => <p class="body step__body">{line}</p>)}
-          </div>
+          <span class="step__n" aria-hidden="true">{i + 1}</span>
+          <span class="step__label">{label}</span>
         </li>
       ))
     }
   </ol>
-
-  <blockquote class="pullquote measure">
-    <p class="pullquote__text">{c.quote}</p>
-    <footer class="pullquote__attr">{c.quoteAttr}</footer>
-  </blockquote>
 </section>
 
-<Divider />
+{/* 03 The plans, as the same compact cards the homepage uses. A plan with
+    its own page links to it; the rest open in place, with both ways to act
+    inside. No introduction and no exchange rate, as she asked. */}
+<section class="section section--deep" id="plans">
+  <h2 class="h2 center plans__title"><Phrases text={c.plansTitle} /></h2>
 
-<section class="section" id="journeys">
-  <div class="measure measure--wide center journeys__head">
-    <p class="kicker">{c.journeysKicker}</p>
-    <h2 class="h2 head__title">
-      {c.journeysTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    {/* Her three lines, with 予約する and まずは相談する linked as she asked. */}
-    <p class="body">{c.journeysLead}</p>
-    <p class="body">
-      {c.journeysBook.before}<a href={p('/book')}>{c.journeysBook.link}</a>{c.journeysBook.after}
-    </p>
-    <p class="body">
-      {c.journeysAsk.before}<a href={p('/consult')}>{c.journeysAsk.link}</a>{c.journeysAsk.after}
-    </p>
-    {t('price.note') && <p class="caption rate">{t('price.note')}</p>}
-  </div>
-
-  <div class="tiers measure--cards">
+  <div class="tiers measure--grid">
     {
       tierOrder.map((tier) => (
         <section class="tier" aria-labelledby={`tier-${tier}`}>
-          <h3 class="tier__label" id={`tier-${tier}`}>
+          <h3 class="kicker tier__label" id={`tier-${tier}`}>
             {tierLabel[tier]}
           </h3>
-
-          {byTier(tier).map((o) => {
-            const detail = c.details[o.id];
-            return (
-              <article class="card">
-                <div class="card__head">
-                  <h4 class="card__name">{o.name[locale]}</h4>
-                  <p class="card__price">
-                    <span class="card__amount">{o.price[locale]}</span>
-                    {o.priceNote?.[locale] && (
-                      <span class="card__unit">{o.priceNote[locale]}</span>
-                    )}
-                  </p>
-                </div>
-
-                {/* Plans in her format carry their own line; the older cards
-                    have a longer one written for this page. */}
-                <p class="body card__blurb">{c.blurbs[o.id] ?? o.blurb[locale]}</p>
-
-                {o.slug ? (
-                  <a class="card__link" href={p(`/experience/${o.slug}`)}>
-                    {c.viewJourney} <span aria-hidden="true">&rarr;</span>
-                  </a>
-                ) : (
-                  <details class="card__details">
-                    <summary class="card__summary">{c.detailsLabel}</summary>
-                    <div class="card__body">
+          <ul class="tier__list">
+            {byTier(tier).map((o) => {
+              const detail = c.details[o.id];
+              return (
+                <li>
+                  {o.slug ? (
+                    <PlanCard locale={locale} offering={o} href={p(`/experience/${o.slug}`)} level={4} />
+                  ) : (
+                    <PlanCard locale={locale} offering={o} level={4}>
                       {detail && <p class="body">{detail.body}</p>}
-                      {detail?.excl && <p class="caption excl">{detail.excl}</p>}
-                      <p class="card__actions">
-                        <a class="card__book" href={p(bookPath(o))}>
+                      {detail?.excl && <p class="caption reveal__excl">{detail.excl}</p>}
+                      <p class="reveal__actions">
+                        <a class="btn btn--solid" href={p(bookPath(o))}>
                           {c.bookLabel}
                         </a>
-                        <a class="card__ask" href={p(consultPath(o))}>
+                        <a class="reveal__ask" href={p(consultPath(o))}>
                           {c.askLabel}
                         </a>
                       </p>
-                    </div>
-                  </details>
-                )}
-              </article>
-            );
-          })}
+                    </PlanCard>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
       ))
     }
   </div>
 
-  <div class="measure--cards request">
-    <p class="kicker request__kicker">{c.requestKicker}</p>
-    <p class="body">
-      {c.requestBody} <a href={p('/consult')}>{c.requestLink}</a>.
-    </p>
-  </div>
+  <p class="caption center plans__foot measure"><Phrases text={capabilities[locale]} /></p>
 </section>
 
-<section class="section section--deep">
-  <div class="measure measure--wide center beyond__head">
-    <p class="kicker">{c.beyondKicker}</p>
-    <h2 class="h2 head__title">
-      {c.beyondTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-  </div>
-  {/* Her own taxonomy, verbatim from her caption boilerplate. */}
-  <ul class="beyond measure">
-    {c.beyond.map((item) => <li class="beyond__item">{item}</li>)}
-  </ul>
-  <p class="body center honest measure">{c.honest}</p>
-</section>
-
-<InstagramBlock locale={locale} />
-
-<section class="section">
+{/* 05 Beyond the plans: her heading, her line, one way in. */}
+<section class="section beyond">
   <div class="measure measure--wide center">
-    <h2 class="h2 head__title">
-      {c.closingTitle.map((line, i) => <>{i > 0 && <br />}{line}</>)}
-    </h2>
-    <p class="body closing__body">{c.closingBody}</p>
-    <a class="btn" href={p('/contact')}>{t('cta.start')}</a>
+    <h2 class="h2">{c.beyondTitle}</h2>
+    <span class="rule"></span>
+    <p class="body"><Phrases text={c.beyondBody} /></p>
+    <a class="btn btn--solid beyond__cta" href={p('/contact')}>
+      {c.beyondCta}
+      <Icon name="arrow-right" size={18} />
+    </a>
   </div>
 </section>
+
+{/* 06 Instagram, as a strip. */}
+<InstagramStrip locale={locale} />
+
+<script>
+  // A homepage card for a plan without its own page links to that plan's card
+  // here (#plan-charter). The card is a <details>: open the one the address
+  // names, on arrival and if the fragment changes, so the visitor lands on
+  // the details they asked for rather than a closed card.
+  const openTarget = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const target = id ? document.getElementById(id) : null;
+    if (target instanceof HTMLDetailsElement) target.open = true;
+  };
+  openTarget();
+  window.addEventListener('hashchange', openTarget);
+</script>
 
 <style>
-  .head {
-    padding-block: clamp(64px, 9vw, 110px);
-  }
-  .head__title {
-    margin-block: 26px;
+  /* On the photograph's plate, so --ink is the ivory of a dark surface. */
+  .hero__title {
+    color: var(--ink);
+    text-shadow: 0 1px 24px rgba(8, 8, 8, 0.55);
   }
 
   /* -------------------------------------------------------------- steps */
 
-  .how__head {
-    margin-inline: auto;
-    margin-bottom: clamp(44px, 6vw, 68px);
+  .how__title {
+    margin-bottom: clamp(18px, 3vw, 28px);
   }
 
+  /* Two by two on a phone. A row of four gives each label a quarter of the
+     screen, and the longest one is six characters: at 15px it does not fit a
+     76px column. From 440px all four sit in one row, each on one line. */
   .steps {
+    position: relative;
     list-style: none;
     margin: 0 auto;
     padding: 0;
     display: grid;
-    gap: clamp(34px, 5vw, 48px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 8px;
   }
 
   .step {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: clamp(18px, 3vw, 30px);
-    align-items: start;
-    border-top: 1px solid var(--hairline-soft);
-    padding-top: 26px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
   }
 
-  /* Cormorant in both locales - Mincho figures would look accidental. */
+  .step__icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--bg-deep);
+    color: var(--gold-text);
+  }
+
+  /* Cormorant numerals in both languages; Mincho figures look accidental. */
   .step__n {
+    margin-top: 4px;
     font-family: var(--font-display);
-    font-size: clamp(26px, 4vw, 38px);
+    font-size: 20px;
+    font-weight: 600;
     line-height: 1;
     color: var(--gold-text);
   }
 
-  .step__title {
-    margin-bottom: 12px;
-  }
-
-  /* Her step bodies and plan-list intro are one sentence per line; .body
-     carries margin: 0, so siblings need the air put back. */
-  .step__body + .step__body,
-  .journeys__head .body + .body {
-    margin-top: 0.6em;
-  }
-
-  /* ---------------------------------------------------------- pullquote */
-
-  .pullquote {
-    margin: clamp(52px, 8vw, 80px) auto 0;
-    padding: 0;
-    text-align: center;
-  }
-
-  .pullquote__text {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(19px, 2.8vw, 26px);
-    font-style: italic;
-    line-height: 1.65;
-    color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .pullquote__text {
-    font-family: var(--font-body);
-    font-style: normal;
-    font-weight: 500;
-    font-size: clamp(16px, 2.3vw, 21px);
-    line-height: 2;
-  }
-
-  .pullquote__attr {
-    margin-top: 16px;
+  .step__label {
     font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-
-  :global(html[lang='ja']) .pullquote__attr {
-    font-family: var(--font-body);
-    font-size: 12px;
-    letter-spacing: 0.2em;
-    text-transform: none;
-  }
-
-  /* ------------------------------------------------------------- tiers */
-
-  .journeys__head {
-    margin-inline: auto;
-    margin-bottom: clamp(44px, 6vw, 64px);
-  }
-
-  .rate {
-    margin-top: 12px;
-    color: var(--ink-soft);
-    font-size: 12px;
-  }
-
-  .tiers {
-    margin-inline: auto;
-    display: grid;
-    gap: clamp(48px, 7vw, 72px);
-  }
-
-  .tier__label {
-    margin: 0 0 var(--gap-lg);
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--hairline-soft);
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--gold-text);
-  }
-
-  :global(html[lang='ja']) .tier__label {
-    font-family: var(--font-body);
     font-size: 13px;
-    letter-spacing: 0.22em;
-    text-transform: none;
-  }
-
-  .card {
-    border: 1px solid var(--card-edge);
-    background: var(--card);
-    padding: clamp(22px, 3.5vw, 32px);
-  }
-  .card + .card {
-    margin-top: var(--gap-md);
-  }
-
-  .card__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--gap-md);
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-  }
-
-  .card__name {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(19px, 2.4vw, 23px);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
     color: var(--ink);
+    text-wrap: balance;
   }
-
-  :global(html[lang='ja']) .card__name {
+  :global(html[lang='ja']) .step__label {
     font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(16px, 2vw, 19px);
-  }
-
-  /* Same reasoning as .offer__price on the landing page. */
-  .card__price {
-    margin: 0 0 0 auto;
-    text-align: right;
+    font-size: 15px;
+    letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
-  .card__amount {
-    display: block;
-    font-family: var(--font-display);
-    font-size: clamp(16px, 2vw, 19px);
-    color: var(--gold-text);
+  @media (min-width: 440px) {
+    .steps {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    /* A dashed line through the four icons, from the first to the last: it
+       says "in this order". Each icon's disc sits on top of it. */
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 12.5%;
+      right: 12.5%;
+      border-top: 1px dashed var(--hairline);
+    }
+    .step__icon {
+      position: relative;
+    }
   }
 
-  :global(html[lang='ja']) .card__amount {
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(15px, 1.8vw, 17px);
+  /* -------------------------------------------------------------- plans */
+
+  .plans__title {
+    margin-bottom: clamp(22px, 4vw, 34px);
   }
 
-  .card__unit {
-    display: block;
-    font-size: 12px;
-    color: var(--ink-soft);
+  .tiers {
+    display: grid;
+    gap: clamp(26px, 4vw, 40px);
   }
 
-  .card__blurb {
-    margin-bottom: 18px;
+  .tier__label {
+    margin-bottom: 12px;
   }
 
-  .card__link,
-  .card__summary {
-    font-family: var(--font-label);
-    font-size: 11px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--gold-text);
-  }
-
-  /* Only the link: .card__summary sets its own box below. Measured 19px,
-     under the 24px minimum target size. */
-  .card__link {
-    display: inline-block;
-    padding-block: 4px;
-  }
-
-  :global(html[lang='ja']) .card__link,
-  :global(html[lang='ja']) .card__summary {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: none;
-  }
-
-  .card__summary {
-    cursor: pointer;
+  .tier__list {
     list-style: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .card__summary::-webkit-details-marker {
-    display: none;
-  }
-  .card__summary::after {
-    content: '+';
-    font-size: 14px;
-  }
-  .card__details[open] .card__summary::after {
-    content: '\2212'; /* minus */
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
   }
 
-  .card__body {
-    margin-top: 18px;
-    padding-top: 18px;
-    border-top: 1px solid var(--hairline-soft);
+  @media (min-width: 900px) {
+    .tier__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
   }
 
-  .excl {
-    margin-top: 10px;
+  .plans__foot {
+    margin-top: clamp(22px, 4vw, 32px);
   }
 
-  .card__actions {
-    margin: 20px 0 0;
+  /* What a card reveals when it opens in place. */
+  .reveal__excl {
+    margin-top: 8px;
+  }
+
+  .reveal__actions {
     display: flex;
     align-items: center;
-    gap: var(--gap-md);
     flex-wrap: wrap;
+    gap: 6px var(--gap-lg);
+    margin: 16px 0 0;
   }
 
-  .card__book {
-    display: inline-block;
-    border: 1px solid var(--hairline);
-    padding: 11px 22px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    transition: background 0.3s ease, color 0.3s ease;
-  }
-  .card__book:hover {
-    background: var(--btn-hover);
-    color: var(--ink);
-  }
-
-  :global(html[lang='ja']) .card__book {
-    font-family: var(--font-body);
-    font-size: 13px;
+  .reveal__ask {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: none;
-  }
-
-  .card__ask {
-    font-size: 13px;
-    color: var(--ink-soft);
-    border-bottom: 1px solid var(--hairline-soft);
-  }
-  .card__ask:hover {
-    color: var(--gold-text);
-  }
-
-  /* ------------------------------------------------------------ request */
-
-  .request {
-    margin: clamp(44px, 6vw, 64px) auto 0;
-    border-top: 1px solid var(--hairline-soft);
-    padding-top: 26px;
-  }
-
-  .request__kicker {
-    margin-bottom: 14px;
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
   }
 
   /* ------------------------------------------------------------- beyond */
 
-  .beyond__head {
-    margin-inline: auto;
-    margin-bottom: clamp(36px, 5vw, 52px);
+  .beyond .rule {
+    margin-block: 14px 16px;
   }
 
-  .beyond {
-    list-style: none;
-    margin: 0 auto;
-    padding: 0;
-    display: grid;
-    gap: 0;
-  }
-
-  .beyond__item {
-    padding: 15px 0;
-    border-bottom: 1px solid var(--hairline-soft);
-    text-align: center;
-    font-size: clamp(15px, 1.9vw, 17px);
-    color: var(--ink-mid);
-  }
-  .beyond__item:first-child {
-    border-top: 1px solid var(--hairline-soft);
-  }
-
-  .honest {
-    margin: clamp(32px, 5vw, 44px) auto 0;
-    color: var(--ink-soft);
-  }
-
-  .closing__body {
-    margin-bottom: 38px;
+  .beyond__cta {
+    margin-top: clamp(18px, 3vw, 26px);
   }
 </style>
