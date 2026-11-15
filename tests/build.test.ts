@@ -236,7 +236,8 @@ const bare = (route: string) =>
     .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
     .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
     .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, '');
+    // Spaces, and the invisible fold (U+200B) that is not one to a regex.
+    .replace(/[\s​]+/g, '');
 
 // Amelia's homepage, section by section, from her brief of 2026-11-05. Her
 // Japanese is checked character for character, and in her order.
@@ -306,15 +307,15 @@ describe('the homepage, in her six sections', () => {
       expect(count(list, /<svg/g), route).toBe(3);
       expect(count(list, /<p[ >]/g), `${route}: no descriptions`).toBe(0);
     }
-    // Each title with its break written as "/". Nothing else is taken out, so
-    // a space between two of her lines (it shows, in Japanese, once the break
-    // is switched off on a wide screen) fails this.
+    // Each title, with "/" where she breaks the line. The title is one
+    // piece of text with an invisible fold (U+200B) at her break: no element
+    // and no space inside it, either of which shows as a gap in WebKit
+    // wherever the title runs on one line.
     const titles = [...html('/ja').matchAll(/<h3 class="reason__title"[^>]*>([^]*?)<\/h3>/g)].map(
-      ([, inner]) =>
-        inner
-          .replace(/<br class="reason__br"[^>]*>/g, '/')
-          .replace(/<[^>]+>/g, '')
-          .trim(),
+      ([, inner]) => {
+        expect(inner.trim()).not.toMatch(/[<\s]/);
+        return inner.trim().replace(/​/g, '/');
+      },
     );
     expect(titles).toEqual(['日本語で安心', '高級車で/完全貸切', 'オーダーメイドの/旅']);
   });

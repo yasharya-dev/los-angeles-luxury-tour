@@ -81,12 +81,13 @@ describe('offerings', () => {
     for (const o of offerings) {
       const en = o.priceNote?.en ?? '';
       const ja = o.priceNote?.ja ?? '';
+      // A group is グループ in the older plans and 組 in hers.
       if (/per group/i.test(en)) {
-        expect(ja, `${o.id} says per group in en`).toMatch(/グループ/);
+        expect(ja, `${o.id} says per group in en`).toMatch(/グループ|組/);
       }
       if (/per person/i.test(en)) {
         expect(ja, `${o.id} says per person in en`).toMatch(/名様/);
-        expect(ja, `${o.id} is per person, not per group`).not.toMatch(/グループ/);
+        expect(ja, `${o.id} is per person, not per group`).not.toMatch(/グループ|組/);
       }
     }
   });

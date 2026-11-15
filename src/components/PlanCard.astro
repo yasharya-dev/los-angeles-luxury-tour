@@ -38,6 +38,9 @@ const t = useTranslations(locale);
 const more = t('plan.details');
 const name = o.name[locale];
 const unit = o.priceNote?.[locale];
+// English details are separated by a middle dot. A no-break space before it
+// keeps the dot at the end of a line, never at the start of the next.
+const blurb = o.blurb[locale].replaceAll(' \u00b7 ', '\u00a0\u00b7 ');
 
 const Foot = href ? 'div' : 'details';
 const Row = href ? 'div' : 'summary';
@@ -53,7 +56,7 @@ const Name = `h${level}` as const;
 
     <div class="plan__body">
       <Name class="plan__name"><Phrases text={name} /></Name>
-      <p class="plan__blurb"><Phrases text={o.blurb[locale]} /></p>
+      <p class="plan__blurb"><Phrases text={blurb} /></p>
     </div>
 
     <Foot class="plan__foot">
