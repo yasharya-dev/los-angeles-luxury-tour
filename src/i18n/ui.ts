@@ -37,16 +37,14 @@ export const ui = {
 
     'toggle.dark': 'Dark mode',
 
-    'cta.begin': 'Ask about a private tour',
     'cta.start': 'Start planning',
-    'cta.journeys': 'View the journeys',
-    'cta.days': 'View the days',
-    'cta.transport': 'View transport',
     'cta.back': 'Back to all journeys',
 
-    'reservation.title': 'By Reservation Only',
-    'reservation.note':
-      'Every journey is arranged by appointment, around you. For popular dates, Dodgers home games especially, reserving early is recommended.',
+    // A plan's three controls, the same words wherever a plan appears. The
+    // booking form takes a request that she confirms, so it is "request".
+    'plan.details': 'Details',
+    'plan.request': 'Request this plan',
+    'plan.ask': 'or ask a question first',
 
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
@@ -82,16 +80,14 @@ export const ui = {
 
     'toggle.dark': 'ダークモード',
 
-    'cta.begin': 'プライベートツアーのご相談はこちら',
     'cta.start': 'お問い合わせ',
-    'cta.journeys': 'プランを見る',
-    'cta.days': 'プランを見る',
-    'cta.transport': 'プランを見る',
     'cta.back': 'プラン一覧へ戻る',
 
-    'reservation.title': '完全予約制',
-    'reservation.note':
-      '完全予約制のため、満席前のご予約をおすすめしております。ドジャース戦のある日程は、特にお早めにご相談ください。',
+    // Hers: 「詳細を見る」 and 「このプランを申し込む」 from her brief of
+    // 2026-11-05, 「まずは相談する」 from 2026-10-22.
+    'plan.details': '詳細を見る',
+    'plan.request': 'このプランを申し込む',
+    'plan.ask': 'まずは相談する',
 
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',

@@ -11,6 +11,9 @@
 
 import type { Locale } from '../i18n/ui';
 
+// The site's English uses em dashes; a guard blocks the literal character.
+const EM = String.fromCharCode(0x2014);
+
 export type Tier = 'signature' | 'day' | 'transport';
 
 export interface Offering {
@@ -23,6 +26,14 @@ export interface Offering {
   price: Record<Locale, string>;
   /** Second line under the price. Carries the unit, and the converted figure. */
   priceNote?: Partial<Record<Locale, string>>;
+  /** For a plan without its own page: what its card opens to show. */
+  detail?: Record<Locale, PlanDetail>;
+}
+
+export interface PlanDetail {
+  body: string;
+  /** What the price leaves out, when there is something to say. */
+  excl?: string;
 }
 
 export const offerings: Offering[] = [
@@ -54,6 +65,16 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $2,480', ja: '約404,000円〜' },
     priceNote: { en: '', ja: '（$2,480〜）／1名様' },
+    detail: {
+      en: {
+        body: `One game with round-trip stadium transfers, a full day of sightseeing, hotel check-in assistance, and easy stops ${EM} supermarkets, restaurants, wherever the day leads. Additional games can be added at $150 each.`,
+        excl: 'Hotel and airfare are not included.',
+      },
+      ja: {
+        body: '観戦1試合（スタジアム往復送迎付き）、終日観光ツアー、ホテルチェックインのお手伝い。スーパーやレストランへの立ち寄りも、柔軟にご一緒します。観戦の追加は1試合$150にて。',
+        excl: '※ホテル代・航空券は含まれません。',
+      },
+    },
   },
   {
     id: 'mansion-dinner',
@@ -99,6 +120,16 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $675', ja: '110,000円〜' },
     priceNote: { en: 'per group, 1 to 7', ja: '／1グループ（1〜7名様）' },
+    detail: {
+      en: {
+        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighbourhoods, whatever the day is for. LAX pickup can be built in.',
+        excl: 'Meals, event tickets, and activity fees are not included.',
+      },
+      ja: {
+        body: '6時間の貸切。1〜7名様まで、日本語ガイドと専属ドライバーがご一緒します。観光もショッピングも街歩きも、その日のご希望のままに。LAXでのお迎えも承ります。',
+        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
+      },
+    },
   },
   {
     id: 'la-day-tour',
@@ -113,6 +144,16 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $785', ja: '128,000円〜' },
     priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
+    detail: {
+      en: {
+        body: 'Eight hours, collected from LAX and delivered to your hotel. Restaurants, shopping, and help at check-in, so the first day of the trip is not the hardest one.',
+        excl: 'Meals, event tickets, and activity fees are not included.',
+      },
+      ja: {
+        body: '8時間の貸切。LAXでお迎えし、ホテルまでお送りします。レストランやショッピング、チェックインのお手伝いまで。旅のはじめの一日を、いちばん大変な日にしないために。',
+        excl: '※お食事代・イベントチケット・アクティビティ費用は含まれません。',
+      },
+    },
   },
   {
     id: 'dodgers-game',
@@ -127,6 +168,16 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $785', ja: '128,000円〜' },
     priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
+    detail: {
+      en: {
+        body: 'Eight hours fully chartered around the game, with the ticket arranged for you. Collected from the airport or your hotel, and no waiting in the rideshare line afterwards.',
+        excl: 'Food and merchandise at the stadium are not included.',
+      },
+      ja: {
+        body: '観戦を中心に8時間を完全貸切。チケットの手配も承ります。空港またはホテルまでお迎えにあがり、試合後に配車の列へ並ぶ必要もありません。',
+        excl: '※球場でのお食事代・グッズ代は含まれません。',
+      },
+    },
   },
 
   {
@@ -142,6 +193,14 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $725', ja: '118,000円〜' },
     priceNote: { en: 'per group, 1 to 5', ja: '／1グループ（1〜5名様）' },
+    detail: {
+      en: {
+        body: 'LAX to your hotel and back again. Met at the terminal exit, helped through check-in, and a shopping stop on the way if you would like one.',
+      },
+      ja: {
+        body: 'LAXとホテルの往復。ターミナル出口でお出迎えし、チェックインまでサポートいたします。ご希望に応じて、買い物への立ち寄りも可能です。',
+      },
+    },
   },
   {
     // Her sample plan (2026-10-23), in her format. Detail in data/plans.ts.
@@ -174,6 +233,16 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $20', ja: '3,000円〜' },
     priceNote: { en: 'per booking', ja: '／1件' },
+    detail: {
+      en: {
+        body: 'Tickets bought on your behalf, with the section and seat chosen to suit you. Stadium tours and pre-game tours can be booked the same way.',
+        excl: 'The face value of the ticket is charged separately.',
+      },
+      ja: {
+        body: '観戦チケットを代わりにお求めします。セクションも座席もご希望に合わせてお選びいただけます。スタジアムツアーやプリゲームツアーも同様に承ります。',
+        excl: '※チケット代金は別途申し受けます。',
+      },
+    },
   },
 ];
 

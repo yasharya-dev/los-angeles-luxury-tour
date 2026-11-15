@@ -187,10 +187,11 @@ describe('locale correctness', () => {
 
 describe('content parity', () => {
   it('renders every offering in both locales', () => {
-    const en = count(html('/'), /class="offer"/g);
-    const ja = count(html('/ja'), /class="offer"/g);
-    expect(en).toBe(offerings.length);
-    expect(ja).toBe(offerings.length);
+    // A card is an <article> when it links to the plan's own page, and a
+    // <details> when it opens in place.
+    const cards = /<(?:article|details) class="plan /g;
+    expect(count(html('/'), cards)).toBe(offerings.length);
+    expect(count(html('/ja'), cards)).toBe(offerings.length);
   });
 
   // A failed send has to say so and hand over the email address, rather than
@@ -250,6 +251,154 @@ describe('content parity', () => {
     const ja = count(html('/ja/contact'), /class="faq__item/g);
     expect(en).toBe(ja);
     expect(en).toBeGreaterThan(0);
+  });
+});
+
+// The text of a page with the markup taken out and all whitespace removed, so
+// a string of hers can be looked for whole however it was folded for display
+// (<wbr> between phrases, <br> where she asked for a break).
+const bare = (route: string) =>
+  html(route)
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, '');
+
+// Amelia's homepage, section by section, from her brief of 2026-11-05. Her
+// Japanese is checked character for character, and in her order.
+describe('the homepage, in her six sections', () => {
+  const HERS = [
+    '完全予約制｜日本語対応プライベートツアー',
+    'ロサンゼルスで叶える、あなただけの特別な旅。',
+    '旅のご相談はこちら',
+    '安心も、楽しさも、満足も。',
+    'ロサンゼルスを、もっと自由に。もっと贅沢に。',
+    '現地在住の日本人ガイドが、移動から観光まで、お客様だけの旅をサポートします。',
+    '選ばれる3つの理由',
+    '日本語で安心',
+    '高級車で完全貸切',
+    'オーダーメイドの旅',
+    'ツアー・サービス',
+    '旅のスタイルに合わせたプランをご用意しています。',
+    '完全予約制',
+    'ご希望の日程でご案内できるよう、ご旅行の日程がお決まりの方はお早めにご相談ください。',
+    'ロサンゼルスで、どんな時間を過ごしたいですか？',
+    '旅のプランが決まっていなくても、お気軽にご相談ください。通常24時間以内にご返信いたします。',
+  ];
+
+  it('carries her copy verbatim, in her order', () => {
+    const page = bare('/ja');
+    let from = 0;
+    for (const line of HERS) {
+      const at = page.indexOf(line.replace(/\s+/g, ''), from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
+    }
+  });
+
+  // What she asked to come out: the hero's long paragraph, the three body
+  // paragraphs, the three described pillars, and any exchange rate.
+  it('drops what her brief removed', () => {
+    const page = bare('/ja');
+    for (const gone of [
+      '安心して過ごせることも、旅の質のひとつ',
+      '見どころが広いエリアに点在する車社会の街',
+      '細部まで行き届く安心を',
+      'Los Angeles Luxury Tour が選ばれる理由',
+      '163円',
+    ]) {
+      expect(page, gone).not.toContain(gone.replace(/\s+/g, ''));
+    }
+    expect(html('/')).not.toContain('¥163');
+  });
+
+  it('opens on a photo hero with one call to action, to the contact page', () => {
+    for (const [route, contact] of [['/', '/contact'], ['/ja', '/ja/contact']] as const) {
+      const hero = html(route).match(/<section class="photo-hero[\s\S]*?<\/section>/)?.[0] ?? '';
+      expect(hero, route).toContain('photo-hero--tall');
+      expect(count(hero, /<a /g), route).toBe(1);
+      expect(hero, route).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${contact}"`));
+      expect(count(hero, /<h1/g), route).toBe(1);
+      expect(count(hero, /<p /g), `${route}: only the eyebrow, no lead paragraph`).toBe(1);
+    }
+  });
+
+  // Three equal cards, icon and title only, in both languages. Her two
+  // permitted breaks are the only places a title may fold.
+  it('shows three reasons as icon and title, with her line breaks', () => {
+    for (const route of ['/', '/ja']) {
+      const list = html(route).match(/<ul class="reasons__list[\s\S]*?<\/ul>/)?.[0] ?? '';
+      expect(count(list, /<li class="reason /g), route).toBe(3);
+      expect(count(list, /<svg/g), route).toBe(3);
+      expect(count(list, /<p[ >]/g), `${route}: no descriptions`).toBe(0);
+    }
+    // Each title with its break written as "/". Nothing else is taken out, so
+    // a space between two of her lines (it shows, in Japanese, once the break
+    // is switched off on a wide screen) fails this.
+    const titles = [...html('/ja').matchAll(/<h3 class="reason__title"[^>]*>([^]*?)<\/h3>/g)].map(
+      ([, inner]) =>
+        inner
+          .replace(/<br class="reason__br"[^>]*>/g, '/')
+          .replace(/<[^>]+>/g, '')
+          .trim(),
+    );
+    expect(titles).toEqual(['日本語で安心', '高級車で/完全貸切', 'オーダーメイドの/旅']);
+  });
+
+  // A plan with its own page links to it. The rest open in place and hold
+  // what the visitor came for: the description and both ways to act on it.
+  it('lists every plan as a card with its price and a way to its details', () => {
+    const text = (markup: string) => markup.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+    for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
+      const doc = html(prefix || '/');
+      for (const o of offerings) {
+        const tag = o.slug ? 'article' : 'details';
+        // [^] is "any character, newlines included", with no backslash to lose
+        // inside a template literal.
+        const card =
+          doc.match(new RegExp(`<${tag} class="plan[^"]*" id="plan-${o.id}"[^]*?</${tag}>`))?.[0] ?? '';
+        expect(card, `${prefix} ${o.id}`).not.toBe('');
+        expect(text(card), `${prefix} ${o.id} price`).toContain(text(o.price[locale]));
+        if (o.slug) {
+          expect(card, `${prefix} ${o.id} link`).toContain(`href="${prefix}/experience/${o.slug}"`);
+          // The link's name starts with its visible label and says which plan.
+          expect(card, `${prefix} ${o.id} name`).toMatch(
+            /<a class="plan__more[^>]*aria-label="[^"]+: [^"]+"/,
+          );
+        } else {
+          expect(card, `${prefix} ${o.id} summary`).toMatch(/<summary class="plan__head"/);
+          expect(text(card), `${prefix} ${o.id} description`).toContain(
+            text(o.detail?.[locale].body ?? 'no detail'),
+          );
+          expect(card, `${prefix} ${o.id} book`).toContain(`href="${prefix}/book?service=${o.id}"`);
+          expect(card, `${prefix} ${o.id} ask`).toContain(`href="${prefix}/consult?service=${o.id}"`);
+        }
+      }
+    }
+  });
+
+  // One action, one label. 「このプランを申し込む」 is hers, for the plan page;
+  // the older 「このプランを予約する」 was ours and said something stronger than a
+  // request.
+  it('names the booking request the same way wherever a plan can be requested', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        expect(html(prefix + p), prefix + p).not.toMatch(
+          /このプランを予約する|Book this plan|Reserve this journey/,
+        );
+      }
+    }
+    const pages = ['', '/experience', ...[...journeys, ...plans].map((j) => `/experience/${j.slug}`)];
+    for (const page of pages) {
+      expect(html(`/ja${page}`), `/ja${page}`).toContain('このプランを申し込む');
+      expect(html(page || '/'), page || '/').toContain('Request this plan');
+    }
+  });
+
+  it('keeps the reservation note and the closing call together, with no second button in between', () => {
+    const closing = html('/ja').match(/<section class="section closing[\s\S]*?<\/section>/)?.[0] ?? '';
+    expect(closing).toContain('class="reservation plate"');
+    expect(count(closing, /<a /g)).toBe(1);
+    expect(closing).toContain('href="/ja/contact"');
   });
 });
 
@@ -618,7 +767,71 @@ describe('photographs', () => {
   });
 });
 
+// axe cannot judge text over an image, so the page has to make it safe by
+// construction. The band's gradient belongs to the text: it reaches its full
+// depth exactly where the first line starts. This checks that depth against
+// the worst a photograph can do, a pure white pixel, so the text clears AA
+// over any photo, including the ones she has yet to send.
+describe('text over a photograph', () => {
+  it('darkens the photo behind the text enough for any photograph', () => {
+    const rules = css();
+    const ink = rules.match(/\.photo-hero\[data-astro-cid-[^\]]+\]\{[^}]*--ink:(#[0-9a-f]{3,8})/)?.[1] ?? '';
+    const depth = rules.match(/(#[0-9a-f]{8}) var\(--rise\)/)?.[1] ?? '';
+    expect(ink, 'the ink over the photo').not.toBe('');
+    expect(depth, 'the gradient stop where the text starts').not.toBe('');
+    const behind = over(parseHex(depth), [255, 255, 255]);
+    expect(ratio(parseHex(ink).rgb, behind)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('puts every photo band on a plate, so its text takes the light ink', () => {
+    for (const route of ['/', '/ja']) {
+      expect(html(route), route).toMatch(/<section class="photo-hero plate /);
+    }
+  });
+});
+
+// Where a Japanese line may fold is decided at build time, by a phrase model
+// and by ICU's dictionary, and either can change under us: a BudouX release, a
+// Node upgrade. The folds are part of her copy, so they are pinned here. A
+// change shows up as a diff of this file to read and accept, not as a line
+// that quietly moved on the site.
+describe('Japanese line folds', () => {
+  it('folds every line where it did when this was last reviewed', async () => {
+    const lines = new Set<string>();
+    for (const p of PATHS) {
+      for (const [, inner] of html(`/ja${p === '/' ? '' : p}`).matchAll(
+        /<span class="phrases"[^>]*>([^]*?)<\/span>/g,
+      )) {
+        lines.add(
+          inner
+            .replace(/<wbr[^>]*>/g, ' | ')
+            .replace(/<br[^>]*>/g, ' // ')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim(),
+        );
+      }
+    }
+    expect(lines.size).toBeGreaterThan(20);
+    await expect([...lines].sort().join('\n') + '\n').toMatchFileSnapshot(
+      './__snapshots__/japanese-folds.txt',
+    );
+  });
+});
+
 describe('output hygiene', () => {
+  // What a search result or a LINE link preview shows. Wording she took off
+  // the site must not live on there.
+  it('keeps retired wording out of every page head', () => {
+    for (const p of PATHS) {
+      for (const prefix of ['', '/ja']) {
+        const head = html(prefix + p).match(/<head>[^]*?<\/head>/)?.[0] ?? '';
+        expect(head, prefix + p).not.toBe('');
+        expect(head, prefix + p).not.toContain('安全＆安心');
+      }
+    }
+  });
+
   it('leaks no design-tool artifacts', () => {
     for (const p of PATHS) {
       const doc = html(p);

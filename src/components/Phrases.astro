@@ -1,0 +1,45 @@
+---
+/*
+  Renders Japanese so that a line folds only between phrases: on a wide
+  screen the phrases run on together, on a phone they fold at natural points,
+  and a heading can no longer end on one stranded character.
+
+  - An array is copy with authored breaks (see i18n/text.ts): it folds only
+    between its entries, and `BR` is a break at every width. Use it where
+    Amelia gave the breaks.
+  - A Japanese string is split into phrases for you (see i18n/phrase.ts).
+  - Anything else is rendered as is. English wraps well on its own.
+
+  The break points are <wbr>, with `word-break: keep-all` on the wrapper, so
+  the text stays one run for a screen reader and for copy and find-in-page.
+*/
+import { BR, type Text } from '../i18n/text';
+import { isJapanese, phrases } from '../i18n/phrase';
+
+interface Props {
+  text: Text;
+}
+const { text } = Astro.props;
+
+const parts =
+  typeof text === 'string' ? (isJapanese(text) ? phrases(text) : null) : text;
+---
+
+{
+  parts === null ? (
+    text
+  ) : (
+    <span class="phrases">
+      {parts.map((part, i) =>
+        part === BR ? (
+          <br />
+        ) : (
+          <>
+            {i > 0 && parts[i - 1] !== BR && <wbr />}
+            {part}
+          </>
+        ),
+      )}
+    </span>
+  )
+}

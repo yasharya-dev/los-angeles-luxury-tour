@@ -33,6 +33,17 @@ describe('offerings', () => {
     }
   });
 
+  // A card either links to the plan's page or opens in place. One that opens
+  // needs something to show.
+  it('gives every plan its own page or a description for its card', () => {
+    for (const o of offerings) {
+      if (o.slug) continue;
+      for (const locale of locales) {
+        expect(o.detail?.[locale].body.trim(), `${o.id} ${locale}`).toBeTruthy();
+      }
+    }
+  });
+
   // Prices are floors, never fixed fares. Her own material contradicts itself
   // on this, so the site commits to the from-form everywhere.
   it('quotes every price as a floor', () => {

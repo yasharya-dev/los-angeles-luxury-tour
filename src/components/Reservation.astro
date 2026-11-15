@@ -1,19 +1,46 @@
 ---
 import { type Locale } from '../i18n/ui';
-import { useTranslations } from '../i18n/utils';
+import Icon from './Icon.astro';
+import Phrases from './Phrases.astro';
 
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
-const t = useTranslations(locale);
 
-// 完全予約制 = by appointment only. Not a scarcity device: no cap, no counter,
-// no urgency copy. Don't let anyone add one.
+// 完全予約制 = by appointment only. Her sentence asks guests whose dates are
+// set to get in touch early: the urgency of a by-appointment service, in her
+// words. It is not a scarcity device. No caps, no counters, no countdowns.
+const copy = {
+  en: {
+    title: 'By Reservation Only',
+    note: 'So that we can look after you on the dates you want, please get in touch early once your travel dates are set.',
+  },
+  ja: {
+    title: '完全予約制',
+    note: [
+      'ご希望の日程でご案内できるよう、',
+      'ご旅行の日程がお決まりの方は',
+      'お早めにご相談ください。',
+    ],
+  },
+} as const;
+
+const c = copy[locale];
 ---
 
 {/* A plate: black in both themes, so its tokens are the dark ones. */}
 <div class="reservation plate">
-  <p class="reservation__title">{t('reservation.title')}</p>
-  <p class="reservation__note">{t('reservation.note')}</p>
+  <Icon name="calendar" size={26} class="reservation__icon" />
+  <p class="reservation__title">{c.title}</p>
+  <p class="reservation__note"><Phrases text={c.note} /></p>
 </div>
+
+<style>
+  /* The icon is a child component's element, which a scoped rule cannot
+     reach by class alone. */
+  .reservation :global(svg.reservation__icon) {
+    margin: 0 auto 10px;
+    color: var(--gold-text);
+  }
+</style>

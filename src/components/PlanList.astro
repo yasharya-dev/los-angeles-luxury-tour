@@ -1,0 +1,156 @@
+---
+/*
+  Every plan, as compact cards under its tier, and the line about what can be
+  arranged on request. The homepage and the Experience page both show this
+  list, so it is one component and the two cannot drift apart.
+
+  A plan with its own page links to it. The rest open in place: the card is a
+  <details> holding the plan's description, what its price leaves out, and
+  both ways to act on it.
+*/
+import type { Locale } from '../i18n/ui';
+import { useTranslations, localizePath } from '../i18n/utils';
+import {
+  byTier,
+  capabilities,
+  tierOrder,
+  bookPath,
+  consultPath,
+  type Tier,
+} from '../data/offerings';
+import Phrases from './Phrases.astro';
+import PlanCard from './PlanCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const p = (path: string) => localizePath(path, locale);
+
+const tierLabel: Record<Tier, string> = {
+  signature: t('tier.signature'),
+  day: t('tier.day'),
+  transport: t('tier.transport'),
+};
+---
+
+<div class="tiers measure--grid">
+  {
+    tierOrder.map((tier) => (
+      <section class="tier" aria-labelledby={`tier-${tier}`}>
+        <h3 class="kicker tier__label" id={`tier-${tier}`}>
+          {tierLabel[tier]}
+        </h3>
+        <ul class="tier__list">
+          {byTier(tier).map((o) => {
+            const detail = o.detail?.[locale];
+            return (
+              <li>
+                {o.slug ? (
+                  <PlanCard
+                    locale={locale}
+                    offering={o}
+                    href={p(`/experience/${o.slug}`)}
+                    level={4}
+                  />
+                ) : (
+                  <PlanCard locale={locale} offering={o} level={4}>
+                    {detail && (
+                      <p class="body">
+                        <Phrases text={detail.body} />
+                      </p>
+                    )}
+                    {detail?.excl && (
+                      <p class="caption reveal__excl">
+                        <Phrases text={detail.excl} />
+                      </p>
+                    )}
+                    <p class="reveal__actions">
+                      <a class="btn btn--solid" href={p(bookPath(o))}>
+                        {t('plan.request')}
+                      </a>
+                      <a class="reveal__ask" href={p(consultPath(o))}>
+                        {t('plan.ask')}
+                      </a>
+                    </p>
+                  </PlanCard>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
+</div>
+
+<p class="caption center tiers__foot measure"><Phrases text={capabilities[locale]} /></p>
+
+<script>
+  // An address can name a plan's card (#plan-charter). The card is a
+  // <details>: open the one it names, on arrival and when the fragment
+  // changes, so the visitor lands on the plan itself and not a closed card.
+  // Without script the card is one tap from open.
+  const openNamed = () => {
+    const named = document.getElementById(location.hash.slice(1));
+    if (named instanceof HTMLDetailsElement) named.open = true;
+  };
+  openNamed();
+  window.addEventListener('hashchange', openNamed);
+</script>
+
+<style>
+  .tiers {
+    display: grid;
+    gap: clamp(26px, 4vw, 40px);
+  }
+
+  .tier__label {
+    margin-bottom: 12px;
+  }
+
+  .tier__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  @media (min-width: 900px) {
+    .tier__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+  }
+
+  .tiers__foot {
+    margin-top: clamp(22px, 4vw, 32px);
+  }
+
+  /* What a card reveals when it opens in place. */
+  .reveal__excl {
+    margin-top: 8px;
+  }
+
+  .reveal__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px var(--gap-lg);
+    margin: 16px 0 0;
+  }
+
+  .reveal__ask {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
+  }
+</style>

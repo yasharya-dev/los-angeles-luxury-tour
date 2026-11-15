@@ -25,15 +25,11 @@ const labels = {
     includes: 'What is included',
     excludes: 'Not included',
     schedule: 'The shape of the day',
-    book: 'Reserve this journey',
-    ask: 'or ask a question first',
   },
   ja: {
     includes: '料金に含まれるもの',
     excludes: '料金に含まれないもの',
     schedule: '1日の流れ',
-    book: 'このプランを予約する',
-    ask: 'まずは相談する',
   },
 }[locale];
 ---
@@ -111,8 +107,8 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions">
-    <a class="btn" href={p(bookPath(offering))}>{labels.book}</a>
-    <a class="ask" href={p(consultPath(offering))}>{labels.ask}</a>
+    <a class="btn" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
 
