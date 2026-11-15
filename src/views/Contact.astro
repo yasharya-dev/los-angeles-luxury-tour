@@ -3,6 +3,7 @@ import { type Locale } from '../i18n/ui';
 import { BR } from '../i18n/text';
 import { localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
+import { cancellation } from '../data/cancellation';
 import type { IconName } from '../data/icons';
 import Icon from '../components/Icon.astro';
 import Phrases from '../components/Phrases.astro';
@@ -99,14 +100,10 @@ const copy = {
         ],
       },
       {
-        q: 'Is there a cancellation fee?',
-        a: ['Depending on when you cancel:'],
-        list: [
-          'Up to 7 days before: free',
-          'Up to 4 days before: 30%',
-          'After that: 100%',
-        ],
-        after: 'The full cancellation policy comes with your booking.',
+        q: cancellation.en.question,
+        a: [cancellation.en.lead],
+        list: cancellation.en.tiers,
+        after: cancellation.en.after,
       },
     ],
   },
@@ -195,10 +192,10 @@ const copy = {
         ],
       },
       {
-        q: 'キャンセル料はかかりますか？',
-        a: ['キャンセル時期に応じて、以下のキャンセル料が発生いたします。'],
-        list: ['7日前まで：無料', '4日前まで：30%', 'それ以降：100%'],
-        after: '詳細は、ご予約時にご案内するキャンセルポリシーをご確認ください。',
+        q: cancellation.ja.question,
+        a: [cancellation.ja.lead],
+        list: cancellation.ja.tiers,
+        after: cancellation.ja.after,
       },
     ],
   },

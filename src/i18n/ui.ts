@@ -44,6 +44,9 @@ export const ui = {
     'plan.details': 'Details',
     'plan.request': 'Request this plan',
     'plan.ask': 'or ask a question first',
+    'plan.services': 'What is included',
+    'plan.usage': 'Service details',
+    'plan.byReservation': 'By reservation only',
 
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
@@ -84,6 +87,10 @@ export const ui = {
     'plan.details': '詳細を見る',
     'plan.request': 'このプランを申し込む',
     'plan.ask': 'まずは相談する',
+    // Hers, from the plan page in her brief of 2026-11-05.
+    'plan.services': 'サービス内容',
+    'plan.usage': 'ご利用について',
+    'plan.byReservation': '完全予約制',
 
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',

@@ -3,8 +3,11 @@ import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { bySlug, bookPath, consultPath, type Tier } from '../data/offerings';
 import { planBySlug, yenAmount } from '../data/plans';
-import Divider from '../components/Divider.astro';
-import Reservation from '../components/Reservation.astro';
+import { planPhotos } from '../data/plan-photos';
+import { cancellation } from '../data/cancellation';
+import Icon from '../components/Icon.astro';
+import Photo from '../components/Photo.astro';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
@@ -20,251 +23,557 @@ if (!plan || !offering) {
   throw new Error(`No plan data for slug "${slug}"`);
 }
 
+// Amelia's plan page (brief of 2026-11-05, section 10A): one column on every
+// screen, centred on a wide one. Every word on it comes from the plan's data
+// or from the labels all plans share, so the next plan is a data entry.
+const photos = planPhotos[slug] ?? {};
 const tierLabel: Record<Tier, string> = {
   signature: t('tier.signature'),
   day: t('tier.day'),
   transport: t('tier.transport'),
 };
 
-const perGroup = { en: 'per group', ja: '／1組' }[locale];
+// Her eyebrows are English, so on the Japanese page they are marked as such
+// and a screen reader says them as English. She names the experience part in
+// English too.
+const ascii = (s: string) => /^[\x20-\x7e]+$/.test(s);
+const eyebrow = plan.eyebrow?.[locale] ?? tierLabel[offering.tier];
+const eyebrowLang = locale !== 'en' && ascii(eyebrow) ? 'en' : undefined;
+const en = locale === 'en' ? undefined : 'en';
+
+const book = p(bookPath(offering));
+const ask = p(consultPath(offering));
+const unit = plan.unit[locale];
+const terms = cancellation[locale];
 ---
 
-{/* Her format: title, subtitle, the price table, then the two actions she
-    asked for near the price. They come again at the bottom. */}
-<section class="section head">
-  <div class="measure measure--wide">
-    <a class="back" href={p('/experience')}>
-      <span aria-hidden="true">&larr;</span> {t('cta.back')}
-    </a>
-    <p class="kicker head__kicker">{tierLabel[offering.tier]}</p>
-    <h1 class="h2 head__title">{plan.title[locale]}</h1>
-    <p class="body head__lead">{plan.subtitle[locale]}</p>
+<div class="plan-page">
+  {/* 01 Photo first, then the overview. */}
+  {
+    photos.hero && (
+      <div class="hero">
+        <Photo
+          class="hero__photo"
+          src={photos.hero.src}
+          alt={photos.hero.alt[locale]}
+          aspect={16 / 10}
+          sizes="(min-width: 720px) 680px, 100vw"
+          priority
+          style={photos.hero.focus ? `object-position: ${photos.hero.focus}` : undefined}
+        />
+      </div>
+    )
+  }
 
-    <ul class="prices">
+  <section class="overview">
+    <p class="kicker" lang={eyebrowLang}>{eyebrow}</p>
+    <h1 class="h2 overview__title"><Phrases text={plan.title[locale]} /></h1>
+    <p class="body overview__intro"><Phrases text={plan.intro[locale]} /></p>
+    <ul class="tiles" role="list">
+      {
+        plan.tiles.map((tile) => (
+          <li class="tile">
+            <Icon name={tile.icon} size={24} class="tile__icon" />
+            <span class="tile__label">{tile.label[locale]}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  {/* 02 One white card: the prices, her note, both ways in. */}
+  <section class="pricing panel">
+    <dl class="prices">
       {
         plan.prices.map((row) => (
-          <li class="price">
-            <span class="price__label">{row.label[locale]}</span>
-            <span class="price__figure">
-              <span class="price__amount">{yenAmount(row.yen, locale)}</span>
-              <span class="price__unit">{perGroup}</span>
+          <div class="price">
+            <dt class="price__label">{row.label[locale]}</dt>
+            <dd class="price__figure">
+              <span class="price__amount">{yenAmount(row.yen, locale)}</span>{' '}
+              <span class="price__unit">{unit}</span>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="caption pricing__note">{plan.priceNote[locale]}</p>
+    <a class="btn btn--solid pricing__cta" href={book}>
+      {t('plan.request')}
+      <Icon name="arrow-right" size={18} />
+    </a>
+    <a class="pricing__ask" href={ask}>{t('plan.ask')}</a>
+  </section>
+
+  {/* 03 The experience, then what the service includes, kept in view. */}
+  <section class="experience" aria-labelledby="plan-experience">
+    <p class="kicker" lang={en}>The experience</p>
+    <h2 class="h2 experience__title" id="plan-experience">
+      <Phrases text={plan.experience.title[locale]} />
+    </h2>
+    <p class="body"><Phrases text={plan.experience.body[locale]} /></p>
+    {
+      photos.experience && (
+        <Photo
+          class="experience__photo"
+          src={photos.experience.src}
+          alt={photos.experience.alt[locale]}
+          aspect={16 / 10}
+          sizes="(min-width: 720px) 632px, calc(100vw - 40px)"
+          style={photos.experience.focus ? `object-position: ${photos.experience.focus}` : undefined}
+        />
+      )
+    }
+
+    <h3 class="h3 part__title">{t('plan.services')}</h3>
+    <ul class="checks" role="list">
+      {
+        plan.services[locale].map((item) => (
+          <li class="check">
+            <Icon name="check" size={20} class="check__icon" />
+            <span>
+              <Phrases text={item} />
             </span>
-            <span class="price__cap">{row.capacity[locale]}</span>
           </li>
         ))
       }
     </ul>
 
-    <p class="actions">
-      <a class="btn btn--solid" href={p(bookPath(offering))}>{t('plan.request')}</a>
-      <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
-    </p>
-  </div>
-</section>
+    <h3 class="h3 part__title">{t('plan.usage')}</h3>
+    <dl class="usage">
+      {
+        plan.usage.map((row) => (
+          <div class="usage__row">
+            <dt class="usage__label">{row.label[locale]}</dt>
+            <dd class="usage__value">{row.value[locale]}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
 
-<section class="section section--deep">
-  <div class="measure measure--wide">
-    {plan.intro[locale].map((para) => <p class="body stack">{para}</p>)}
-  </div>
-</section>
-
-{/* Her labelled sections, in her order. Bullets where she wrote bullets. */}
-<section class="section">
-  <div class="measure--cards blocks">
+  {/* 04 Her two accordions, holding her existing terms. The cancellation
+      terms are the FAQ's own, from the same data, so they are on the page
+      before anyone reaches the form. */}
+  <div class="details panel">
     {
-      plan.sections.map((sec) => (
-        <div class="block">
-          <h2 class="h3 block__title">{sec.heading[locale]}</h2>
-          {sec.bullets && (
-            <ul class="block__list">
-              {sec.bullets[locale].map((item) => (
-                <li class="block__item">{item}</li>
-              ))}
-            </ul>
-          )}
-          {sec.paragraphs &&
-            sec.paragraphs[locale].map((para) => <p class="body stack">{para}</p>)}
-        </div>
+      plan.details.map((d) => (
+        <details class="detail">
+          <summary class="detail__label">
+            <span>{d.label[locale]}</span>
+            <Icon name="chevron-down" size={20} class="detail__chevron" />
+          </summary>
+          <div class="detail__body">
+            {d.blocks.map((block) => (
+              <div class="block">
+                {block.heading && <p class="block__heading">{block.heading[locale]}</p>}
+                {block.paragraphs?.[locale].map((para) => (
+                  <p class="body">
+                    <Phrases text={para} />
+                  </p>
+                ))}
+                {block.bullets && (
+                  <ul class="bullets">
+                    {block.bullets[locale].map((item) => (
+                      <li class="body">
+                        <Phrases text={item} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+            {d.cancellation && (
+              <div class="block" data-cancellation>
+                <p class="block__heading">{terms.question}</p>
+                <p class="body">
+                  <Phrases text={terms.lead} />
+                </p>
+                <ul class="bullets">
+                  {terms.tiers.map((tier) => (
+                    <li class="body">{tier}</li>
+                  ))}
+                </ul>
+                <p class="body">
+                  <Phrases text={terms.after} />
+                </p>
+              </div>
+            )}
+          </div>
+        </details>
       ))
     }
   </div>
-</section>
 
-<Divider />
+  {/* Her black closing panel: 完全予約制, her line, the gold button. */}
+  <section class="closing plate" aria-labelledby="plan-closing">
+    <p class="closing__label">{t('plan.byReservation')}</p>
+    <h2 class="h2 closing__title" id="plan-closing"><Phrases text={plan.closing[locale]} /></h2>
+    <a class="btn btn--solid" href={book}>
+      {t('plan.request')}
+      <Icon name="arrow-right" size={18} />
+    </a>
+  </section>
 
-<section class="section">
-  <Reservation locale={locale} />
-  <p class="actions actions--foot">
-    <a class="btn" href={p(bookPath(offering))}>{t('plan.request')}</a>
-    <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
+  {/* With the photo first, the way back moves to the end of the page. */}
+  <p class="back">
+    <a href={p('/experience')}>
+      <Icon name="arrow-left" size={18} />
+      {t('cta.back')}
+    </a>
   </p>
-</section>
+</div>
+
 
 <style>
-  .head {
-    padding-block: clamp(48px, 7vw, 84px) clamp(40px, 6vw, 60px);
+  /* One column, the same on every screen: her layout, centred on a wide one.
+     The photo runs to the edges of the column; everything else keeps the
+     page's gutter. Sections follow on at one even spacing, without bands. */
+  .plan-page {
+    max-width: 680px;
+    margin-inline: auto;
+    padding-bottom: clamp(36px, 6vw, 56px);
   }
 
+  .overview,
+  .pricing,
+  .experience,
+  .details,
+  .closing,
   .back {
-    display: inline-block;
-    margin-bottom: 30px;
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
+    margin-inline: var(--gutter);
   }
-  .back:hover {
+
+  .hero :global(picture) {
+    display: block;
+  }
+  .hero__photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  @media (min-width: 720px) {
+    .plan-page {
+      padding-top: 32px;
+    }
+    .hero__photo {
+      border-radius: var(--radius-card);
+    }
+  }
+
+  /* ----------------------------------------------------------- overview */
+
+  .overview {
+    margin-top: 22px;
+  }
+
+  .overview__title {
+    margin-block: 10px 12px;
+  }
+
+  /* Three equal tiles, side by side at every width, as she drew them. */
+  .tiles {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 6px;
+    border-radius: var(--radius-ctl);
+    background: var(--bg-deep);
+    text-align: center;
+  }
+  .tile :global(.tile__icon) {
     color: var(--gold-text);
   }
-  :global(html[lang='ja']) .back {
-    font-family: var(--font-body);
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    text-transform: none;
+  .tile__label {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--ink);
+    text-wrap: balance;
   }
 
-  .head__title {
-    margin-block: 20px 16px;
-  }
+  /* ------------------------------------------------------------ pricing */
 
-  .head__lead {
-    margin-bottom: 30px;
+  .pricing {
+    margin-top: 20px;
+    padding: 4px clamp(16px, 4vw, 22px) 14px;
   }
-
-  /* One sentence per line is how she writes; .body carries margin: 0. */
-  .stack + .stack {
-    margin-top: 0.7em;
-  }
-
-  /* -------------------------------------------------------------- prices */
 
   .prices {
-    list-style: none;
-    margin: 0 0 32px;
-    padding: 0;
-    border-top: 1px solid var(--hairline-soft);
+    margin: 0;
   }
 
+  /* Label on the left, price on the right; a long English label folds
+     before the price ever does. */
   .price {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: var(--gap-md);
-    row-gap: 4px;
+    display: flex;
     align-items: baseline;
-    padding: 16px 0;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0;
     border-bottom: 1px solid var(--hairline-soft);
   }
 
   .price__label {
-    font-family: var(--font-label);
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 600;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
     color: var(--ink);
-  }
-  :global(html[lang='ja']) .price__label {
-    font-family: var(--font-body);
-    font-size: 14px;
-    letter-spacing: 0.1em;
-    text-transform: none;
   }
 
   .price__figure {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    justify-self: end;
+    margin: 0;
     white-space: nowrap;
   }
-
   .price__amount {
     font-family: var(--font-display);
-    font-size: clamp(22px, 3.2vw, 30px);
+    font-size: 24px;
+    font-weight: 600;
     color: var(--gold-text);
   }
   :global(html[lang='ja']) .price__amount {
     font-family: var(--font-body);
-    font-weight: 500;
-    font-size: clamp(18px, 2.6vw, 24px);
+    font-size: 21px;
   }
-
-  .price__unit,
-  .price__cap {
-    font-size: 13px;
+  .price__unit {
+    font-size: 14px;
     color: var(--ink-soft);
   }
 
-  .price__cap {
-    grid-column: 1 / -1;
+  .pricing__note {
+    margin-top: 10px;
   }
 
-  /* ------------------------------------------------------------- actions */
+  .pricing__cta {
+    display: flex;
+    width: 100%;
+    margin-top: 16px;
+  }
 
-  .actions {
-    margin: 0;
+  .pricing__ask {
     display: flex;
     align-items: center;
-    gap: var(--gap-lg);
-    flex-wrap: wrap;
-  }
-
-  .actions--foot {
     justify-content: center;
-    margin-top: clamp(28px, 4vw, 40px);
-  }
-
-  .ask {
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    display: inline-block;
-    padding-block: 4px;
-  }
-  :global(html[lang='ja']) .ask {
-    font-family: var(--font-body);
-    font-size: 13px;
+    min-height: var(--tap);
+    margin-top: 4px;
+    font-size: 15px;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: none;
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
   }
 
-  /* -------------------------------------------------------------- blocks */
+  /* --------------------------------------------------------- experience */
 
-  .blocks {
-    display: grid;
-    gap: clamp(36px, 5vw, 56px);
+  .experience {
+    margin-top: clamp(32px, 6vw, 44px);
   }
 
-  .block__title {
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--hairline-soft);
+  .experience__title {
+    margin-block: 10px 12px;
   }
 
-  .block__list {
+  .experience :global(picture) {
+    display: block;
+    margin-top: 18px;
+  }
+  .experience__photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius-ctl);
+  }
+
+  .part__title {
+    margin: 26px 0 10px;
+  }
+
+  .checks {
+    list-style: none;
     margin: 0;
     padding: 0;
-    list-style: none;
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
-
-  .block__item {
-    position: relative;
-    padding-left: 1.4em;
-    font-size: clamp(15px, 1.6vw, 16px);
-    line-height: 1.9;
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 16px;
+    line-height: 1.7;
     color: var(--ink-mid);
   }
+  .check :global(.check__icon) {
+    flex: none;
+    margin-top: 0.2em;
+    color: var(--gold-text);
+  }
+  /* Two even lines where a row folds, not a long line and a word. */
+  .check > span {
+    text-wrap: balance;
+  }
 
-  /* Her bullet is the katakana middle dot; keep it as a glyph, not a disc. */
-  .block__item::before {
-    content: '・';
-    position: absolute;
-    left: 0;
+  .usage {
+    margin: 0;
+    border-top: 1px solid var(--hairline-soft);
+  }
+  .usage__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .usage__label {
+    flex: none;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .usage__value {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: right;
+  }
+
+  /* ------------------------------------------------------------ details */
+
+  .details {
+    margin-top: clamp(28px, 5vw, 36px);
+    padding-inline: clamp(16px, 4vw, 22px);
+  }
+
+  .detail + .detail {
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  .detail__label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    padding: 12px 0;
+    list-style: none;
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--ink);
+    transition: color 0.3s ease;
+  }
+  :global(html[lang='ja']) .detail__label {
+    font-family: var(--font-body);
+    font-size: 16px;
+  }
+  .detail__label > span {
+    text-wrap: balance;
+  }
+  .detail__label::-webkit-details-marker {
+    display: none;
+  }
+  .detail__label:hover {
+    color: var(--gold-text);
+  }
+  .detail__label :global(.detail__chevron) {
+    flex: none;
+    color: var(--gold-text);
+    transition: transform 0.25s ease;
+  }
+  .detail[open] .detail__label :global(.detail__chevron) {
+    transform: rotate(180deg);
+  }
+
+  .detail__body {
+    display: grid;
+    gap: 18px;
+    padding-bottom: 20px;
+  }
+
+  .block > * + * {
+    margin-top: 6px;
+  }
+  .block__heading {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .bullets {
+    margin: 0;
+    padding-left: 1.3em;
+  }
+  .bullets li + li {
+    margin-top: 4px;
+  }
+
+  /* ------------------------------------------------------------ closing */
+
+  .closing {
+    margin-top: clamp(32px, 6vw, 44px);
+    padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
+    border-radius: var(--radius-card);
+    background: var(--bar);
+    text-align: center;
+  }
+
+  .closing__label {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--gold-text);
+  }
+  :global(html[lang='en']) .closing__label {
+    font-family: var(--font-label);
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .closing__title {
+    margin-block: 10px 20px;
+  }
+
+  /* As wide as the price card's button on a phone, so the label holds one
+     line; no wider than it needs on a wide screen. */
+  .closing .btn {
+    display: flex;
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+  }
+
+  .back {
+    margin-top: 20px;
+    margin-bottom: 0;
+  }
+  .back a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--tap);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .back a:hover {
     color: var(--gold-text);
   }
 </style>

@@ -8,6 +8,8 @@ export const ICONS = {
   'chevron-right': '<path d="M9.5 6l6 6-6 6"/>',
   'chevron-down': '<path d="M6 9.5l6 6 6-6"/>',
   'arrow-right': '<path d="M4.5 12h15M13.5 6l6 6-6 6"/>',
+  'arrow-left': '<path d="M19.5 12h-15M10.5 6l-6 6 6 6"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
   'check-circle': '<circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.3l2.6 2.6 5-5.4"/>',
   doc: '<path d="M7 3.5h7.5l4 4V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14.5 3.5v4h4M8.8 12.2h6.4M8.8 15.7h4.4"/>',
   // Drawn nose-up, then turned to climb to the upper right.
