@@ -277,6 +277,8 @@ html[lang='ja'] .body {
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--gold-text);
+  /* A label that runs to two lines splits evenly, not one word short. */
+  text-wrap: balance;
 }
 
 html[lang='ja'] .kicker {
@@ -294,6 +296,23 @@ html[lang='ja'] .kicker {
   }
 }
 
+/* Her small gold line: the accent that replaced the corner triangles. Sits
+   under a label or between a heading and its text. Decoration, so it may use
+   her accent. */
+.rule {
+  display: block;
+  width: 44px;
+  height: 1px;
+  margin: 16px 0;
+  border: 0;
+  background: var(--gold-deco);
+}
+
+.center .rule,
+.rule--center {
+  margin-inline: auto;
+}
+
 /* Never synthetic-oblique kanji: weight and gold instead. */
 .em {
   font-style: italic;
@@ -303,6 +322,14 @@ html[lang='ja'] .em {
   font-style: normal;
   font-weight: 600;
   color: var(--gold-text);
+}
+
+/* Japanese set by components/Phrases.astro: the line folds at the <wbr>
+   between phrases and nowhere else. `anywhere` is the safety net for a phrase
+   wider than its column, which then folds inside rather than overflow. */
+.phrases {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* ------------------------------------------------------------- layout */
@@ -344,6 +371,14 @@ html[lang='ja'] .em {
 
 .stack > * + * {
   margin-top: var(--stack-gap, var(--gap-lg));
+}
+
+/* The white card every list, tile and panel on the cream is built from. */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 /* --------------------------------------------------------------- divider */

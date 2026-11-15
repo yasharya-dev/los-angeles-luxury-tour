@@ -37,16 +37,9 @@ export const ui = {
 
     'toggle.dark': 'Dark mode',
 
-    'cta.begin': 'Ask about a private tour',
     'cta.start': 'Start planning',
-    'cta.journeys': 'View the journeys',
-    'cta.days': 'View the days',
-    'cta.transport': 'View transport',
     'cta.back': 'Back to all journeys',
 
-    'reservation.title': 'By Reservation Only',
-    'reservation.note':
-      'Every journey is arranged by appointment, around you. For popular dates, Dodgers home games especially, reserving early is recommended.',
 
     'tier.signature': 'Signature journeys',
     'tier.day': 'Day experiences',
@@ -83,16 +76,9 @@ export const ui = {
 
     'toggle.dark': 'ダークモード',
 
-    'cta.begin': 'プライベートツアーのご相談はこちら',
     'cta.start': 'お問い合わせ',
-    'cta.journeys': 'プランを見る',
-    'cta.days': 'プランを見る',
-    'cta.transport': 'プランを見る',
     'cta.back': 'プラン一覧へ戻る',
 
-    'reservation.title': '完全予約制',
-    'reservation.note':
-      '完全予約制のため、満席前のご予約をおすすめしております。ドジャース戦のある日程は、特にお早めにご相談ください。',
 
     'tier.signature': '特別な滞在プラン',
     'tier.day': '1日の体験',

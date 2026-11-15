@@ -1,0 +1,275 @@
+---
+/*
+  The compact plan card from Amelia's brief: photo, name, short details,
+  price, and a way to the details. One component for the homepage and the
+  Experience page, so the two lists cannot drift apart.
+
+  Two ways to "see details", same look:
+   - `href` given: the card links to it. The link is stretched over the whole
+     card, so the card is the tap target, but its name stays short.
+   - no `href`: the card is a <details>. The whole head is the summary, and
+     the default slot is what it reveals. Native, so it works without script.
+*/
+import type { Locale } from '../i18n/ui';
+import type { Offering } from '../data/offerings';
+import { planImages } from '../data/plan-images';
+import Photo from './Photo.astro';
+import Monogram from './Monogram.astro';
+import Icon from './Icon.astro';
+import Phrases from './Phrases.astro';
+
+interface Props {
+  locale: Locale;
+  offering: Offering;
+  /** Where "details" leads. Omit to expand in place. */
+  href?: string;
+  /** The plan name's heading level, set by what the list sits under. */
+  level?: 3 | 4;
+  /** The line under the name. Defaults to the offering's own. */
+  blurb?: string;
+}
+
+const { locale, offering: o, href, level = 3, blurb } = Astro.props;
+
+const more = { en: 'Details', ja: '詳細を見る' }[locale];
+const name = o.name[locale];
+const unit = o.priceNote?.[locale];
+const image = planImages[o.id];
+
+const Card = href ? 'article' : 'details';
+const Head = href ? 'div' : 'summary';
+const Name = `h${level}` as const;
+---
+
+<Card class="plan panel" id={`plan-${o.id}`}>
+  <Head class="plan__head">
+    {/* Decorative: the name beside it says what the plan is. */}
+    <span class="plan__thumb">
+      {
+        image ? (
+          <Photo
+            class="plan__photo"
+            src={image.src}
+            alt=""
+            sizes="(min-width: 720px) 104px, 84px"
+            style={image.focus ? `object-position: ${image.focus}` : undefined}
+          />
+        ) : (
+          <Monogram size={46} lazy />
+        )
+      }
+    </span>
+
+    <span class="plan__body">
+      <Name class="plan__name"><Phrases text={name} /></Name>
+      <span class="plan__blurb"><Phrases text={blurb ?? o.blurb[locale]} /></span>
+      <span class="plan__foot">
+        <span class="plan__price">
+          <span class="plan__amount">{o.price[locale]}</span>
+          {unit && <span class="plan__unit">{unit}</span>}
+        </span>
+        {
+          href ? (
+            // The name starts with the visible label, then says which plan.
+            <a class="plan__more plan__more--link" href={href} aria-label={`${more}: ${name}`}>
+              {more}
+              <Icon name="arrow-right" size={18} />
+            </a>
+          ) : (
+            <span class="plan__more">
+              {more}
+              <Icon name="chevron-down" size={18} class="plan__chevron" />
+            </span>
+          )
+        }
+      </span>
+    </span>
+  </Head>
+
+  {
+    !href && (
+      <div class="plan__reveal">
+        <slot />
+      </div>
+    )
+  }
+</Card>
+
+<style>
+  .plan {
+    position: relative;
+    display: block;
+    transition: border-color 0.3s ease;
+  }
+  .plan:hover {
+    border-color: var(--hairline);
+  }
+
+  .plan__head {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+    padding: 12px;
+    list-style: none;
+  }
+  .plan__head::-webkit-details-marker {
+    display: none;
+  }
+  summary.plan__head {
+    cursor: pointer;
+    border-radius: var(--radius-card);
+  }
+
+  /* The photo slot. Square, so a row of cards lines up whatever the photo. */
+  .plan__thumb {
+    display: grid;
+    place-items: center;
+    width: 84px;
+    aspect-ratio: 1;
+    border-radius: var(--radius-ctl);
+    overflow: hidden;
+    background: var(--bg-deep);
+  }
+  .plan__thumb :global(picture) {
+    width: 100%;
+    height: 100%;
+  }
+  .plan__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .plan__body {
+    display: block;
+    min-width: 0;
+  }
+
+  .plan__name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  /* Two lines of a long name come out even, rather than one word alone. */
+  :global(html[lang='ja']) .plan__name {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+    letter-spacing: 0.02em;
+    text-wrap: balance;
+  }
+
+  .plan__blurb {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+
+  /* Price on the left, the way in on the right. When the two do not fit on
+     one line the link drops under the price and keeps the right edge. */
+  .plan__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 12px;
+    margin-top: 4px;
+  }
+
+  .plan__price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
+  }
+
+  /* A figure never wraps mid-number; the row wraps around it. */
+  .plan__amount {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--gold-text);
+    white-space: nowrap;
+  }
+  :global(html[lang='ja']) .plan__amount {
+    font-family: var(--font-body);
+    font-size: 16px;
+  }
+
+  .plan__unit {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* The card (or the summary) is the tap target, far over 44px, so this label
+     only has to read as the way in. */
+  .plan__more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    margin-left: auto;
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+    white-space: nowrap;
+  }
+  :global(html[lang='ja']) .plan__more {
+    font-family: var(--font-body);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: none;
+  }
+
+  /* The link covers the card: one big target, one short name. The focus ring
+     is drawn around the card, where a sighted keyboard user is looking. */
+  .plan__more--link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-card);
+  }
+  .plan__more--link:focus-visible {
+    outline: none;
+  }
+  .plan__more--link:focus-visible::after {
+    outline: 2px solid var(--gold-text);
+    outline-offset: 2px;
+  }
+
+  .plan :global(.plan__chevron) {
+    transition: transform 0.25s ease;
+  }
+  .plan[open] :global(.plan__chevron) {
+    transform: rotate(180deg);
+  }
+
+  .plan__reveal {
+    margin: 0 12px;
+    padding: 14px 0 16px;
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  @media (min-width: 720px) {
+    .plan__head {
+      grid-template-columns: 104px minmax(0, 1fr);
+      gap: 18px;
+      padding: 14px;
+    }
+    .plan__thumb {
+      width: 104px;
+    }
+    .plan__reveal {
+      margin-inline: 14px;
+    }
+  }
+</style>

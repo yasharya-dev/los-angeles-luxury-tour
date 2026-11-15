@@ -1,0 +1,97 @@
+---
+/*
+  A photograph with a few lines of text over it: the opening of the homepage,
+  and the shorter bands on the inner pages. A plate (dark in both themes), so
+  the text and controls on it take the dark-surface tokens; the ink is warmed
+  to ivory, which is what her brief asks for over a photograph.
+*/
+import type { ImageMetadata } from 'astro';
+import Photo from './Photo.astro';
+
+interface Props {
+  src: ImageMetadata;
+  /** Describes the photograph. Empty when the text over it says enough. */
+  alt: string;
+  /** `tall` opens the homepage; `short` heads an inner page. */
+  size?: 'tall' | 'short';
+  /** Where the crop holds on a narrow screen, as an object-position. */
+  focus?: string;
+  /** The page opens on this image: fetch it first, never lazily. */
+  priority?: boolean;
+}
+
+const { src, alt, size = 'short', focus = 'center', priority = false } = Astro.props;
+
+// How wide the photo is drawn. It fills the box, so on an upright phone a
+// landscape photo is scaled up to the box's HEIGHT: a hero that is 52% of the
+// screen tall draws a 1.53:1 photo about 80% of a screen-height wide, far
+// more than 100vw. On a wide screen the box's width wins and it is 100vw.
+const share = size === 'tall' ? 52 : 32;
+const upright = size === 'tall' ? '4/5' : '3/5';
+const sizes = `(max-aspect-ratio: ${upright}) ${Math.ceil((share * src.width) / src.height)}vh, 100vw`;
+---
+
+<section class:list={['photo-hero', 'plate', `photo-hero--${size}`]}>
+  <Photo
+    class="photo-hero__img"
+    src={src}
+    alt={alt}
+    sizes={sizes}
+    priority={priority}
+    style={`object-position: ${focus}`}
+  />
+  <div class="photo-hero__scrim"></div>
+  <div class="photo-hero__inner">
+    <slot />
+  </div>
+</section>
+
+<style>
+  .photo-hero {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--bar);
+    --ink: #fbf7ec;
+  }
+
+  /* Her brief: about half the screen under the header, so the next section
+     starts inside the first view on a phone. svh, not vh: the address bar
+     must not push the section below the fold. */
+  .photo-hero--tall {
+    min-height: clamp(340px, 52svh, 560px);
+  }
+  .photo-hero--short {
+    min-height: clamp(210px, 32svh, 340px);
+  }
+
+  .photo-hero__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* A soft dark wash, heavier toward the bottom where the button sits. Enough
+     for ivory text to clear 4.5:1 over the brightest part of the sky. */
+  .photo-hero__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 8, 8, 0.5) 0%,
+      rgba(8, 8, 8, 0.46) 45%,
+      rgba(8, 8, 8, 0.7) 100%
+    );
+  }
+
+  .photo-hero__inner {
+    position: relative;
+    width: 100%;
+    max-width: 860px;
+    padding: clamp(28px, 6vh, 56px) var(--gutter);
+    text-align: center;
+  }
+</style>

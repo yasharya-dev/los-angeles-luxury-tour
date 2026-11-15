@@ -14,6 +14,7 @@ Currently in private review behind a password gate. Public launch follows once s
 | UI | None. No React, no Tailwind, no component library. Scoped `<style>` per component |
 | Hosting | Cloudflare Workers with static assets, free tier |
 | Email | [Resend](https://resend.com), called from a small Worker |
+| Japanese line breaking | [BudouX](https://github.com/google/budoux) and `Intl.Segmenter`, at build time only |
 | Tests | Vitest, most of it against the built `dist/` |
 
 The Worker exists for one reason: Cloudflare's free tier has no outbound email. Email Routing is receive-only and the free MailChannels integration is gone, so `POST /api/inquiry` and `POST /api/booking` validate the form, drop honeypot hits, optionally verify Turnstile, and hand the message to Resend. Everything else is a static file.
@@ -23,20 +24,22 @@ The Worker exists for one reason: Cloudflare's free tier has no outbound email. 
 ```
 src/
   data/         offerings, journeys, plans (the owner's plan format), contact details. Content lives here, not in templates
-  i18n/         locale list, dictionaries, path helpers
+  i18n/         locale list, dictionaries, path helpers, and where a line of Japanese may fold
   views/        one component per page, holding both languages' copy
   pages/        thin route files: English at the root, Japanese under /ja/
-  components/   header, footer, the two forms, toggles, the icon and photo components
+  components/   header, footer, the two forms, the plan card, toggles, the icon, photo and phrase components
   styles/       tokens.css (the design tokens) and base.css (reset and utilities)
 worker/         the two form endpoints and the beta gate
 tests/          the suite, see below
 ```
 
-Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in both forms' plan selects without touching a template. Adding a locale is a config entry plus a dictionary; no new markup.
+Adding an offering is a data change in `src/data/offerings.ts`. It appears on the landing page, the experience page and in both forms' plan selects without touching a template. Its photo, when there is one, goes in `src/data/plan-images.ts`; until then its card shows the monogram. Adding a locale is a config entry plus a dictionary; no new markup.
 
 ## Decisions worth knowing
 
-**Japanese is authored, not translated.** Both languages were written from the owner's own published copy, so her set phrases appear verbatim. Japanese headings carry authored line breaks (arrays joined with `<br>`), because Japanese has no spaces and automatic wrapping lands mid-clause. Japanese text is never italic, never uppercased, and sets `line-break: strict` so the long-vowel mark stays off the start of a line. Every `html[lang='ja']` rule in the CSS exists for one of these.
+**Japanese is authored, not translated.** Both languages were written from the owner's own published copy, so her set phrases appear verbatim. Japanese text is never italic, never uppercased, and sets `line-break: strict` so the long-vowel mark stays off the start of a line. Every `html[lang='ja']` rule in the CSS exists for one of these.
+
+**Japanese folds at phrases, in every browser.** Japanese has no spaces, so a browser breaks a line between any two characters: a card ends on `ディ` and starts the next line with `ナー`, and a heading strands its last character. Chrome has `word-break: auto-phrase` for this; Safari, which most of this site's visitors use, does not. So the fold points are found at build time (`src/i18n/phrase.ts`) and rendered as `<wbr>` under `word-break: keep-all` (`Phrases.astro`), which keeps the text one run for a screen reader and for find-in-page. A fold has to be both a phrase boundary by BudouX, Google's phrase model, and a word start by ICU's dictionary: BudouX alone now and then cuts inside a word (`空|港送迎`), and the dictionary alone is weak on katakana compounds. Where the owner gave the line breaks herself, the copy is an array of her phrases instead, and `BR` in it is a break she wants at every width.
 
 **Path-based i18n.** English at `/about`, Japanese at `/ja/about`, with `hreflang` alternates and a hand-rolled sitemap so every page in every language is a real, indexable URL. Not a client-side string swap.
 
@@ -85,6 +88,7 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 | `tests/build.test.ts` | Every route in both locales; the canonical, alternates and language link of every page, by value; no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity; the palette, with contrast computed for text, the CTA and control edges in both themes; cream as the default theme; the header, menu and footer; photo formats, priority and file sizes; both paths on every card, the booking notice, no phone number, sitemap and robots |
 | `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every plan books and consults on the site |
 | `tests/i18n.test.ts` | Path helpers, including the build's `.html` paths, and dictionary key parity |
+| `tests/phrase.test.ts` | Where Japanese may fold: lossless, never inside a katakana word or a dictionary word, never a one-character phrase, kinsoku respected |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
 | `tests/worker.test.ts` | Input cleaning, HTML escaping, plan labels, redirect paths, and both endpoints driven end to end with Resend stubbed |
 | `tests/beta.test.ts` | The gate: cookie signing, open-redirect guard, `noindex`, the page itself |

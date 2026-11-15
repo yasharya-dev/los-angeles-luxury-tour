@@ -187,8 +187,8 @@ describe('locale correctness', () => {
 
 describe('content parity', () => {
   it('renders every offering in both locales', () => {
-    const en = count(html('/'), /class="offer"/g);
-    const ja = count(html('/ja'), /class="offer"/g);
+    const en = count(html('/'), /<article class="plan /g);
+    const ja = count(html('/ja'), /<article class="plan /g);
     expect(en).toBe(offerings.length);
     expect(ja).toBe(offerings.length);
   });
@@ -250,6 +250,115 @@ describe('content parity', () => {
     const ja = count(html('/ja/contact'), /class="faq__item/g);
     expect(en).toBe(ja);
     expect(en).toBeGreaterThan(0);
+  });
+});
+
+// The text of a page with the markup taken out and all whitespace removed, so
+// a string of hers can be looked for whole however it was folded for display
+// (<wbr> between phrases, <br> where she asked for a break).
+const bare = (route: string) =>
+  html(route)
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, '');
+
+// Amelia's homepage, section by section, from her brief of 2026-11-05. Her
+// Japanese is checked character for character, and in her order.
+describe('the homepage, in her six sections', () => {
+  const HERS = [
+    '完全予約制｜日本語対応プライベートツアー',
+    'ロサンゼルスで叶える、あなただけの特別な旅。',
+    '旅のご相談はこちら',
+    '安心も、楽しさも、満足も。',
+    'ロサンゼルスを、もっと自由に。もっと贅沢に。',
+    '現地在住の日本人ガイドが、移動から観光まで、お客様だけの旅をサポートします。',
+    '選ばれる3つの理由',
+    '日本語で安心',
+    '高級車で完全貸切',
+    'オーダーメイドの旅',
+    'ツアー・サービス',
+    '旅のスタイルに合わせたプランをご用意しています。',
+    '完全予約制',
+    'ご希望の日程でご案内できるよう、ご旅行の日程がお決まりの方はお早めにご相談ください。',
+    'ロサンゼルスで、どんな時間を過ごしたいですか？',
+    '旅のプランが決まっていなくても、お気軽にご相談ください。通常24時間以内にご返信いたします。',
+  ];
+
+  it('carries her copy verbatim, in her order', () => {
+    const page = bare('/ja');
+    let from = 0;
+    for (const line of HERS) {
+      const at = page.indexOf(line.replace(/\s+/g, ''), from);
+      expect(at, `missing or out of order: ${line}`).toBeGreaterThanOrEqual(0);
+      from = at + 1;
+    }
+  });
+
+  // What she asked to come out: the hero's long paragraph, the three body
+  // paragraphs, the three described pillars, and any exchange rate.
+  it('drops what her brief removed', () => {
+    const page = bare('/ja');
+    for (const gone of [
+      '安心して過ごせることも、旅の質のひとつ',
+      '見どころが広いエリアに点在する車社会の街',
+      '細部まで行き届く安心を',
+      'Los Angeles Luxury Tour が選ばれる理由',
+      '163円',
+    ]) {
+      expect(page, gone).not.toContain(gone.replace(/\s+/g, ''));
+    }
+    expect(html('/')).not.toContain('¥163');
+  });
+
+  it('opens on a photo hero with one call to action, to the contact page', () => {
+    for (const [route, contact] of [['/', '/contact'], ['/ja', '/ja/contact']] as const) {
+      const hero = html(route).match(/<section class="photo-hero[\s\S]*?<\/section>/)?.[0] ?? '';
+      expect(hero, route).toContain('photo-hero--tall');
+      expect(count(hero, /<a /g), route).toBe(1);
+      expect(hero, route).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${contact}"`));
+      expect(count(hero, /<h1/g), route).toBe(1);
+      expect(count(hero, /<p /g), `${route}: only the eyebrow, no lead paragraph`).toBe(1);
+    }
+  });
+
+  // Three equal cards, icon and title only, in both languages. Her two
+  // permitted breaks are the only places a title may fold.
+  it('shows three reasons as icon and title, with her line breaks', () => {
+    for (const route of ['/', '/ja']) {
+      const list = html(route).match(/<ul class="reasons__list[\s\S]*?<\/ul>/)?.[0] ?? '';
+      expect(count(list, /<li class="reason /g), route).toBe(3);
+      expect(count(list, /<svg/g), route).toBe(3);
+      expect(count(list, /<p[ >]/g), `${route}: no descriptions`).toBe(0);
+    }
+    const ja = html('/ja');
+    expect(ja).toMatch(/高級車で\s*<br class="reason__br"[^>]*>\s*完全貸切/);
+    expect(ja).toMatch(/オーダーメイドの\s*<br class="reason__br"[^>]*>\s*旅/);
+    expect(ja).toMatch(/>\s*日本語で安心\s*</);
+  });
+
+  it('lists every plan as a card with its price and a way to its details', () => {
+    for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
+      const doc = html(prefix || '/');
+      for (const o of offerings) {
+        // [^] is "any character, newlines included", with no backslash to lose
+        // inside a template literal.
+        const card =
+          doc.match(new RegExp(`<article class="plan[^"]*" id="plan-${o.id}"[^]*?</article>`))?.[0] ?? '';
+        expect(card, `${prefix} ${o.id}`).not.toBe('');
+        expect(card.replace(/<[^>]+>/g, ''), `${prefix} ${o.id} price`).toContain(o.price[locale]);
+        const target = o.slug ? `${prefix}/experience/${o.slug}` : `${prefix}/experience#plan-${o.id}`;
+        expect(card, `${prefix} ${o.id} link`).toContain(`href="${target}"`);
+        // The link's name starts with its visible label and says which plan.
+        expect(card, `${prefix} ${o.id} name`).toMatch(/<a class="plan__more[^>]*aria-label="[^"]+: [^"]+"/);
+      }
+    }
+  });
+
+  it('keeps the reservation note and the closing call together, with no second button in between', () => {
+    const closing = html('/ja').match(/<section class="section closing[\s\S]*?<\/section>/)?.[0] ?? '';
+    expect(closing).toContain('class="reservation plate"');
+    expect(count(closing, /<a /g)).toBe(1);
+    expect(closing).toContain('href="/ja/contact"');
   });
 });
 
