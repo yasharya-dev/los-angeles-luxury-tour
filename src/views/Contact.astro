@@ -237,7 +237,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
 <section class="section section--deep">
   <div class="measure--cards">
     <h2 class="h2 center paths__title">{c.pathsTitle}</h2>
-    <ul class="paths">
+    <ul class="paths" role="list">
       {
         c.paths.map((path) => (
           <li class="path panel">
@@ -263,7 +263,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
         <span class="direct__words">{c.channelsTitle}</span>
         <span class="direct__line" aria-hidden="true"></span>
       </h2>
-      <ul class="direct__list">
+      <ul class="direct__list" role="list">
         {
           channels.map((ch) => (
             <li>

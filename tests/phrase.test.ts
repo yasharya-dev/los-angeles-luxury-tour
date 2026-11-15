@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { isJapanese, phrases } from '../src/i18n/phrase';
-import { BR, plain } from '../src/i18n/text';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
 
@@ -146,18 +145,26 @@ describe('phrases', () => {
     ]);
   });
 
+  // An emoji, or a kanji outside the basic plane, is one character to a
+  // reader and two units to a string. Counted in units it slipped through as
+  // a phrase of its own.
+  it('counts an emoji or a rare kanji as one character', () => {
+    for (const text of ['東京 😀', '😀 東京', '𠮟 る', 'ロサンゼルスで😀']) {
+      const parts = phrases(text);
+      expect(parts.join(''), text).toBe(text);
+      expect(parts.length, `${text}: ${parts.join('|')}`).toBe(1);
+    }
+  });
+
+  // A middle dot between two items is a fair fold. Inside a name it is not.
+  it('does not fold inside a name written with a middle dot', () => {
+    expect(phrases('『ラ・ラ・ランド』のロケ地めぐり').join('|')).not.toMatch(/ラ・\|/);
+    expect(phrases('ショッピング・レストラン予約').slice(0, 1)).toEqual(['ショッピング・']);
+  });
+
   it('keeps a number with its counter and a time range whole', () => {
     const parts = phrases('9:00〜18:00・ホテル発着・受賞ワイナリー3か所');
     expect(parts[0]).toBe('9:00〜18:00・');
     expect(parts.at(-1)).toBe('受賞ワイナリー3か所');
-  });
-});
-
-describe('authored copy', () => {
-  it('reads as one plain string for a title or a label', () => {
-    expect(plain(['ロサンゼルスで叶える、', BR, 'あなただけの特別な旅。'])).toBe(
-      'ロサンゼルスで叶える、あなただけの特別な旅。',
-    );
-    expect(plain('A plain string')).toBe('A plain string');
   });
 });

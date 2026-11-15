@@ -64,6 +64,16 @@ main {
   color: var(--ink);
 }
 
+/* On paper a browser drops backgrounds, and a plate's light ink would be
+   white on white: the header, and the footer with the registration line.
+   A plate prints as it looks on screen. */
+@media print {
+  .plate {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 /* proportional kana spacing */
 html[lang='ja'] body {
   font-feature-settings: 'palt';

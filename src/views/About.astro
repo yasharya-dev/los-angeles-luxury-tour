@@ -44,7 +44,7 @@ const copy = {
       'In the many countries I have visited, I have known hospitality that stays with you, and the special time that only travel brings.',
       'I care about more than glamour: quiet attentiveness and comfort, so that you can enjoy your trip at ease.',
     ],
-    portraitAlt: 'Amelia Kay Perrin',
+    portraitAlt: 'Portrait of the founder',
 
     coastAlt: 'Waves breaking below a house on the Malibu coast',
     expTitle: 'Not only where you go. How you spend the time, in your own way.',
@@ -74,7 +74,7 @@ const copy = {
       'これまでに訪れたさまざまな国で、心に残るホスピタリティや、旅がもたらす特別な時間を体験してきました。',
       '華やかさだけでなく、さりげない心配りや心地よさを大切にし、安心して楽しめる旅をご案内しています。',
     ],
-    portraitAlt: 'アメリア・ケイ・ペリン',
+    portraitAlt: '代表のポートレート',
 
     coastAlt: 'マリブの海岸。波打ち際に建つ邸宅',
     expTitle: ['行き先だけでなく、', BR, '過ごし方まで、', 'あなたらしく。'],
@@ -123,11 +123,12 @@ const c = copy[locale];
           keep="top"
           sizes="(min-width: 640px) 220px, 124px"
         />
-        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator, so
-            it is hidden from a screen reader, and dropped where the two
-            halves stack under a narrow portrait. */}
+        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator:
+            a screen reader gets a comma in its place, and it is dropped
+            where the two halves stack under a narrow portrait. */}
         <figcaption class="founder__caption" lang={en}>
           <span class="founder__name">Amelia Kay Perrin</span>
+          <span class="sr-only">, </span>
           <span class="founder__bar" aria-hidden="true">|</span>
           <span class="founder__role">Founder</span>
         </figcaption>
@@ -152,7 +153,7 @@ const c = copy[locale];
 
   {/* 4. Media and press: one slim card. A list, so another credit is a line
       of data. */}
-  <ul class="press measure--cards">
+  <ul class="press measure--cards" role="list">
     {
       c.press.map((item) => (
         <li class="press__item">

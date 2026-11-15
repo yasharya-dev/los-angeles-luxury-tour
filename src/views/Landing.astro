@@ -89,7 +89,12 @@ const c = copy[locale];
   <p class="hero__eyebrow">
     {c.heroEyebrow.map((part, i) => (
       <>
-        {i > 0 && <span class="hero__bar" aria-hidden="true">｜</span>}
+        {i > 0 && (
+          <>
+            <span class="sr-only">{locale === 'ja' ? '、' : ', '}</span>
+            <span class="hero__bar" aria-hidden="true">｜</span>
+          </>
+        )}
         <span class="hero__part">{part}</span>
       </>
     ))}
@@ -116,7 +121,7 @@ const c = copy[locale];
 <section class="section reasons">
   <Divider />
   <h2 class="h2 center reasons__title">{c.reasonsTitle}</h2>
-  <ul class="reasons__list measure--cards">
+  <ul class="reasons__list measure--cards" role="list">
     {
       c.reasons.map((title, i) => (
         <li class="reason panel">

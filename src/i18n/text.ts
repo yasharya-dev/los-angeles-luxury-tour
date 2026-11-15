@@ -11,8 +11,3 @@
 export const BR = '\n';
 
 export type Text = string | readonly string[];
-
-/** The same copy as one plain string, for a title tag or an aria-label. */
-export function plain(text: Text): string {
-  return typeof text === 'string' ? text : text.filter((p) => p !== BR).join('');
-}
