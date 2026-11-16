@@ -100,6 +100,20 @@ html[data-theme='dark'] select.input {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4af37' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5l6 6 6-6'/%3E%3C/svg%3E");
 }
 
+/* A select still on its prompt (選択してください, How many) and an empty date
+   read as hints, like the placeholders, not as answers already given. The
+   options keep the ink: some browsers paint the open list in the select's
+   colour. */
+select.input:has(option[data-prompt]:checked) {
+  color: var(--ink-soft);
+}
+select.input option {
+  color: var(--ink);
+}
+input[type='date'].input:invalid::-webkit-datetime-edit {
+  color: var(--ink-soft);
+}
+
 /* Chromium pads the inside of a date field by a pixel above and below,
    which took it to 53.2px beside its 52px neighbours. */
 .input::-webkit-datetime-edit-fields-wrapper {
@@ -176,6 +190,7 @@ html[data-theme='dark'] select.input {
 
 .form__reply {
   margin: 0;
+  text-wrap: pretty;
 }
 
 .ok {

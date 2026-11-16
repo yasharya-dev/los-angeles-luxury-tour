@@ -162,7 +162,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
               name="type"
               value={row.id}
               required
-              aria-invalid="false"
               data-price={yenAmount(row.yen, locale)}
               data-needs-route={row.route ? '' : undefined}
             />
@@ -189,7 +188,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
         </legend>
         {choice.routes.map((way) => (
           <label class="option">
-            <input type="radio" name="route" value={way.id} aria-invalid="false" />
+            <input type="radio" name="route" value={way.id} />
             <span class="option__label">{way.label[locale]}</span>
           </label>
         ))}
@@ -211,7 +210,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="date"
       type="date"
       required
-      aria-invalid="false"
       data-min-today
     />
     <p class="err" id="e-date" hidden><Phrases text={err.date} label /></p>
@@ -222,8 +220,8 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       {c.guests} <span class="req" aria-hidden="true">*</span>
       <span class="sr-only">{c.required}</span>
     </label>
-    <select class="input" id="f-guests" name="guests" required aria-invalid="false">
-      <option value="">{c.guestsPlaceholder}</option>
+    <select class="input" id="f-guests" name="guests" required>
+      <option value="" data-prompt>{c.guestsPlaceholder}</option>
       {guestOptions(id).map((g) => <option value={g.value}>{g.label[locale]}</option>)}
     </select>
     {
@@ -243,7 +241,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-hotel"
       name="hotel"
       type="text"
-      autocomplete="off"
       placeholder={c.hotelPlaceholder}
     />
   </div>
@@ -261,7 +258,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="name"
       type="text"
       required
-      aria-invalid="false"
       autocomplete="name"
     />
     <p class="err" id="e-name" hidden><Phrases text={err.name} label /></p>
@@ -278,7 +274,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="email"
       type="email"
       required
-      aria-invalid="false"
       autocomplete="email"
       inputmode="email"
       pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
@@ -293,7 +288,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-line"
       name="line"
       type="text"
-      autocomplete="off"
       autocapitalize="off"
       spellcheck="false"
       placeholder={c.linePlaceholder}
@@ -376,9 +370,11 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   // The parts that follow a choice. The route is asked for only on a one-way
   // choice: the script makes it required then, and switches it off (which
-  // also clears it) on a round trip. The summary card and the price box show
-  // the price of the choice. Without script the style still shows and hides
-  // the route, and the Worker checks it either way.
+  // also clears it) on a round trip. With no choice yet the style hides it and
+  // it is left alone, so a browser putting the form back as the guest left it
+  // can restore their route too. The summary card and the price box show the
+  // price of the choice. Without script the style still shows and hides the
+  // route, and the Worker checks it either way.
   const form = document.querySelector<HTMLFormElement>('[data-booking-form]');
   const route = form?.querySelector<HTMLFieldSetElement>('[data-route-field]');
   const sync = () => {
@@ -387,6 +383,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     const needs = chosen?.hasAttribute('data-needs-route') ?? false;
     route?.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
       input.required = needs;
+      if (!chosen) return;
       input.disabled = !needs;
       if (!needs) input.checked = false;
     });
@@ -417,6 +414,15 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
   };
   guests?.addEventListener('change', syncGuests);
   syncGuests();
+
+  // Chromium puts a form back as the guest left it (Back, with the page no
+  // longer cached) after this script has run, and fires no change event: the
+  // choice came back with its route switched off and its price unshown.
+  // pageshow comes after that, and after a page restored from the cache.
+  window.addEventListener('pageshow', () => {
+    sync();
+    syncGuests();
+  });
 </script>
 
 <style>

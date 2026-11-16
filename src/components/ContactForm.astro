@@ -36,7 +36,8 @@ const copy = {
     guests: 'Guests',
     guestOpts: ['Not sure yet', '1', '2', '3', '4', '5', '6 or more'],
     dates: 'Approximate travel dates',
-    datesHint: 'e.g. around September 2026, four nights',
+    // Short enough to show whole in the field on a 320px phone.
+    datesHint: 'e.g. September 2026, 4 nights',
     service: 'Which plan are you interested in?',
     serviceNone: 'Not sure yet, just exploring',
     hoping: 'What are you hoping for?',
@@ -54,7 +55,8 @@ const copy = {
     referrer: `Your friend${String.fromCharCode(0x2019)}s name (optional)`,
     send: 'Send',
     sending: 'Sending',
-    reply: 'You will usually hear back within 24 hours.',
+    // 24 and hours stay together on the narrowest phone.
+    reply: `You will usually hear back within 24${String.fromCharCode(0xa0)}hours.`,
     formErr: 'Please check the marked fields above.',
     // Ends in its space: the address follows straight on in every language.
     sendErr: 'Something went wrong sending that. Please email us directly at ',
@@ -150,7 +152,6 @@ const FOLD = String.fromCharCode(0x200b);
           name="name"
           type="text"
           required
-          aria-invalid="false"
           autocomplete="name"
         />
         <p class="err" id="e-name" hidden><Phrases text={c.nameErr} label /></p>
@@ -166,7 +167,6 @@ const FOLD = String.fromCharCode(0x200b);
           name="email"
           type="email"
           required
-          aria-invalid="false"
           autocomplete="email"
           inputmode="email"
           pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
@@ -226,8 +226,7 @@ const FOLD = String.fromCharCode(0x200b);
           id="f-hoping"
           name="hoping"
           rows="5"
-          required
-          aria-invalid="false"></textarea>
+          required></textarea>
         <p class="err" id="e-hoping" hidden><Phrases text={c.hopingErr} label /></p>
       </div>
 
@@ -239,9 +238,15 @@ const FOLD = String.fromCharCode(0x200b);
         <select class="input" id="f-heard" name="heard" aria-describedby="h-heard">
           {/* The first option is the placeholder. Empty value, so an unanswered
               question sends nothing and the Worker leaves the row out. */}
-          {c.heardOpts.map((o, i) => (
-            <option value={i === 0 ? '' : o}>{o}</option>
-          ))}
+          {c.heardOpts.map((o, i) =>
+            i === 0 ? (
+              <option value="" data-prompt>
+                {o}
+              </option>
+            ) : (
+              <option value={o}>{o}</option>
+            ),
+          )}
         </select>
       </div>
 

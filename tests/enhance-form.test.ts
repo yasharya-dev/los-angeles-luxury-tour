@@ -4,7 +4,7 @@
 // Safari stops a smooth scroll when the page grows above it, so every error
 // mark has to be shown before the one scroll to the first field.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { enhanceForm } from '../src/scripts/enhance-form';
+import { SEND_DEADLINE, enhanceForm } from '../src/scripts/enhance-form';
 
 type Handler = (event: { preventDefault(): void; target?: unknown }) => unknown;
 
@@ -237,6 +237,66 @@ describe('a send with fields to fix', () => {
   });
 });
 
+// A stalled phone network, or the mail service: a send with no answer would
+// otherwise stay on 送信中 for good, with no address to write to instead.
+describe('a send that never answers', () => {
+  it('fails at the deadline: the failure line, the button back, focus on it', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    fill();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      ),
+    );
+    const sending = send();
+    const button = page.form.querySelector('[data-submit]') as El;
+    await vi.advanceTimersByTimeAsync(SEND_DEADLINE - 1);
+    expect(button.disabled).toBe(true);
+    expect(page.form.querySelector('[data-send-error]')?.hidden).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    await sending;
+    expect(page.form.querySelector('[data-send-error]')?.hidden).toBe(false);
+    expect(button.disabled).toBe(false);
+    expect(button.textContent).toBe('Send');
+    expect(page.focused).toBe(button);
+  });
+});
+
+// The check on blur shows a line above the button, which moves it out from
+// under a press, and the click then lands on nothing.
+describe('a press on Send', () => {
+  it('holds back the check on blur, which the send makes anyway', () => {
+    const date = page.form.querySelector('#f-date') as El;
+    const button = page.form.querySelector('[data-submit]') as El;
+    date.value = '2026-11-01'; // before today in Los Angeles
+    button.handlers.get('pointerdown')?.({ preventDefault() {} });
+    page.form.handlers.get('focusout')?.({ preventDefault() {}, target: date });
+    expect(byId('e-date')?.hidden).toBe(true);
+  });
+
+  it('leaves the check on blur alone otherwise', () => {
+    const date = page.form.querySelector('#f-date') as El;
+    date.value = '2026-11-01';
+    page.form.handlers.get('focusout')?.({ preventDefault() {}, target: date });
+    expect(byId('e-date')?.hidden).toBe(false);
+  });
+});
+
+// Edge and Chrome read an untouched required field as invalid; the script
+// says otherwise from the start. The markup leaves it out (build.test.ts), so
+// a visitor without script keeps the browser's own state.
+describe('the state a screen reader hears at rest', () => {
+  it('reads every required field and every choice as valid until a send', () => {
+    const fields = page.form.querySelectorAll('[required], input[type="radio"]');
+    expect(fields.length).toBe(4);
+    for (const field of fields) expect(field.getAttribute('aria-invalid')).toBe('false');
+  });
+});
+
 // Midnight in Los Angeles is late afternoon in Japan: a page left open over
 // it must not go on offering the day that has just ended.
 describe('the dates the picker offers', () => {
@@ -248,5 +308,12 @@ describe('the dates the picker offers', () => {
     await send();
     expect(date.min).toBe('2026-11-16');
     expect(byId('e-date')?.hidden).toBe(false);
+  });
+
+  it('moves on as the picker opens, too', () => {
+    const date = page.form.querySelector('#f-date') as El;
+    vi.setSystemTime(new Date('2026-11-16T09:00:00Z'));
+    page.form.handlers.get('focusin')?.({ preventDefault() {}, target: date });
+    expect(date.min).toBe('2026-11-16');
   });
 });

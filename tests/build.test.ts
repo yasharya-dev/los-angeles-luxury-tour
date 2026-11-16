@@ -1517,13 +1517,25 @@ describe('the booking form', () => {
     }
   });
 
-  // Edge and Chrome otherwise read an untouched required date, select or
-  // radio out as invalid. The script sets it to true only once it is.
-  it('reads no field out as invalid before the guest has touched it', () => {
+  // Whether a field is invalid is the script's to say, from the moment it
+  // runs (tests/enhance-form.test.ts). In the markup it would hide the
+  // browser's own state from a visitor without script.
+  it('leaves a field\'s invalid state to the browser in the markup', () => {
     for (const p of ['/ja/book/dodgers-transfer', '/book/temecula', '/ja/consult', '/consult']) {
       const tags = html(p).match(/<(input|select|textarea)\b[^>]*\brequired\b[^>]*>/g) ?? [];
       expect(tags.length, p).toBeGreaterThan(2);
-      for (const tag of tags) expect(tag, p).toContain('aria-invalid="false"');
+      expect(html(p), p).not.toContain('aria-invalid');
+    }
+  });
+
+  // Back to a form the browser no longer has cached: it puts the fields back
+  // as the guest left them, hotel and LINE ID included, which autocomplete
+  // off would leave out.
+  it('lets the browser put every typed field back', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula']) {
+      const fields = html(p).match(/<(input|textarea)\b[^>]*name="(hotel|line|notes|name|email)"[^>]*>/g) ?? [];
+      expect(fields.length, p).toBe(5);
+      for (const field of fields) expect(field, p).not.toContain('autocomplete="off"');
     }
   });
 

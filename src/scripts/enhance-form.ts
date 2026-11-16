@@ -25,6 +25,9 @@ const FIELD: Record<string, string> = {
   route: 'input[name="route"]',
 };
 
+/** How long a send may take before the guest is told it failed, in ms. */
+export const SEND_DEADLINE = 20_000;
+
 declare global {
   interface Window {
     turnstile?: { reset: () => void };
@@ -44,6 +47,14 @@ export function enhanceForm(form: HTMLFormElement): void {
   // The script checks the fields itself from here, with its own messages.
   // In the markup the form is left to the browser, for a visitor without it.
   form.noValidate = true;
+
+  // Edge and Chrome read an untouched required date, select or radio out as
+  // invalid. From here the script says when a field is: valid until then.
+  // Not in the markup, which would hide the browser's own state from a
+  // visitor without script.
+  form
+    .querySelectorAll('[required], input[type="radio"]')
+    .forEach((el) => el.setAttribute('aria-invalid', 'false'));
 
   /* The consultation form's plan, from the card that linked to it. Without
      script the select opens on its first option, which is a fine answer too. */
@@ -125,11 +136,24 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (msg) msg.hidden = !on;
   };
 
+  /* A finger or a mouse on the send button: the check on blur would show a
+     line above it and move it out from under the press, and the click would
+     land on nothing. The send checks every field anyway. */
+  let pressing = false;
+  submit.addEventListener('pointerdown', () => {
+    pressing = true;
+    setTimeout(() => (pressing = false), 1000);
+  });
+
   /* On blur, not on input: do not correct someone mid-type. */
   form.addEventListener('focusout', (e) => {
     const input = e.target as Field;
-    if (!input.required || input.disabled || isRadio(input)) return;
+    if (pressing || !input.required || input.disabled || isRadio(input)) return;
     if (input.value.trim()) showError(input, !valid(input));
+  });
+  // The date's bounds as the picker opens, too.
+  form.addEventListener('focusin', (e) => {
+    if ((e.target as Element).matches?.('input[type="date"][data-min-today]')) bound();
   });
   const clear = (e: Event) => {
     const input = e.target as Field;
@@ -144,6 +168,7 @@ export function enhanceForm(form: HTMLFormElement): void {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    pressing = false;
     if (submit.disabled) return;
     sendErr.hidden = true;
 
@@ -167,12 +192,18 @@ export function enhanceForm(form: HTMLFormElement): void {
     submit.disabled = true;
     submit.textContent = submit.dataset.sending ?? 'Sending';
 
+    // A send that never answers has failed too: a stalled phone network, or
+    // the mail service. The Worker gives up on the mail service well before
+    // this, so a booking that went through is not reported as lost.
+    const stop = new AbortController();
+    const deadline = setTimeout(() => stop.abort(), SEND_DEADLINE);
     let body: { ok?: boolean; next?: string; error?: string } = {};
     try {
       const res = await fetch(form.action, {
         method: 'POST',
         body: new FormData(form),
         headers: { Accept: 'application/json' },
+        signal: stop.signal,
       });
       body = (await res.json().catch(() => ({}))) as typeof body;
       if (res.ok && body.next) {
@@ -180,7 +211,9 @@ export function enhanceForm(form: HTMLFormElement): void {
         return;
       }
     } catch {
-      /* the network: the same as a failed send */
+      /* the network, or the deadline: the same as a failed send */
+    } finally {
+      clearTimeout(deadline);
     }
 
     // A token is good for one try. The next try needs a new one.

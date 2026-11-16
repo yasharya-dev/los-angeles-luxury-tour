@@ -273,9 +273,13 @@ function page(lang: string, body: string, status: number): Response {
   );
 }
 
-/** Escaped, with a fold after each Japanese stop and comma. The page sets
-    keep-all, under which Safari folds nowhere else and cuts a word instead. */
-const folds = (s: string) => escapeHtml(s).replace(/([。、：])/g, '$1<wbr>');
+/** Escaped, with a fold after each Japanese stop, comma and colon. The page
+    sets keep-all, under which Safari folds nowhere else and cuts a word. */
+const folds = (s: string, followed = false) =>
+  escapeHtml(s)
+    .replace(/([。、：])/g, '$1<wbr>')
+    // At the very end only when something follows on the line: the address.
+    .replace(/<wbr>$/, followed ? '<wbr>' : '');
 
 function failPage(
   locale: Locale,
@@ -291,7 +295,7 @@ function failPage(
   const mail = kind === 'send' ? `<a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
   return page(
     locale,
-    `<p>${folds(f[kind])}${mail}</p>` +
+    `<p>${folds(f[kind], !!mail)}${mail}</p>` +
       (what ? `<p>${folds(what)}</p>` : '') +
       `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${folds(f.back)}</a></p>`,
     status,
@@ -309,17 +313,34 @@ const forbidden = () =>
 /** More than any of the two forms can hold. */
 const MAX_BODY = 64 * 1024;
 
+/**
+ * How long the mail service gets, in ms. Past it the send has failed, and the
+ * guest hears so with time to write instead: a booking takes at most two
+ * sends, well inside the form's own 20 seconds (scripts/enhance-form.ts).
+ */
+export const MAIL_DEADLINE = 8_000;
+
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(mail),
-  });
-  if (!res.ok) console.error('Resend failed', res.status, await res.text());
-  return res.ok;
+  const stop = new AbortController();
+  const deadline = setTimeout(() => stop.abort(), MAIL_DEADLINE);
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mail),
+      signal: stop.signal,
+    });
+    if (!res.ok) console.error('Resend failed', res.status, await res.text());
+    return res.ok;
+  } catch (error) {
+    console.error('Resend did not answer', error);
+    return false;
+  } finally {
+    clearTimeout(deadline);
+  }
 }
 
 async function handleSubmission(

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
+  MAIL_DEADLINE,
   SUBMISSIONS,
   clean,
   cleanLine,
@@ -10,6 +11,7 @@ import worker, {
   thanksPath,
 } from '../worker/index';
 import { SUMMARY_MARK } from '../src/data/booking';
+import { SEND_DEADLINE } from '../src/scripts/enhance-form';
 import { grantAccess } from '../worker/beta';
 
 // The Worker refuses a booking before today in Los Angeles, and the fixtures
@@ -199,6 +201,29 @@ describe('the Worker, end to end', () => {
     );
   });
 
+  // A mail service that never answers would hold the guest's request open
+  // past the form's own deadline. Past ours the send has failed: 502, and
+  // the form shows the address to write to.
+  it('gives up on a mail service that does not answer, in time for the form', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      ),
+    );
+    const answer = post('/api/booking', booking, { Accept: 'application/json' });
+    await vi.advanceTimersByTimeAsync(MAIL_DEADLINE);
+    const res = await answer;
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ ok: false, error: 'send' });
+    expect(MAIL_DEADLINE * 2).toBeLessThan(SEND_DEADLINE);
+  });
+
   it('sends a booking request through Resend and lands on the received page', async () => {
     const sent: unknown[] = [];
     vi.stubGlobal(
@@ -255,7 +280,7 @@ describe('the Worker, end to end', () => {
     expect(res.status).toBe(400);
     expect(body).toContain('送迎区間を選択してください。');
     // A fold after each stop: under keep-all Safari has none of its own.
-    expect(body).toContain('送信できませんでした。<wbr>前のページに戻り、<wbr>入力内容をご確認ください。<wbr>');
+    expect(body).toContain('送信できませんでした。<wbr>前のページに戻り、<wbr>入力内容をご確認ください。</p>');
     expect(body).toContain('href="/ja/book/dodgers-transfer" onclick="history.back();return false"');
   });
 
