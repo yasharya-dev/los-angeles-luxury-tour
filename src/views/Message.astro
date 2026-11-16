@@ -107,9 +107,12 @@ const c = copy[locale][kind];
 
   /* A way to reach her on its own, not a word in a sentence: a full target,
      at the label size the rest of the site uses. */
+  /* A flex box drops the space after LINE: the gap puts it back, or the ID
+     would read LINE@153cqwqp. */
   .line {
     display: inline-flex;
     align-items: center;
+    column-gap: 0.45em;
     min-height: var(--tap);
     font-family: var(--font-label);
     font-size: 14px;

@@ -29,6 +29,7 @@ const labels = {
   press: 'Media & press',
 };
 const en = locale === 'en' ? undefined : 'en';
+const NBSP = String.fromCharCode(0xa0);
 
 const copy = {
   en: {
@@ -47,8 +48,8 @@ const copy = {
     portraitAlt: 'Portrait of the founder',
 
     coastAlt: 'Waves breaking below a house on the Malibu coast',
-    // Held together, so the line never ends on a lone 'go.'
-    expTitle: 'Not only where you go. How you spend the time, in your own way.',
+    // Held together by no-break spaces, so a line never ends on a lone 'go.'
+    expTitle: `Not only where${NBSP}you${NBSP}go. How you spend the time, in your own way.`,
     exp: [
       'More than a sightseeing tour: we plan a trip at your pace and around your wishes, one that lets you feel what Los Angeles really is.',
       'With real local knowledge and careful support in Japanese, even a first visit is one you can enjoy at ease.',

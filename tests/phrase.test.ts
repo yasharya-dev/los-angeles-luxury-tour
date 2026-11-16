@@ -194,6 +194,13 @@ describe('phrases', () => {
     // A long compound still opens where both sides are words of their own.
     expect(joined('ドジャース観戦チケット購入代行')).toBe('ドジャース|観戦チケット|購入代行');
   });
+
+  // A short word stays with its neighbour only while the piece that makes
+  // is short: a fifteen-character piece is more than a phone's ※ list holds.
+  it('opens a short-word seam again when keeping it would make a long piece', () => {
+    expect(phrases('観戦チケットおよび駐車場代等の実費は、表示料金に含まれておりません。')[0]).toBe('観戦');
+    expect(phrases('はい。貸切プライベートツアーのため、').join('|')).not.toContain('貸切|');
+  });
 });
 
 // Chromium folds at a few characters inside a phrase even under keep-all.
@@ -202,23 +209,33 @@ describe('glue', () => {
   const WJ = String.fromCharCode(0x2060);
   const show = (s: string) => s.split(WJ).join('+');
 
-  it('joins the characters Chromium folds at inside a phrase', () => {
-    expect(show(glue('空港送迎（LAX⇔ホテル往復）'))).toBe('空港送迎（LAX+⇔+ホテル往復）');
-    expect(show(glue('スタジアムツアー／'))).toBe('スタジアムツアー+／');
-    expect(show(glue('1軒4〜6種ほどを'))).toBe('1軒4〜+6種ほどを');
-    expect(show(glue('（1軒あたり$20〜）'))).toBe('（1軒あたり+$20〜）');
-    expect(show(glue('LAXお迎え・'))).toBe('LAX+お迎え・');
+  // Under keep-all Chromium holds two letters or digits together, and still
+  // folds beside any punctuation or symbol. Each gets a joiner, both sides.
+  it('joins every mark and symbol inside a phrase to its neighbours', () => {
+    expect(show(glue('空港送迎（LAX⇔ホテル往復）'))).toBe('空港送迎+（+LAX+⇔+ホテル往復+）');
+    expect(show(glue('あなたの“やりたい”を'))).toBe('あなたの+“+やりたい+”+を');
+    expect(show(glue('1軒4〜6種ほどを'))).toBe('1軒4+〜+6種ほどを');
+    expect(show(glue('（1軒あたり$20〜）'))).toBe('（+1軒あたり+$+20+〜+）');
+    expect(show(glue('試合終了後のお迎え（往復・復路）'))).toBe('試合終了後のお迎え+（+往復+・+復路+）');
+    // Two letters, or a letter and kana, are held already: no joiner there.
+    expect(show(glue('LAXお迎え・'))).toBe('LAXお迎え+・');
+    expect(show(glue('In-N-Out・'))).toBe('In+-+N+-+Out+・');
   });
 
-  it('leaves the ends of a phrase, where the fold between phrases is', () => {
-    expect(glue('ご宿泊先⇔')).toBe('ご宿泊先' + WJ + '⇔');
-    expect(glue('／1グループ')).toBe('／1グループ');
-    expect(glue('約432,000円〜')).toBe('約432,000円〜');
-    expect(glue('（$2,480〜）')).toBe('（$2,480〜）');
+  // A slash before a figure is 'per': the fold goes before it (cut()), and
+  // the unit after it stays whole.
+  it('keeps a unit after its slash, and leaves the phrase ends alone', () => {
+    expect(show(glue('／1グループ'))).toBe('／+1グループ');
+    expect(show(glue('ご宿泊先⇔'))).toBe('ご宿泊先+⇔');
+    expect(show(glue('スタジアムツアー／'))).toBe('スタジアムツアー+／');
+    for (const piece of ['／1グループ', 'ご宿泊先⇔', '（$2,480〜）']) {
+      expect(glue(piece).startsWith(WJ), piece).toBe(false);
+      expect(glue(piece).endsWith(WJ), piece).toBe(false);
+    }
   });
 
   it('adds nothing but joiners, and nothing to English', () => {
-    for (const text of ['空港送迎（LAX⇔ホテル往復）', 'セクション・座席の指定可', 'Private tours']) {
+    for (const text of ['空港送迎（LAX⇔ホテル往復）', 'セクション・座席の指定可', '約432,000円〜']) {
       expect(glue(text).split(WJ).join('')).toBe(text);
     }
     expect(glue('Private tours, by reservation only')).toBe('Private tours, by reservation only');

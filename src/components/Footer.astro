@@ -154,13 +154,13 @@ if (CONTACT.facebook) {
   .site-footer__privacy a:hover {
     color: var(--gold-text);
   }
-  /* Without proportional kana: WebKit underlines a palt run at its full
-     width, past the last character. */
+  /* Half-width marks without proportional kana: WebKit underlines a palt run
+     at its full width, past the last character. */
   :global(html[lang='ja']) .site-footer__privacy a {
     font-family: var(--font-body);
     letter-spacing: 0.06em;
     text-transform: none;
-    font-feature-settings: normal;
+    font-feature-settings: 'halt';
   }
 
   /* The legal lines, as issued: a name and a registration number are never

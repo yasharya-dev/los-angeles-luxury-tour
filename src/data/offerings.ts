@@ -15,6 +15,8 @@ import type { Locale } from '../i18n/ui';
 
 // The site's English uses em dashes; a guard blocks the literal character.
 const EM = String.fromCharCode(0x2014);
+/** U+2060, the word joiner: no fold either side of it, and nothing shows. */
+const NOFOLD = String.fromCharCode(0x2060);
 
 export type Tier = 'signature' | 'day' | 'transport';
 
@@ -52,7 +54,7 @@ export const offerings: Offering[] = [
       ja: 'ドジャース観戦の旅',
     },
     blurb: {
-      en: '4 nights, 6 days · three games · a guide and a private driver',
+      en: '4 nights, 6 days · three games · a guide and a dedicated driver',
       ja: '4泊6日・観戦3試合・ガイドと専属ドライバー付き',
     },
     price: { en: 'from $2,650', ja: '約432,000円〜' },
@@ -109,7 +111,7 @@ export const offerings: Offering[] = [
       ja: 'テメキュラ ワイナリー1日旅',
     },
     blurb: {
-      en: '9 a.m. to 6 p.m. · from your hotel · three award-winning wineries',
+      en: `9 a.m. to 6 p.m. · hotel to hotel · three award-${NOFOLD}winning wineries`,
       ja: '9:00〜18:00・ホテル発着・受賞ワイナリー3か所',
     },
     price: { en: 'from $360', ja: '約59,000円〜' },
@@ -147,7 +149,7 @@ export const offerings: Offering[] = [
       ja: 'ロサンゼルス1日観光',
     },
     blurb: {
-      en: '8 hours chartered · LAX pickup · hotel transfer included',
+      en: '8-hour private charter · LAX pickup · hotel transfer included',
       ja: '8時間貸切・LAXお迎え・ホテル送迎付き',
     },
     price: { en: 'from $785', ja: '128,000円〜' },
@@ -171,7 +173,7 @@ export const offerings: Offering[] = [
       ja: 'ドジャース観戦・送迎付きツアー',
     },
     blurb: {
-      en: '8 hours chartered · the ticket arranged · airport or hotel pickup',
+      en: '8-hour private charter · ticket arranged · airport or hotel pickup',
       ja: '8時間完全貸切・チケット手配込み・空港またはホテルお迎え',
     },
     price: { en: 'from $785', ja: '128,000円〜' },
@@ -222,7 +224,7 @@ export const offerings: Offering[] = [
     },
     // Her subtitle, verbatim, doubles as the card line.
     blurb: {
-      en: 'Between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
+      en: 'Transfers between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
       ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     price: { en: 'from ¥49,800', ja: '49,800円〜' },
@@ -262,7 +264,7 @@ export const offerings: Offering[] = [
 // Capability only, no prices. Shopping is quoted per item; the a-la-carte
 // tier appeared on one slide in May 2025 and never again, so treat it stale.
 export const capabilities: Record<Locale, string> = {
-  en: 'We can also shop on your behalf, book restaurants and go with you to them, each quoted separately.',
+  en: 'We can also shop on your behalf, book restaurants, and come with you to them, each quoted separately.',
   ja: 'ショッピング代行・レストラン予約・飲食店での同行サポートも承ります（個別お見積り）。',
 };
 

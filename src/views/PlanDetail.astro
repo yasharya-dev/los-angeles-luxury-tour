@@ -268,11 +268,16 @@ const terms = cancellation[locale];
     }
   }
 
-  /* A phone on its side: the photo leaves room for the title in the first
-     screen, cropped rather than shrunk. */
+  /* A phone on its side: the photo leaves room for the kicker and title in
+     the first screen, cropped rather than shrunk, and the column's padding
+     above it, which is for a desktop, goes. Measured at 667x375, 844x390 and
+     932x430. */
   @media (orientation: landscape) and (max-height: 500px) {
+    .plan-page {
+      padding-top: 0;
+    }
     .hero__photo {
-      max-height: 55svh;
+      max-height: 45svh;
     }
   }
 
@@ -389,8 +394,11 @@ const terms = cancellation[locale];
 
   /* --------------------------------------------------------- experience */
 
+  /* The gaps are even from ink to ink: the kicker's half-leading adds about
+     5px above this part, and the details panel's shadow takes about 3px from
+     the one below it. */
   .experience {
-    margin-top: var(--part-gap);
+    margin-top: calc(var(--part-gap) - 5px);
   }
 
   .experience__title {
@@ -456,15 +464,16 @@ const terms = cancellation[locale];
     font-size: 15px;
     color: var(--ink-soft);
   }
-  /* Without proportional kana: WebKit lays a palt run out at its full width
-     and draws it narrower, so a right-aligned value stopped short. */
+  /* Half-width marks without proportional kana: WebKit lays a palt run out
+     at its full width and draws it narrower, so a right-aligned value stopped
+     short; with no feature at all ・ and brackets go full width and loose. */
   .usage__value {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
     color: var(--ink);
     text-align: right;
-    font-feature-settings: normal;
+    font-feature-settings: 'halt';
   }
 
   /* ------------------------------------------------------------ details */
@@ -545,7 +554,7 @@ const terms = cancellation[locale];
      would otherwise be the page's own. */
   .closing {
     border: 1px solid var(--hairline);
-    margin-top: var(--part-gap);
+    margin-top: calc(var(--part-gap) + 3px);
     padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
     border-radius: var(--radius-card);
     background: var(--bar);

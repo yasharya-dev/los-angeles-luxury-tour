@@ -5,6 +5,9 @@
 
 import type { Locale } from '../i18n/ui';
 
+/** U+2060, the word joiner: no fold either side of it, and nothing shows. */
+const NOFOLD = String.fromCharCode(0x2060);
+
 export interface ScheduleRow {
   time: string;
   title: Record<Locale, string>;
@@ -42,8 +45,8 @@ export const journeys: Journey[] = [
         'Three game tickets, with round-trip stadium transport',
         'Stadium tour and pre-game tour tickets',
         'Dodgers Clubhouse, for the merchandise',
-        // Word joiners after the hyphens: the name never folds as In- / N-Out.
-        'The murals, Hollywood, In-⁠N-⁠Out, and Pink’s',
+        // The name never folds as In- / N-Out. (The Japanese is held by glue().)
+        `The murals, Hollywood, In-${NOFOLD}N-${NOFOLD}Out, and Pink’s`,
         'A dedicated driver and Japanese-language guide throughout',
         'Fuel and parking',
       ],
@@ -52,7 +55,7 @@ export const journeys: Journey[] = [
         '観戦チケット3試合分（スタジアム往復送迎付き）',
         'スタジアムツアー・プレゲームツアーのチケット',
         'ドジャースクラブハウスでのグッズ巡り',
-        '話題の壁画巡り・ハリウッド観光・In-⁠N-⁠Out・ピンクス',
+        '話題の壁画巡り・ハリウッド観光・In-N-Out・ピンクス',
         '専属ドライバーと日本語ガイドによる終日サポート',
         'ガソリン代・駐車場代',
       ],

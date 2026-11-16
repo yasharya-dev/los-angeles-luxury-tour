@@ -58,6 +58,9 @@ const show = locale === 'en';
       .querySelector<HTMLButtonElement>('[data-lang-offer-close]')
       ?.addEventListener('click', () => {
         bar.hidden = true;
+        // The button that had focus is gone: hand it on to what comes next,
+        // or the next Tab would start again from the top of the page.
+        document.querySelector<HTMLElement>('.site-header .brand')?.focus();
         try {
           localStorage.setItem(KEY, '1');
         } catch {

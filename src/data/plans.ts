@@ -108,7 +108,7 @@ export const plans: Plan[] = [
     },
     // Her subtitle of 2026-10-23, which led the page before.
     description: {
-      en: 'Between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
+      en: 'Transfers between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
       ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     intro: {
@@ -164,7 +164,8 @@ export const plans: Plan[] = [
     usage: [
       {
         label: { en: 'Service area', ja: '送迎エリア' },
-        value: { en: 'Los Angeles and the surrounding area', ja: 'ロサンゼルス市内・近郊' },
+        // One line on every phone, as hers is.
+        value: { en: 'Greater Los Angeles', ja: 'ロサンゼルス市内・近郊' },
       },
       {
         label: { en: 'Group size', ja: 'ご利用人数' },

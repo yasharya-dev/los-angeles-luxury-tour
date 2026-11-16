@@ -22,6 +22,14 @@ if (!journey || !offering) {
   throw new Error(`No journey data for slug "${slug}"`);
 }
 
+// The schedule's times are written 13:15. English reads them on a 12-hour
+// clock, as the card's '9 a.m. to 6 p.m.' does; Japanese as written.
+const clock = (time: string) => {
+  if (locale !== 'en') return time;
+  const [h, m] = time.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'a.m.' : 'p.m.'}`;
+};
+
 const labels = {
   en: {
     includes: 'What is included',
@@ -65,7 +73,7 @@ const labels = {
         <ol class="schedule" role="list">
           {journey.schedule.map((row) => (
             <li class="row">
-              <span class="row__time">{row.time}</span>
+              <span class="row__time">{clock(row.time)}</span>
               <div class="row__text">
                 <p class="row__title"><Phrases text={row.title[locale]} /></p>
                 {row.note && (
@@ -203,6 +211,15 @@ const labels = {
     gap: clamp(16px, 3vw, 28px);
     padding: 16px 0;
     border-bottom: 1px solid var(--hairline-soft);
+  }
+  /* On the narrowest phones the time goes above its row: beside it, the
+     text had 208px at 320, and her 「オリーブオイルテイスティングへ。」 needs
+     214 at the body size, so it broke mid-word and started a line with 。 */
+  @media (max-width: 359px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
   }
 
   /* Times in the label face in both locales, as the Experience page's step
