@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { threeYearsOn, todayInLA } from '../src/data/calendar';
 import {
   checkBooking,
   formatDate,
@@ -9,6 +10,18 @@ import {
 } from '../src/data/booking';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
+
+// A request is refused before today in Los Angeles, and the fixtures are
+// dated 2027: on the real clock this file would start failing as those days
+// pass, and npm run deploy with it. The clock is pinned to the day these were
+// written; a test about the clock sets its own.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const transfer = {
   service: 'dodgers-transfer',
@@ -44,6 +57,43 @@ describe('checkBooking', () => {
   });
 });
 
+describe('the dates a request can name', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('starts at today in Los Angeles, not yesterday in UTC', () => {
+    // 23:50 UTC on the 15th is 15:50 on the 15th in Los Angeles. The 14th is
+    // over everywhere, but yesterday in UTC, the old floor, let it through.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-15T23:50:00Z'));
+    expect(todayInLA()).toBe('2026-11-15');
+    expect(checkBooking({ ...transfer, date: '2026-11-14' })).toEqual({ ok: false, problem: 'date' });
+    expect(checkBooking({ ...transfer, date: '2026-11-15' }).ok).toBe(true);
+    // 07:30 UTC on the 16th is still the 15th in Los Angeles.
+    vi.setSystemTime(new Date('2026-11-16T07:30:00Z'));
+    expect(todayInLA()).toBe('2026-11-15');
+    expect(checkBooking({ ...transfer, date: '2026-11-15' }).ok).toBe(true);
+  });
+
+  it('reads the Los Angeles date across the clock change', () => {
+    // Either side of a clock change: 23:59 PST on 7 March, 23:59 PDT on 31
+    // October, 00:30 PST on 2 November.
+    expect(todayInLA(new Date('2026-03-08T07:59:00Z'))).toBe('2026-03-07');
+    expect(todayInLA(new Date('2026-11-01T06:59:00Z'))).toBe('2026-10-31');
+    expect(todayInLA(new Date('2026-11-02T08:30:00Z'))).toBe('2026-11-02');
+  });
+
+  it('ends three years on, on a real date', () => {
+    expect(threeYearsOn('2026-11-15')).toBe('2029-11-15');
+    expect(threeYearsOn('2028-02-29')).toBe('2031-02-28');
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+    expect(checkBooking({ ...transfer, date: '2029-11-15' }).ok).toBe(true);
+    expect(checkBooking({ ...transfer, date: '2029-11-16' })).toEqual({ ok: false, problem: 'date' });
+  });
+});
+
 describe('guestOptions', () => {
   it('offers her plan’s capacity and her five-or-more choice', () => {
     expect(guestOptions('dodgers-transfer').map((g) => g.value)).toEqual(['1', '2', '3', '4', 'over']);
@@ -53,9 +103,18 @@ describe('guestOptions', () => {
     for (const o of offerings) {
       if (plans.some((p) => p.slug === o.id)) continue;
       const list = guestOptions(o.id);
-      expect(list.map((g) => g.value), o.id).toEqual(['1', '2', '3', '4', '5', '6+']);
+      const all = ['1', '2', '3', '4', '5', '6+'];
+      const from = all.filter((v) => v === '6+' || Number(v) >= (o.minGuests ?? 1));
+      expect(list.map((g) => g.value), o.id).toEqual(from);
       for (const g of list) expect(g.label.en && g.label.ja, o.id).toBeTruthy();
     }
+  });
+
+  it('starts where the price does: the mansion dinner is for two and up', () => {
+    expect(guestOptions('mansion-dinner').map((g) => g.value)).toEqual(['2', '3', '4', '5', '6+']);
+    expect(
+      checkBooking({ service: 'mansion-dinner', date: '2027-04-10', guests: '1' }),
+    ).toEqual({ ok: false, problem: 'guests' });
   });
 });
 
