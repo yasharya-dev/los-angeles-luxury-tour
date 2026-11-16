@@ -24,7 +24,8 @@ const copy = {
     title: 'Request a booking',
     intro: 'Tell us what you would like. We will check availability and get back to you.',
     choose: 'Choose a plan',
-    asideText: 'Not decided yet?',
+    // The space before the link is in the English: none after a Japanese 、.
+    asideText: 'Not decided yet? ',
     asideLink: 'Talk to us first',
   },
   ja: {
@@ -79,7 +80,16 @@ const prefix = p('/book');
                         <span class="pick-row__name">
                           <Phrases text={o.name[locale]} />
                         </span>
-                        <span class="pick-row__price">{o.price[locale]}</span>
+                        {/* With its unit, as on the cards: a price per person
+                            and one per group must not read alike. */}
+                        <span class="pick-row__price">
+                          <span class="pick-row__amount">{o.price[locale]}</span>
+                          {o.priceNote?.[locale] && (
+                            <span class="pick-row__unit">
+                              <Phrases text={o.priceNote[locale]} />
+                            </span>
+                          )}
+                        </span>
                       </span>
                       <Icon name="chevron-right" size={20} class="pick-row__chevron" />
                     </a>
@@ -98,7 +108,7 @@ const prefix = p('/book');
   !id && (
     <section class="section section--deep aside">
       <p class="body center measure">
-        {c.asideText} <a href={p('/consult')}>{c.asideLink}</a>
+        {c.asideText}<a href={p('/consult')}>{c.asideLink}</a>
       </p>
     </section>
   )
@@ -164,18 +174,26 @@ const prefix = p('/book');
     flex: 1;
     min-width: 0;
   }
-  .pick-row__name,
-  .pick-row__price {
-    display: block;
-  }
   .pick-row__name {
+    display: block;
     font-size: 16px;
     font-weight: 600;
     line-height: 1.5;
   }
+  /* As on the cards: the unit folds after the figure, never inside it. */
   .pick-row__price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
     font-size: 14px;
     color: var(--gold-text);
+  }
+  .pick-row__amount {
+    white-space: nowrap;
+  }
+  .pick-row__unit {
+    color: var(--ink-soft);
   }
   .pick-row :global(.pick-row__chevron) {
     flex: none;

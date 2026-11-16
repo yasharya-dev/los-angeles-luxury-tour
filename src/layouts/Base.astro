@@ -112,5 +112,17 @@ const ogAlt =
       <slot />
     </main>
     <Footer locale={locale} />
+    {/* Copied text leaves behind the invisible marks the Japanese is set
+        with (U+200B where a line may fold, U+2060 where it may not): pasted
+        into LINE, a search box or a form, they would ride along. */}
+    <script is:inline>
+      document.addEventListener('copy', function (e) {
+        var text = String(getSelection());
+        var clean = text.replace(/[\u200b\u2060]/g, '');
+        if (clean === text || !e.clipboardData) return;
+        e.clipboardData.setData('text/plain', clean);
+        e.preventDefault();
+      });
+    </script>
   </body>
 </html>

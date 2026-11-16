@@ -16,6 +16,7 @@ import {
   type Booking,
   type Summary,
 } from '../src/data/booking';
+import { MAIL_DEADLINE } from '../src/data/deadlines';
 
 // Serves the static build and handles the two forms: POST /api/inquiry is the
 // consultation form, POST /api/booking is a booking request. Everything about
@@ -253,7 +254,8 @@ const FAIL: Record<Locale, { check: string; send: string; back: string }> = {
   },
   en: {
     check: 'We could not send that. Please go back and check the form.',
-    send: 'Something went wrong sending that. Please email us directly at',
+    // Ends in its space: the address follows straight on in every language.
+    send: 'Something went wrong sending that. Please email us directly at ',
     back: 'Go back',
   },
 };
@@ -272,6 +274,14 @@ function page(lang: string, body: string, status: number): Response {
   );
 }
 
+/** Escaped, with a fold after each Japanese stop, comma and colon. The page
+    sets keep-all, under which Safari folds nowhere else and cuts a word. */
+const folds = (s: string, followed = false) =>
+  escapeHtml(s)
+    .replace(/([。、：])/g, '$1<wbr>')
+    // At the very end only when something follows on the line: the address.
+    .replace(/<wbr>$/, followed ? '<wbr>' : '');
+
 function failPage(
   locale: Locale,
   kind: 'check' | 'send',
@@ -281,13 +291,14 @@ function failPage(
 ): Response {
   const f = FAIL[locale];
   const what = problem ? (problemText[locale] as Record<string, string>)[problem] : undefined;
-  const mail =
-    kind === 'send' ? ` <a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
+  // Any space before the address is the copy's; folds() lets it fold after a
+  // Japanese colon.
+  const mail = kind === 'send' ? `<a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
   return page(
     locale,
-    `<p>${escapeHtml(f[kind])}${mail}</p>` +
-      (what ? `<p>${escapeHtml(what)}</p>` : '') +
-      `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${escapeHtml(f.back)}</a></p>`,
+    `<p>${folds(f[kind], !!mail)}${mail}</p>` +
+      (what ? `<p>${folds(what)}</p>` : '') +
+      `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${folds(f.back)}</a></p>`,
     status,
   );
 }
@@ -340,16 +351,26 @@ async function readForm(request: Request): Promise<FormData | 'large' | 'bad'> {
 }
 
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(mail),
-  });
-  if (!res.ok) console.error('Resend failed', res.status, await res.text());
-  return res.ok;
+  const stop = new AbortController();
+  const deadline = setTimeout(() => stop.abort(), MAIL_DEADLINE);
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mail),
+      signal: stop.signal,
+    });
+    if (!res.ok) console.error('Resend failed', res.status, await res.text());
+    return res.ok;
+  } catch (error) {
+    console.error('Resend did not answer', error);
+    return false;
+  } finally {
+    clearTimeout(deadline);
+  }
 }
 
 async function handleSubmission(

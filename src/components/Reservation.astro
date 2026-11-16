@@ -13,7 +13,7 @@ const { locale } = Astro.props;
 // words. It is not a scarcity device. No caps, no counters, no countdowns.
 const copy = {
   en: {
-    title: 'By Reservation Only',
+    title: 'By reservation only',
     note: 'So that we can look after you on the dates you want, please get in touch early once your travel dates are set.',
   },
   ja: {
@@ -32,7 +32,8 @@ const c = copy[locale];
 {/* A plate: black in both themes, so its tokens are the dark ones. */}
 <div class="reservation plate">
   <Icon name="calendar" size={26} class="reservation__icon" />
-  <p class="reservation__title">{c.title}</p>
+  {/* Her heading for the section: a heading, so the outline reaches it. */}
+  <h2 class="reservation__title">{c.title}</h2>
   <p class="reservation__note"><Phrases text={c.note} /></p>
 </div>
 

@@ -111,10 +111,14 @@ const en = locale === 'en' ? undefined : 'en';
   :global(.received-summary__rows dt) {
     color: var(--ink-soft);
   }
+  /* Half-width marks without proportional kana: WebKit lays a palt run out
+     at its full width and draws it narrower, so a right-aligned value stopped
+     short; with no feature at all ・ and brackets go full width and loose. */
   :global(.received-summary__rows dd) {
     margin: 0;
     font-weight: 600;
     color: var(--ink);
     text-align: right;
+    font-feature-settings: 'halt';
   }
 </style>

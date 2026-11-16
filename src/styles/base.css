@@ -522,7 +522,7 @@ html[lang='ja'] .btn {
   color: var(--gold-text);
 }
 
-/* 「完全予約制」 is set wide in Mincho. Its English, "By Reservation Only",
+/* 「完全予約制」 is set wide in Mincho. Its English, "By reservation only",
    takes the English display face and stays on one line. */
 html[lang='en'] .reservation__title {
   font-family: var(--font-display);

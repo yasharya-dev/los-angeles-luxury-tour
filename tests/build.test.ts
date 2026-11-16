@@ -325,8 +325,9 @@ const bare = (route: string) =>
     .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
     .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
     .replace(/<[^>]+>/g, '')
-    // Spaces, and the invisible fold (U+200B) that is not one to a regex.
-    .replace(/[\s​]+/g, '');
+    // Spaces, the invisible fold (U+200B) that is not one to a regex, and the
+    // word joiner (U+2060) that holds a phrase together in Chromium.
+    .replace(/[\s\u200b\u2060]+/g, '');
 
 // Amelia's homepage, section by section, from her brief of 2026-11-05. Her
 // Japanese is checked character for character, and in her order.
@@ -403,7 +404,7 @@ describe('the homepage, in her six sections', () => {
     const titles = [...html('/ja').matchAll(/<h3 class="reason__title"[^>]*>([^]*?)<\/h3>/g)].map(
       ([, inner]) => {
         expect(inner.trim()).not.toMatch(/[<\s]/);
-        return inner.trim().replace(/​/g, '/');
+        return inner.trim().replace(/\u200b/g, '/');
       },
     );
     expect(titles).toEqual(['日本語で安心', '高級車で/完全貸切', 'オーダーメイドの/旅']);
@@ -412,7 +413,9 @@ describe('the homepage, in her six sections', () => {
   // A plan with its own page links to it. The rest open in place and hold
   // what the visitor came for: the description and both ways to act on it.
   it('lists every plan as a card with its price and a way to its details', () => {
-    const text = (markup: string) => markup.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+    // The word joiner (U+2060) holds a phrase together and is not text.
+    const text = (markup: string) =>
+      markup.replace(/<[^>]+>/g, '').replace(/[\s\u2060]+/g, '');
     const labels = { en: 'Details', ja: '詳細を見る' };
     for (const [prefix, locale] of [['', 'en'], ['/ja', 'ja']] as const) {
       const doc = html(prefix || '/');
@@ -777,7 +780,12 @@ describe('the header and footer', () => {
         footer(route).match(/<nav class="site-footer__links"[\s\S]*?<\/nav>/)?.[0] ?? '';
       const anchors = links.match(/<a [^>]*>/g) ?? [];
       expect(anchors.length, route).toBeGreaterThanOrEqual(2);
-      for (const a of anchors) expect(a, route).toMatch(/aria-label="[^"]+"/);
+      // Named once, by its title, which a mouse also shows: a title and an
+      // aria-label both were read out twice.
+      for (const a of anchors) {
+        expect(a, route).toMatch(/title="[^"]+"/);
+        expect(a, route).not.toMatch(/aria-label=/);
+      }
       expect(links).toContain('href="mailto:losangelesluxurytour@gmail.com"');
       expect(links).toContain('href="https://www.instagram.com/losangelesluxurytour/"');
       expect(footer(route)).not.toContain('line.me');
@@ -846,11 +854,16 @@ describe('photographs', () => {
     expect(sizes('/experience')).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
   });
 
+  // The About page opens on her portrait, in the first screen of a phone;
+  // the coast band below it is a page lower.
   it('leaves every photo that is not a page opener to load lazily', () => {
-    const img = picture('/about').match(/<img[^>]*>/)?.[0] ?? '';
-    expect(img).toContain('loading="lazy"');
-    expect(img).toContain('decoding="async"');
-    expect(img).not.toContain('fetchpriority');
+    const imgs = html('/about').match(/<img[^>]*>/g) ?? [];
+    const portrait = imgs.find((i) => i.includes('portrait')) ?? '';
+    const band = imgs.find((i) => i.includes('hero-malibu')) ?? '';
+    expect(portrait).toContain('loading="eager"');
+    expect(band).toContain('loading="lazy"');
+    expect(band).toContain('decoding="async"');
+    expect(band).not.toContain('fetchpriority');
   });
 
   // Listing AVIF first only helps if it is the smaller file. With one shared
@@ -1128,18 +1141,31 @@ describe('text over a photograph', () => {
 // and by ICU's dictionary, and either can change under us: a BudouX release, a
 // Node upgrade. The folds are part of her copy, so they are pinned here. A
 // change shows up as a diff of this file to read and accept, not as a line
-// that quietly moved on the site.
+// that quietly moved on the site. ' | ' is a fold, ' // ' a line break, and
+// ‿ a word joiner, which holds a phrase together and is otherwise invisible.
 describe('Japanese line folds', () => {
+  // Every page the build writes: the not-found pages, and the English pages,
+  // whose only Japanese is the offer to read the page in Japanese.
+  const allPages = (dir = DIST): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return allPages(path);
+      return name.endsWith('.html') ? [path] : [];
+    });
+
   it('folds every line where it did when this was last reviewed', async () => {
     const lines = new Set<string>();
-    for (const p of PATHS) {
-      for (const [, inner] of html(`/ja${p === '/' ? '' : p}`).matchAll(
+    for (const file of allPages()) {
+      for (const [, inner] of readFileSync(file, 'utf8').matchAll(
         /<span class="phrases"[^>]*>([^]*?)<\/span>/g,
       )) {
         lines.add(
           inner
             .replace(/<wbr[^>]*>/g, ' | ')
+            // A label's folds are U+200B (see Phrases.astro): folds all the same.
+            .replace(/\u200b/g, ' | ')
             .replace(/<br[^>]*>/g, ' // ')
+            .replace(/\u2060/g, '‿')
             .replace(/<[^>]+>/g, '')
             .replace(/\s+/g, ' ')
             .trim(),
@@ -1347,7 +1373,7 @@ describe('her plan page, in her order', () => {
       .replace(/<script[^]*?<\/script>|<style[^]*?<\/style>/g, '')
       .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
       .replace(/<[^>]+>/g, '')
-      .replace(/[\s​]+/g, '');
+      .replace(/[\s\u200b\u2060]+/g, '');
 
   const HERS = [
     'Dodgers game transfer',
@@ -1481,7 +1507,7 @@ describe('the booking form', () => {
       .replace(/<script[^]*?<\/script>|<style[^]*?<\/style>/g, '')
       .replace(/<span class="sr-only"[^>]*>[^<]*<\/span>/g, '')
       .replace(/<[^>]+>/g, '')
-      .replace(/[\s​]+/g, '');
+      .replace(/[\s\u200b\u2060]+/g, '');
 
   // Every plan has its own booking page, so the form knows its plan without
   // script; /book asks which, and an old ?service= link goes on to the page.
@@ -1596,6 +1622,96 @@ describe('the booking form', () => {
     }
   });
 
+  // Whether a field is invalid is the script's to say, from the moment it
+  // runs (tests/enhance-form.test.ts). In the markup it would hide the
+  // browser's own state from a visitor without script.
+  it('leaves a field\'s invalid state to the browser in the markup', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula', '/ja/consult', '/consult']) {
+      const tags = html(p).match(/<(input|select|textarea)\b[^>]*\brequired\b[^>]*>/g) ?? [];
+      expect(tags.length, p).toBeGreaterThan(2);
+      expect(html(p), p).not.toContain('aria-invalid');
+    }
+  });
+
+  // Back to a form the browser no longer has cached: it puts the fields back
+  // as the guest left them, hotel and LINE ID included, which autocomplete
+  // off would leave out.
+  it('lets the browser put every typed field back', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula']) {
+      const fields = html(p).match(/<(input|textarea)\b[^>]*name="(hotel|line|notes|name|email)"[^>]*>/g) ?? [];
+      expect(fields.length, p).toBe(5);
+      for (const field of fields) expect(field, p).not.toContain('autocomplete="off"');
+    }
+  });
+
+  // The guest's way out when a send fails: heard as it appears, on both forms.
+  it('announces a failed send on both forms', () => {
+    for (const p of ['/consult', '/ja/consult', '/book/temecula', '/ja/book/dodgers-transfer']) {
+      expect(html(p), p).toMatch(/<p class="form__err" data-send-error hidden role="alert"[\s>]/);
+    }
+  });
+
+  // The referral discount is part of the question: read with its two fields.
+  it('reads the referral discount with the fields it is about', () => {
+    for (const p of ['/consult', '/ja/consult']) {
+      const doc = html(p);
+      expect(doc, p).toMatch(/<p class="caption hint" id="h-heard"[\s>]/);
+      expect(doc, p).toMatch(/id="f-heard"[^>]*aria-describedby="h-heard"/);
+      expect(doc, p).toMatch(/id="f-ref"[^>]*aria-describedby="h-heard"/);
+    }
+  });
+
+  // Japanese sets no half-width space after its own comma or colon.
+  it('puts a link straight after a Japanese comma or colon', () => {
+    // Every tag but the link's own is invisible in the line: out first, so a
+    // </span> or a scoped <wbr> cannot hide a space between the two.
+    // The word joiner (U+2060) holds a mark to its word and is not text.
+    const seenLine = (markup: string) =>
+      markup.replace(/<(?!\/?a[\s>])[^>]+>/g, '').replace(/\u2060/g, '');
+    for (const p of ['/ja/book', '/ja/consult', '/ja/book/temecula']) {
+      expect(seenLine(html(p)), p).not.toMatch(/[、：]\s+<a /);
+    }
+    const sendLine = (p: string) =>
+      seenLine(html(p).match(/<p class="form__err" data-send-error[^]*?<\/p>/)?.[0] ?? '');
+    for (const p of ['/ja/consult', '/ja/book/temecula']) {
+      expect(sendLine(p), p).toContain('ご連絡ください：\u200b<a href="mailto:');
+    }
+    for (const p of ['/consult', '/book/temecula']) {
+      expect(sendLine(p), p).toContain('directly at \u200b<a href="mailto:');
+    }
+  });
+
+  // A price per person and one per group must not read alike.
+  it('shows each price on the way to booking with its unit', () => {
+    for (const locale of ['en', 'ja'] as const) {
+      const text = bare(locale === 'ja' ? '/ja/book' : '/book');
+      for (const o of offerings) {
+        const unit = o.priceNote?.[locale];
+        if (unit) expect(text, o.id).toContain((o.price[locale] + unit).replace(/\s+/g, ''));
+      }
+    }
+  });
+
+  it('starts the guests where the price does', () => {
+    for (const p of ['/book/mansion-dinner', '/ja/book/mansion-dinner']) {
+      const select = html(p).match(/<select[^>]*id="f-guests"[^]*?<\/select>/)?.[0] ?? '';
+      expect(select, p).not.toContain('value="1"');
+      expect(select, p).toContain('value="2"');
+    }
+  });
+
+  // Her pickup hint only where there is a pickup. An attribute cannot hold
+  // <wbr>, so its phrases are joined by U+200B, or Safari folds mid-word.
+  it('gives each plan a notes hint that fits it, folded at its phrases', () => {
+    const hint = (p: string) => html(p).match(/<textarea[^>]*placeholder="([^"]*)"/)?.[1] ?? '';
+    const pickup = hint('/ja/book/dodgers-transfer');
+    expect(pickup.replace(/\u200b/g, '')).toBe('送迎場所やご希望など、お気軽にお知らせください。');
+    expect(pickup.split('\u200b').length).toBeGreaterThan(2);
+    expect(hint('/ja/book/dodgers-ticket')).not.toContain('送迎');
+    expect(hint('/book/dodgers-ticket')).not.toContain('Pickup');
+    expect(hint('/book/mansion-dinner')).toContain('Pickup');
+  });
+
   it('leaves checking to the browser when there is no script', () => {
     for (const p of ['/book/temecula', '/ja/book/dodgers-transfer', '/consult', '/ja/consult']) {
       expect(html(p), p).not.toMatch(/<form[^>]*novalidate/);
@@ -1630,8 +1746,10 @@ describe('the booking form', () => {
 
   // Her newer lines say the same thing as her October notice, so it retired.
   it('retires the old approval notice for her newer lines', () => {
+    // On the text as seen: a fold mark from Phrases would split the string
+    // in the markup and let the old notice back unnoticed.
     for (const p of ['/ja/book', '/ja/book/dodgers-transfer', '/ja/book/received']) {
-      expect(html(p), p).not.toContain('※ご予約は送信後');
+      expect(bare(p), p).not.toContain('※ご予約は送信後');
     }
   });
 
@@ -1644,9 +1762,10 @@ describe('the booking form', () => {
       ...offerings.flatMap((o) => [`/book/${o.id}`, `/ja/book/${o.id}`]),
     ];
     for (const p of pages) {
-      const doc = html(p);
-      expect(doc, p).not.toMatch(/booking is confirmed|reservation is confirmed\./i);
-      expect(doc, p).not.toMatch(/ご予約が確定しました|予約確定/);
+      // Spaces are gone in bare(), so the English is matched without them.
+      const text = bare(p);
+      expect(text, p).not.toMatch(/bookingisconfirmed|reservationisconfirmed\./i);
+      expect(text, p).not.toMatch(/ご予約が確定しました|予約確定/);
     }
   });
 });
@@ -1678,5 +1797,146 @@ describe('sitemap', () => {
     expect(readFileSync(join(DIST, 'robots.txt'), 'utf8')).toContain(
       'sitemap.xml',
     );
+  });
+});
+
+// What the full site test of round 3 found on the pages, held where a
+// regression would show first.
+describe('the pages, after the full site test', () => {
+  // Her question asks whether it is all right NOT to speak English, and her
+  // answer is yes. Asked the other way round, the yes said the opposite.
+  it('asks the English question her way round, so its yes means hers', () => {
+    expect(html('/contact')).toContain('Is it all right if I do not speak English?');
+    expect(html('/contact')).not.toContain('Do I need to speak English?');
+    expect(bare('/ja/contact')).toContain('英語が話せなくても大丈夫ですか？はい、大丈夫です。');
+  });
+
+  // Her heading for section 05: in the outline, not a paragraph.
+  it('makes 完全予約制 the heading of its section', () => {
+    expect(html('/ja')).toMatch(/<h2 class="reservation__title"[^>]*>完全予約制<\/h2>/);
+    expect(html('/')).toMatch(/<h2 class="reservation__title"[^>]*>By reservation only<\/h2>/);
+  });
+
+  // A page inside a section marks that section's link, so a visitor on a plan
+  // page or in the middle of booking still sees where they are.
+  it('marks the section a page belongs to in the header', () => {
+    const marked = (route: string) =>
+      [...html(route).matchAll(/<a [^>]*href="([^"]+)"[^>]*aria-current="(page|true)"/g)].map(
+        (m) => `${m[1]} ${m[2]}`,
+      );
+    expect(marked('/ja/experience')).toContain('/ja/experience page');
+    expect(marked('/ja/experience/temecula')).toContain('/ja/experience true');
+    expect(marked('/experience/dodgers-transfer')).toContain('/experience true');
+    expect(marked('/ja/book/dodgers-transfer')).toContain('/ja/contact true');
+    expect(marked('/consult')).toContain('/contact true');
+    expect(marked('/ja/thank-you')).toContain('/ja/contact true');
+    expect(marked('/ja')).toEqual([]);
+    // Its own link, marked as the page, and nothing else marked.
+    expect(marked('/ja/about')).toContain('/ja/about page');
+    expect(new Set(marked('/ja/about'))).toEqual(new Set(['/ja/about page']));
+  });
+
+  // The list draws her ※. A ※ in the text as well printed it twice.
+  it('prints her reference mark once', () => {
+    for (const j of journeys) {
+      for (const item of j.excludes.ja) expect(item, j.slug).not.toMatch(/^※/);
+    }
+  });
+
+  // The way on from a message page is its main action, solid as everywhere.
+  it('makes the way on from the message pages the solid button', () => {
+    for (const route of ['/thank-you', '/ja/thank-you', '/404', '/ja/404']) {
+      expect(html(route), route).toMatch(/<a class="btn btn--solid"/);
+    }
+    for (const slug of ['temecula', 'dodgers-journey', 'mansion-dinner']) {
+      expect(html(`/ja/experience/${slug}`), slug).toMatch(/<a class="btn btn--solid"[^>]*href="\/ja\/book\//);
+    }
+  });
+
+  // An English-page bar for a Japanese reader: in its own landmark, closed in
+  // its own language.
+  it('gives the language offer its own landmark and a Japanese close', () => {
+    const bar = html('/').match(/<aside class="lang-offer[^]*?<\/aside>/)?.[0] ?? '';
+    expect(bar).toMatch(/aria-label="日本語版のご案内"/);
+    expect(bar).toMatch(/lang="ja"/);
+    expect(bar).toContain('aria-label="閉じる"');
+  });
+
+  // Printed from the dark theme, a page takes the cream ink: the same values,
+  // token for token, as the cream theme itself.
+  it('prints the dark theme in the cream ink', () => {
+    // As checked out: Windows may give CRLF.
+    const tokens = readFileSync(join(process.cwd(), 'src/styles/tokens.css'), 'utf8').replace(
+      /\r\n/g,
+      '\n',
+    );
+    const block = (from: string) => {
+      const start = tokens.indexOf(from);
+      return tokens.slice(start, tokens.indexOf('}', start));
+    };
+    const values = (text: string) =>
+      Object.fromEntries([...text.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+    const cream = values(block(':root {'));
+    const print = values(block("@media print {\n  html[data-theme='dark'] {"));
+    const dark = values(block("html[data-theme='dark'],\n.plate {"));
+    // The theme's CTA tokens are in a block of their own: printed too.
+    const cta = values(block("html[data-theme='dark'] {\n  --cta"));
+    expect(Object.keys(cream).length).toBeGreaterThan(30);
+    expect(Object.keys(dark).length).toBeGreaterThan(15);
+    expect(Object.keys(cta).length).toBe(4);
+    expect(Object.keys(print).length).toBeGreaterThan(15);
+    for (const name of [...Object.keys(dark), ...Object.keys(cta)]) {
+      expect(print[name], name).toBe(cream[name]);
+    }
+    for (const [name, value] of Object.entries(print)) expect(value, name).toBe(cream[name]);
+  });
+});
+
+// What the review and the end-to-end test of the page fixes found, held
+// where a regression would show first.
+describe('the pages, after their own review', () => {
+  // As a flex box the link dropped the space after LINE, and the ID read
+  // LINE@153cqwqp: the gap puts the space back.
+  it('keeps the space between LINE and its ID on the message pages', () => {
+    expect(css()).toMatch(/\.line\[data-astro-cid-[^\]]+\]\{[^}]*column-gap:/);
+    for (const route of ['/thank-you', '/ja/404']) {
+      expect(html(route), route).toMatch(/LINE\s*<span class="line__id"/);
+    }
+  });
+
+  // English reads a 12-hour clock, as the card's '9 a.m. to 6 p.m.' does.
+  it('gives the English schedule 12-hour times, and keeps hers in Japanese', () => {
+    const en = bare('/experience/temecula');
+    for (const time of ['9:00a.m.', '11:15a.m.', '1:15p.m.', '6:00p.m.']) {
+      expect(en, time).toContain(time);
+    }
+    expect(en).not.toMatch(/(?:1[3-9]|2[0-3]):\d\d/);
+    expect(bare('/ja/experience/temecula')).toContain('13:15');
+  });
+
+  // Written as escapes in the source, where a review can see them, and
+  // checked here, where a lost one would show.
+  it('holds the English titles, names and items together where it should', () => {
+    expect(html('/')).toContain('that\u00a0is\u00a0yours\u00a0alone.');
+    expect(html('/')).toContain('Los\u00a0Angeles supports');
+    expect(html('/about')).toContain('where\u00a0you\u00a0go.');
+    expect(html('/experience/dodgers-journey')).toContain('In-\u2060N-\u2060Out');
+    expect(html('/ja/privacy')).toContain('LINE\u00a0ID');
+    expect(html('/')).toContain('award-\u2060winning');
+  });
+
+  // An English card line folds between its items, the dot ending the line
+  // before, and not inside 'LAX pickup'.
+  it('keeps each English card detail whole where it fits', () => {
+    const items = html('/').match(/<span class="plan__item"[^>]*>[^<]*<\/span>/g) ?? [];
+    expect(items.length).toBeGreaterThan(10);
+    expect(items.join('')).toContain('LAX pickup\u00a0·');
+    expect(css()).toMatch(/\.plan__item\[data-astro-cid-[^\]]+\]\{display:inline-block/);
+  });
+
+  // The marks the Japanese is set with stay out of what a guest copies.
+  it('takes the fold marks out of copied text', () => {
+    const script = html('/ja').match(/addEventListener\('copy'[^]*?<\/script>/)?.[0] ?? '';
+    expect(script).toContain('[\\u200b\\u2060]');
   });
 });

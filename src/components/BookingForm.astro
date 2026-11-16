@@ -7,6 +7,7 @@ import { yenAmount, lowestPrice } from '../data/plans';
 import { planPhotos } from '../data/plan-photos';
 import { guestOptions, hasChoice, planFor, problemText } from '../data/booking';
 import { cancellation } from '../data/cancellation';
+import { isJapanese, phrases } from '../i18n/phrase';
 import Icon from './Icon.astro';
 import Monogram from './Monogram.astro';
 import Photo from './Photo.astro';
@@ -56,7 +57,8 @@ const copy = {
     sending: 'Sending',
     sendNote: 'Your booking is not final yet.',
     formErr: 'Please check the marked fields above.',
-    sendErr: 'Something went wrong sending that. Please email us directly at',
+    // Ends in its space: the address follows straight on in every language.
+    sendErr: 'Something went wrong sending that. Please email us directly at ',
     required: 'required',
   },
   ja: {
@@ -83,12 +85,22 @@ const copy = {
     sendNote: 'この時点では予約は確定していません。',
     formErr: '上の印の項目をご確認ください。',
     sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
+    // Ours, for her read.
     required: '必須',
   },
 } as const;
 
 const c = copy[locale];
 const err = problemText[locale];
+const FOLD = String.fromCharCode(0x200b);
+
+// Her notes hint mentions the pickup; a plan without one has its own. An
+// attribute cannot hold <wbr>, so its phrase points are zero-width spaces:
+// Safari would otherwise fold the Japanese mid-word.
+const notesHint = offering.notesHint?.[locale] ?? c.notesPlaceholder;
+const notesPlaceholder = isJapanese(notesHint)
+  ? phrases(notesHint).join(String.fromCharCode(0x200b))
+  : notesHint;
 
 // What the summary card and the price box show before a choice: the plan's
 // lowest price as a from-price. A choice puts its own price there.
@@ -120,9 +132,9 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     <span class="pick__thumb">
       {
         photo ? (
-          <Photo class="pick__photo" src={photo.src} alt="" aspect={1} sizes="72px" />
+          <Photo class="pick__photo" src={photo.src} alt="" aspect={1} sizes="72px" priority />
         ) : (
-          <Monogram size={40} lazy />
+          <Monogram size={40} />
         )
       }
     </span>
@@ -158,7 +170,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-type" hidden>
-          {err.type}
+          <Phrases text={err.type} label />
         </p>
       </fieldset>
     )
@@ -181,7 +193,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-route" hidden>
-          {err.route}
+          <Phrases text={err.route} label />
         </p>
       </fieldset>
     )
@@ -200,7 +212,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       required
       data-min-today
     />
-    <p class="err" id="e-date" hidden>{err.date}</p>
+    <p class="err" id="e-date" hidden><Phrases text={err.date} label /></p>
   </div>
 
   <div class="field">
@@ -209,17 +221,17 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       <span class="sr-only">{c.required}</span>
     </label>
     <select class="input" id="f-guests" name="guests" required>
-      <option value="">{c.guestsPlaceholder}</option>
+      <option value="" data-prompt>{c.guestsPlaceholder}</option>
       {guestOptions(id).map((g) => <option value={g.value}>{g.label[locale]}</option>)}
     </select>
     {
       plan?.over && (
         <p class="caption over-note" id="n-over">
-          <Phrases text={plan.over.note[locale]} />
+          <Phrases text={plan.over.note[locale]} label />
         </p>
       )
     }
-    <p class="err" id="e-guests" hidden>{err.guests}</p>
+    <p class="err" id="e-guests" hidden><Phrases text={err.guests} label /></p>
   </div>
 
   <div class="field">
@@ -229,7 +241,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-hotel"
       name="hotel"
       type="text"
-      autocomplete="off"
       placeholder={c.hotelPlaceholder}
     />
   </div>
@@ -249,7 +260,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       required
       autocomplete="name"
     />
-    <p class="err" id="e-name" hidden>{err.name}</p>
+    <p class="err" id="e-name" hidden><Phrases text={err.name} label /></p>
   </div>
 
   <div class="field">
@@ -267,7 +278,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       inputmode="email"
       pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
     />
-    <p class="err" id="e-email" hidden>{err.email}</p>
+    <p class="err" id="e-email" hidden><Phrases text={err.email} label /></p>
   </div>
 
   <div class="field">
@@ -277,7 +288,6 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-line"
       name="line"
       type="text"
-      autocomplete="off"
       autocapitalize="off"
       spellcheck="false"
       placeholder={c.linePlaceholder}
@@ -291,7 +301,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-notes"
       name="notes"
       rows="4"
-      placeholder={c.notesPlaceholder}></textarea>
+      placeholder={notesPlaceholder}></textarea>
   </div>
 
   {/* Her price box: the base price of the choice, and what happens next. */}
@@ -330,10 +340,12 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   {turnstileKey && <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="light" />}
 
-  <p class="form__err" data-form-error hidden>{c.formErr}</p>
-  {/* A failed send is not the visitor's fault. Say so, and give a way out. */}
+  <p class="form__err" data-form-error hidden><Phrases text={c.formErr} label /></p>
+  {/* A failed send is not the visitor's fault. Say so, and give a way out.
+      The address may fold onto a line of its own. Any space before it is the
+      copy's: none after a Japanese colon. */}
   <p class="form__err" data-send-error hidden role="alert">
-    {c.sendErr} <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+    <Phrases text={c.sendErr} label />{FOLD}<a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
   </p>
 
   <div class="booking__send">
@@ -358,9 +370,11 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   // The parts that follow a choice. The route is asked for only on a one-way
   // choice: the script makes it required then, and switches it off (which
-  // also clears it) on a round trip. The summary card and the price box show
-  // the price of the choice. Without script the style still shows and hides
-  // the route, and the Worker checks it either way.
+  // also clears it) on a round trip. With no choice yet the style hides it and
+  // it is left alone, so a browser putting the form back as the guest left it
+  // can restore their route too. The summary card and the price box show the
+  // price of the choice. Without script the style still shows and hides the
+  // route, and the Worker checks it either way.
   const form = document.querySelector<HTMLFormElement>('[data-booking-form]');
   const route = form?.querySelector<HTMLFieldSetElement>('[data-route-field]');
   const sync = () => {
@@ -369,6 +383,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     const needs = chosen?.hasAttribute('data-needs-route') ?? false;
     route?.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
       input.required = needs;
+      if (!chosen) return;
       input.disabled = !needs;
       if (!needs) input.checked = false;
     });
@@ -399,6 +414,15 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
   };
   guests?.addEventListener('change', syncGuests);
   syncGuests();
+
+  // Chromium puts a form back as the guest left it (Back, with the page no
+  // longer cached) after this script has run, and fires no change event: the
+  // choice came back with its route switched off and its price unshown.
+  // pageshow comes after that, and after a page restored from the cache.
+  window.addEventListener('pageshow', () => {
+    sync();
+    syncGuests();
+  });
 </script>
 
 <style>
@@ -520,6 +544,18 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
   .option input:focus-visible {
     outline: 2px solid var(--gold-text);
     outline-offset: 2px;
+  }
+  /* Windows contrast themes repaint the drawn dot as the background and the
+     chosen row's gold as every other edge. Keep the dot, and ring the row. */
+  @media (forced-colors: active) {
+    .option input:checked::before {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+    .option:has(input:checked) {
+      outline: 2px solid Highlight;
+      outline-offset: -1px;
+    }
   }
   .option__label {
     flex: 1;
