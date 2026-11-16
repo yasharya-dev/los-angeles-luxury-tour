@@ -11,6 +11,9 @@
  * `[data-submit]`. A required field `f-x` pairs with an error line `e-x`; a
  * group of required radios named `x` does too.
  */
+import { threeYearsOn, todayInLA } from '../data/calendar';
+import { SEND_DEADLINE } from '../data/deadlines';
+
 type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 // The Worker names the field it refused. Its own word for each, here.
@@ -43,6 +46,14 @@ export function enhanceForm(form: HTMLFormElement): void {
   // In the markup the form is left to the browser, for a visitor without it.
   form.noValidate = true;
 
+  // Edge and Chrome read an untouched required date, select or radio out as
+  // invalid. From here the script says when a field is: valid until then.
+  // Not in the markup, which would hide the browser's own state from a
+  // visitor without script.
+  form
+    .querySelectorAll('[required], input[type="radio"]')
+    .forEach((el) => el.setAttribute('aria-invalid', 'false'));
+
   /* The consultation form's plan, from the card that linked to it. Without
      script the select opens on its first option, which is a fine answer too. */
   // Cast, not a generic: @cloudflare/workers-types merges HTMLRewriter's
@@ -55,20 +66,20 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (known) service.value = wanted;
   }
 
-  /* A date picker should not offer yesterday. Local date, not UTC: at 8pm in
-     Los Angeles the UTC date is already tomorrow. */
-  const today = new Date();
-  const local = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 10);
-  // And no further out than the Worker takes: three years.
-  const far = `${Number(local.slice(0, 4)) + 3}${local.slice(4)}`;
-  form
-    .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
-    .forEach((d) => {
-      d.min = local;
-      d.max = far;
-    });
+  /* A date picker should not offer a day already past where the plan takes
+     place, nor one further out than the Worker takes: the same two dates the
+     Worker checks, wherever the guest is. Set again on every send, for a page
+     left open past midnight in Los Angeles (late afternoon in Japan). */
+  const bound = () => {
+    const today = todayInLA();
+    form
+      .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
+      .forEach((d) => {
+        d.min = today;
+        d.max = threeYearsOn(today);
+      });
+  };
+  bound();
 
   // Bring a field to fix into view with its label, then focus it. Safari does
   // not scroll a focused radio or select into view by itself.
@@ -123,11 +134,24 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (msg) msg.hidden = !on;
   };
 
+  /* A finger or a mouse on the send button: the check on blur would show a
+     line above it and move it out from under the press, and the click would
+     land on nothing. The send checks every field anyway. */
+  let pressing = false;
+  submit.addEventListener('pointerdown', () => {
+    pressing = true;
+    setTimeout(() => (pressing = false), 1000);
+  });
+
   /* On blur, not on input: do not correct someone mid-type. */
   form.addEventListener('focusout', (e) => {
     const input = e.target as Field;
-    if (!input.required || input.disabled || isRadio(input)) return;
+    if (pressing || !input.required || input.disabled || isRadio(input)) return;
     if (input.value.trim()) showError(input, !valid(input));
+  });
+  // The date's bounds as the picker opens, too.
+  form.addEventListener('focusin', (e) => {
+    if ((e.target as Element).matches?.('input[type="date"][data-min-today]')) bound();
   });
   const clear = (e: Event) => {
     const input = e.target as Field;
@@ -142,31 +166,42 @@ export function enhanceForm(form: HTMLFormElement): void {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    pressing = false;
     if (submit.disabled) return;
     sendErr.hidden = true;
 
-    let bad = false;
+    bound();
+
+    // Every mark first, then one scroll to the first. Safari stops a smooth
+    // scroll when the page grows above it, which each error line shown
+    // after the scroll had started would do.
+    let first: Field | undefined;
     for (const input of required()) {
       const invalid = !valid(input);
       showError(input, invalid);
-      if (invalid && !bad) {
-        reveal(input);
-        bad = true;
-      }
+      if (invalid && !first) first = input;
     }
-
-    formErr.hidden = !bad;
-    if (bad) return;
+    formErr.hidden = !first;
+    if (first) {
+      reveal(first);
+      return;
+    }
 
     submit.disabled = true;
     submit.textContent = submit.dataset.sending ?? 'Sending';
 
+    // A send that never answers has failed too: a stalled phone network, or
+    // the mail service. The Worker gives up on the mail service well before
+    // this, so a booking that went through is not reported as lost.
+    const stop = new AbortController();
+    const deadline = setTimeout(() => stop.abort(), SEND_DEADLINE);
     let body: { ok?: boolean; next?: string; error?: string } = {};
     try {
       const res = await fetch(form.action, {
         method: 'POST',
         body: new FormData(form),
         headers: { Accept: 'application/json' },
+        signal: stop.signal,
       });
       body = (await res.json().catch(() => ({}))) as typeof body;
       if (res.ok && body.next) {
@@ -174,7 +209,9 @@ export function enhanceForm(form: HTMLFormElement): void {
         return;
       }
     } catch {
-      /* the network: the same as a failed send */
+      /* the network, or the deadline: the same as a failed send */
+    } finally {
+      clearTimeout(deadline);
     }
 
     // A token is good for one try. The next try needs a new one.
@@ -186,11 +223,12 @@ export function enhanceForm(form: HTMLFormElement): void {
     // A cast, as for the select above: the shared types reject Field here.
     const input = field ? (form.querySelector(field) as Field | null) : null;
     if (input || body.error === 'missing') {
+      // The page settles before the scroll, as above.
+      formErr.hidden = false;
       if (input) {
         showError(input, true);
         reveal(input);
       }
-      formErr.hidden = false;
       return;
     }
     sendErr.hidden = false;

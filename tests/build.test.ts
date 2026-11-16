@@ -1072,6 +1072,8 @@ describe('Japanese line folds', () => {
         lines.add(
           inner
             .replace(/<wbr[^>]*>/g, ' | ')
+            // A label's folds are U+200B (see Phrases.astro): folds all the same.
+            .replace(/​/g, ' | ')
             .replace(/<br[^>]*>/g, ' // ')
             .replace(/\u2060/g, '‿')
             .replace(/<[^>]+>/g, '')
@@ -1528,6 +1530,94 @@ describe('the booking form', () => {
     for (const p of ['/ja/book/dodgers-transfer', '/book/temecula', '/ja/consult']) {
       expect(html(p), p).not.toMatch(/aria-describedby="e-/);
     }
+  });
+
+  // Whether a field is invalid is the script's to say, from the moment it
+  // runs (tests/enhance-form.test.ts). In the markup it would hide the
+  // browser's own state from a visitor without script.
+  it('leaves a field\'s invalid state to the browser in the markup', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula', '/ja/consult', '/consult']) {
+      const tags = html(p).match(/<(input|select|textarea)\b[^>]*\brequired\b[^>]*>/g) ?? [];
+      expect(tags.length, p).toBeGreaterThan(2);
+      expect(html(p), p).not.toContain('aria-invalid');
+    }
+  });
+
+  // Back to a form the browser no longer has cached: it puts the fields back
+  // as the guest left them, hotel and LINE ID included, which autocomplete
+  // off would leave out.
+  it('lets the browser put every typed field back', () => {
+    for (const p of ['/ja/book/dodgers-transfer', '/book/temecula']) {
+      const fields = html(p).match(/<(input|textarea)\b[^>]*name="(hotel|line|notes|name|email)"[^>]*>/g) ?? [];
+      expect(fields.length, p).toBe(5);
+      for (const field of fields) expect(field, p).not.toContain('autocomplete="off"');
+    }
+  });
+
+  // The guest's way out when a send fails: heard as it appears, on both forms.
+  it('announces a failed send on both forms', () => {
+    for (const p of ['/consult', '/ja/consult', '/book/temecula', '/ja/book/dodgers-transfer']) {
+      expect(html(p), p).toMatch(/<p class="form__err" data-send-error hidden role="alert"[\s>]/);
+    }
+  });
+
+  // The referral discount is part of the question: read with its two fields.
+  it('reads the referral discount with the fields it is about', () => {
+    for (const p of ['/consult', '/ja/consult']) {
+      const doc = html(p);
+      expect(doc, p).toMatch(/<p class="caption hint" id="h-heard"[\s>]/);
+      expect(doc, p).toMatch(/id="f-heard"[^>]*aria-describedby="h-heard"/);
+      expect(doc, p).toMatch(/id="f-ref"[^>]*aria-describedby="h-heard"/);
+    }
+  });
+
+  // Japanese sets no half-width space after its own comma or colon.
+  it('puts a link straight after a Japanese comma or colon', () => {
+    // Every tag but the link's own is invisible in the line: out first, so a
+    // </span> or a scoped <wbr> cannot hide a space between the two.
+    const seenLine = (markup: string) => markup.replace(/<(?!\/?a[\s>])[^>]+>/g, '');
+    for (const p of ['/ja/book', '/ja/consult', '/ja/book/temecula']) {
+      expect(seenLine(html(p)), p).not.toMatch(/[、：]\s+<a /);
+    }
+    const sendLine = (p: string) =>
+      seenLine(html(p).match(/<p class="form__err" data-send-error[^]*?<\/p>/)?.[0] ?? '');
+    for (const p of ['/ja/consult', '/ja/book/temecula']) {
+      expect(sendLine(p), p).toContain('ご連絡ください：​<a href="mailto:');
+    }
+    for (const p of ['/consult', '/book/temecula']) {
+      expect(sendLine(p), p).toContain('directly at ​<a href="mailto:');
+    }
+  });
+
+  // A price per person and one per group must not read alike.
+  it('shows each price on the way to booking with its unit', () => {
+    for (const locale of ['en', 'ja'] as const) {
+      const text = bare(locale === 'ja' ? '/ja/book' : '/book');
+      for (const o of offerings) {
+        const unit = o.priceNote?.[locale];
+        if (unit) expect(text, o.id).toContain((o.price[locale] + unit).replace(/\s+/g, ''));
+      }
+    }
+  });
+
+  it('starts the guests where the price does', () => {
+    for (const p of ['/book/mansion-dinner', '/ja/book/mansion-dinner']) {
+      const select = html(p).match(/<select[^>]*id="f-guests"[^]*?<\/select>/)?.[0] ?? '';
+      expect(select, p).not.toContain('value="1"');
+      expect(select, p).toContain('value="2"');
+    }
+  });
+
+  // Her pickup hint only where there is a pickup. An attribute cannot hold
+  // <wbr>, so its phrases are joined by U+200B, or Safari folds mid-word.
+  it('gives each plan a notes hint that fits it, folded at its phrases', () => {
+    const hint = (p: string) => html(p).match(/<textarea[^>]*placeholder="([^"]*)"/)?.[1] ?? '';
+    const pickup = hint('/ja/book/dodgers-transfer');
+    expect(pickup.replace(/​/g, '')).toBe('送迎場所やご希望など、お気軽にお知らせください。');
+    expect(pickup.split('​').length).toBeGreaterThan(2);
+    expect(hint('/ja/book/dodgers-ticket')).not.toContain('送迎');
+    expect(hint('/book/dodgers-ticket')).not.toContain('Pickup');
+    expect(hint('/book/mansion-dinner')).toContain('Pickup');
   });
 
   it('leaves checking to the browser when there is no script', () => {

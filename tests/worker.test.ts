@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
   SUBMISSIONS,
   clean,
@@ -10,7 +10,33 @@ import worker, {
   thanksPath,
 } from '../worker/index';
 import { SUMMARY_MARK } from '../src/data/booking';
+import { MAIL_DEADLINE, SEND_DEADLINE } from '../src/data/deadlines';
 import { grantAccess } from '../worker/beta';
+
+// The Worker refuses a booking before today in Los Angeles, and the fixtures
+// are dated 2027: the clock is pinned to the day these were written, so the
+// suite, and npm run deploy with it, does not start failing as they pass.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+// The Workers runtime reads every named export of the Worker's module as an
+// entrypoint, and will not start if one is not a function or an object: an
+// exported number stopped wrangler dev cold, and would have failed the
+// deploy, though every test here passed in node.
+describe('the module the runtime loads', () => {
+  it('exports nothing the Workers runtime cannot load as an entrypoint', async () => {
+    const mod = await import('../worker/index');
+    for (const [name, value] of Object.entries(mod)) {
+      expect(['function', 'object'], name).toContain(typeof value);
+      expect(value, name).not.toBeNull();
+    }
+  });
+});
 
 describe('clean', () => {
   it('trims and returns strings', () => {
@@ -188,6 +214,29 @@ describe('the Worker, end to end', () => {
     );
   });
 
+  // A mail service that never answers would hold the guest's request open
+  // past the form's own deadline. Past ours the send has failed: 502, and
+  // the form shows the address to write to.
+  it('gives up on a mail service that does not answer, in time for the form', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      ),
+    );
+    const answer = post('/api/booking', booking, { Accept: 'application/json' });
+    await vi.advanceTimersByTimeAsync(MAIL_DEADLINE);
+    const res = await answer;
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ ok: false, error: 'send' });
+    expect(MAIL_DEADLINE * 2).toBeLessThan(SEND_DEADLINE);
+  });
+
   it('sends a booking request through Resend and lands on the received page', async () => {
     const sent: unknown[] = [];
     vi.stubGlobal(
@@ -243,7 +292,29 @@ describe('the Worker, end to end', () => {
     const body = await res.text();
     expect(res.status).toBe(400);
     expect(body).toContain('送迎区間を選択してください。');
+    // A fold after each stop: under keep-all Safari has none of its own.
+    expect(body).toContain('送信できませんでした。<wbr>前のページに戻り、<wbr>入力内容をご確認ください。</p>');
     expect(body).toContain('href="/ja/book/dodgers-transfer" onclick="history.back();return false"');
+  });
+
+  // A send that fails is not the guest's fault: the page says so and hands
+  // over the address, straight after the Japanese colon, after a space in
+  // English, the space being the copy's.
+  it('gives a visitor without script the address when a send fails, in each language', async () => {
+    const unsent = (fields: Record<string, string>) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body: new URLSearchParams(fields),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+        env(),
+      );
+    const ja = await unsent({ ...transfer, locale: 'ja' });
+    expect(ja.status).toBe(500);
+    expect(await ja.text()).toContain('ご連絡ください：<wbr><a href="mailto:losangelesluxurytour@gmail.com">');
+    const en = await unsent({ ...transfer, locale: 'en' });
+    expect(await en.text()).toContain('directly at <a href="mailto:losangelesluxurytour@gmail.com">');
   });
 
   it('sends the consultation on to the thank-you page too', async () => {

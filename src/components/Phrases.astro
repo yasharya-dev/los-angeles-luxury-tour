@@ -11,25 +11,39 @@
   - Anything else is rendered as is. English wraps well on its own.
 
   The break points are <wbr>, with `word-break: keep-all` on the wrapper, so
-  the text stays one run for a screen reader and for copy and find-in-page.
-  Inside a phrase, the few characters Chromium folds at even so are joined
-  to their neighbours (see `glue` in i18n/phrase.ts).
+  the text stays one string for copy and find-in-page. Chromium does join the
+  pieces with a space when it builds a control's name or description from
+  them, and a screen reader then reads the label phrase by phrase every time
+  the field takes focus. Text that names or describes a control is rendered
+  with `label`: its folds are U+200B, which no browser reads as a space.
+  Inside a phrase, the characters Chromium folds at even under keep-all are
+  joined to their neighbours (see `glue` in i18n/phrase.ts).
 */
 import { BR, type Text } from '../i18n/text';
 import { glue, isJapanese, phrases } from '../i18n/phrase';
 
 interface Props {
   text: Text;
+  /** It names or describes a control: a label, a hint, an error line. */
+  label?: boolean;
 }
-const { text } = Astro.props;
+const { text, label = false } = Astro.props;
 
 const parts =
   typeof text === 'string' ? (isJapanese(text) ? phrases(text) : null) : text;
+const FOLD = String.fromCharCode(0x200b);
 ---
 
 {
   parts === null ? (
     text
+  ) : label ? (
+    <span class="phrases">
+      {parts
+        .filter((part) => part !== BR)
+        .map(glue)
+        .join(FOLD)}
+    </span>
   ) : (
     <span class="phrases">
       {parts.map((part, i) =>

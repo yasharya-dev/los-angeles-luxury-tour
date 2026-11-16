@@ -2,6 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { localizePath } from '../i18n/utils';
 import ContactForm from '../components/ContactForm.astro';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
@@ -16,7 +17,8 @@ const copy = {
     kicker: 'Consultation',
     title: ['Tell us what you have in mind.'],
     lead: 'A tailor-made trip, a question about a plan, or no idea where to start yet. All of it belongs here.',
-    asideText: 'Know your plan already?',
+    // The space before the link is in the English: none after a Japanese 、.
+    asideText: 'Know your plan already? ',
     asideLink: 'Book it directly',
   },
   ja: {
@@ -37,7 +39,7 @@ const c = copy[locale];
     <h1 class="h2 head__title">
       {c.title.map((line, i) => <>{i > 0 && <br />}{line}</>)}
     </h1>
-    <p class="body">{c.lead}</p>
+    <p class="body"><Phrases text={c.lead} /></p>
   </div>
 </section>
 
@@ -45,16 +47,20 @@ const c = copy[locale];
 
 <section class="section section--deep aside">
   <p class="body center measure">
-    {c.asideText} <a href={p('/book')}>{c.asideLink}</a>
+    {c.asideText}<a href={p('/book')}>{c.asideLink}</a>
   </p>
 </section>
 
 <style>
+  /* The booking page's head: her compact spacing, not round 2's. */
   .head {
-    padding-block: clamp(64px, 9vw, 110px) clamp(40px, 6vw, 64px);
+    padding-block: clamp(36px, 7vw, 64px) clamp(24px, 4vw, 40px);
+  }
+  .head .kicker {
+    margin-bottom: 10px;
   }
   .head__title {
-    margin-block: 26px;
+    margin-bottom: 12px;
   }
   .aside {
     padding-block: clamp(40px, 6vw, 64px);
