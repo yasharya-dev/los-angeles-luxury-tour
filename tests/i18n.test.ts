@@ -44,6 +44,14 @@ describe('pagePath', () => {
     expect(pagePath('/ja/index.html')).toBe('/ja');
   });
 
+  // Only a whole segment named index is a home file: a page whose name ends
+  // in "index" keeps it.
+  it('drops only a whole index segment', () => {
+    expect(pagePath('/experience/price-index.html')).toBe('/experience/price-index');
+    expect(pagePath('/ja/reindex')).toBe('/ja/reindex');
+    expect(pagePath('/experience/index.html')).toBe('/experience');
+  });
+
   it('leaves a clean path alone, as astro dev reports it', () => {
     expect(pagePath('/')).toBe('/');
     expect(pagePath('/ja')).toBe('/ja');

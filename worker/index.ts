@@ -314,6 +314,44 @@ const forbidden = () =>
 /** More than any of the two forms can hold. */
 const MAX_BODY = 64 * 1024;
 
+/**
+ * The posted form, held to MAX_BODY. Counted as it arrives, not only by its
+ * Content-Length: a body sent in chunks has none, and would otherwise be read
+ * in full however large. 'bad' is anything that does not parse as a form.
+ */
+async function readForm(request: Request): Promise<FormData | 'large' | 'bad'> {
+  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) return 'large';
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  // A connection that drops mid-upload, or a body shorter than its length,
+  // fails the read: a bad request, not an uncaught error.
+  try {
+    const reader = request.body?.getReader();
+    if (reader) {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BODY) {
+          await reader.cancel().catch(() => {});
+          return 'large';
+        }
+        chunks.push(value);
+      }
+    }
+    const body = new Uint8Array(size);
+    let at = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, at);
+      at += chunk.byteLength;
+    }
+    const type = request.headers.get('Content-Type') ?? '';
+    return await new Response(body, { headers: { 'Content-Type': type } }).formData();
+  } catch {
+    return 'bad';
+  }
+}
+
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
   const stop = new AbortController();
   const deadline = setTimeout(() => stop.abort(), MAIL_DEADLINE);
@@ -355,15 +393,9 @@ async function handleSubmission(
   if (origin && origin !== url.origin) return forbidden();
 
   // Read the body only when it is a form, and of a size a form can be.
-  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) {
-    return new Response('Too large', { status: 413 });
-  }
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return new Response('Bad request', { status: 400 });
-  }
+  const form = await readForm(request);
+  if (form === 'large') return new Response('Too large', { status: 413 });
+  if (form === 'bad') return new Response('Bad request', { status: 400 });
   const wantsJson = (request.headers.get('Accept') ?? '').includes(
     'application/json',
   );
@@ -475,42 +507,114 @@ async function received(request: Request, env: Env, url: URL): Promise<Response>
   return new Response(body, { status: res.status, headers });
 }
 
+/** Her not-found pages, asked for by name, as their language link does: a
+    page that says nothing is here answers 404 there as well. Fetched without
+    the visitor's conditions, so the answer is the page and never a 304. */
+const NOT_FOUND = /^\/(ja\/)?404$/;
+
+async function notFound(request: Request, env: Env, url: URL): Promise<Response> {
+  const page = await env.ASSETS.fetch(new Request(url.href, { method: request.method }));
+  return page.ok ? new Response(page.body, { status: 404, headers: page.headers }) : page;
+}
+
+/** A file under /_astro/ is named by a hash of its content, so it never
+    changes under its name: a browser may keep it for a year unasked. */
+const HASHED = /^\/_astro\//;
+
+/** Her mark: served before the preview's gate, which would answer it with
+    its own page and leave the first screen without an icon. */
+const ICONS = new Set(['/favicon.ico', '/apple-touch-icon.png', '/icon-192.png']);
+
+/** The page of this site a request came from, or the home page. */
+function cameFrom(request: Request, url: URL): string {
+  try {
+    const from = new URL(request.headers.get('Referer') ?? '');
+    if (from.origin === url.origin) return from.pathname + from.search;
+  } catch {
+    /* no referrer, or not a URL */
+  }
+  return '/';
+}
+
+/** What every response carries, whatever produced it. `gated` while the
+    preview's password is on. */
+function harden(res: Response, url: URL, gated: boolean): Response {
+  const out = new Response(res.body, res);
+  const headers = out.headers;
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // No other site may frame a page of this one: a form shown inside someone
+  // else's frame is how a guest is led to send what they did not mean to.
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  // Behind the gate, for the visitor's own browser only: a shared cache on
+  // the way would otherwise hand the preview's files to anyone for a year.
+  if (HASHED.test(url.pathname) && (res.ok || res.status === 304)) {
+    headers.set('Cache-Control', `${gated ? 'private' : 'public'}, max-age=31536000, immutable`);
+  }
+  return out;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const beta = env.BETA_PASSWORD;
-
-    if (beta) {
-      if (url.pathname === '/api/beta') {
-        if (request.method !== 'POST') {
-          return new Response('Method not allowed', { status: 405 });
-        }
-        const form = await request.formData();
-        const next = safeNext(clean(form.get('next'), 512) || '/');
-        const given = clean(form.get('password'), 200);
-        return given === beta
-          ? grantAccess(beta, next)
-          : gatePage({ failed: true, next });
-      }
-
-      if (!(await hasAccess(request, beta))) {
-        return gatePage({ failed: false, next: url.pathname + url.search });
-      }
-    }
-
-    const submission = SUBMISSIONS[url.pathname];
-    if (submission) return handleSubmission(request, env, submission, url);
-
-    const res =
-      (request.method === 'GET' || request.method === 'HEAD') &&
-      RECEIVED.has(url.pathname) &&
-      url.search
-        ? await received(request, env, url)
-        : await env.ASSETS.fetch(request);
-    if (!beta) return res;
-    // Nothing behind the gate should ever be indexed.
-    const gated = new Response(res.body, res);
-    gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
-    return gated;
+    return harden(await route(request, env), new URL(request.url), !!env.BETA_PASSWORD);
   },
 };
+
+/** Where a request goes: the gate, a form, her received page, or the files. */
+async function route(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const beta = env.BETA_PASSWORD;
+  const reading = request.method === 'GET' || request.method === 'HEAD';
+
+  if (beta) {
+    // Her mark, in the tab and on a home screen, from the first screen on:
+    // public, and nothing of the preview.
+    if (ICONS.has(url.pathname) && reading) return env.ASSETS.fetch(request);
+
+    if (url.pathname === '/api/beta') {
+      // Opened from the address bar, as after a wrong password: the gate.
+      if (request.method !== 'POST') return Response.redirect(new URL('/', url).href, 303);
+      // Signed in from this site only, as the forms are sent from it only.
+      const origin = request.headers.get('Origin');
+      if (origin && origin !== url.origin) return forbidden();
+      const form = await readForm(request);
+      if (typeof form === 'string') return gatePage({ failed: true, next: '/' });
+      const next = safeNext(clean(form.get('next'), 512) || '/');
+      const given = clean(form.get('password'), 200);
+      return given === beta
+        ? grantAccess(beta, next)
+        : gatePage({ failed: true, next });
+    }
+
+    if (!(await hasAccess(request, beta))) {
+      // After signing in, back to where the visitor was going. A form's post
+      // is not a place to go back to: its own page instead.
+      const page = reading && !url.pathname.startsWith('/api/');
+      return gatePage({ failed: false, next: page ? url.pathname + url.search : cameFrom(request, url) });
+    }
+  }
+
+  const submission = SUBMISSIONS[url.pathname];
+  if (submission) return handleSubmission(request, env, submission, url);
+
+  // Pages and files are only read. Handed anything else, the file server
+  // answered 405 without reading the body, and the runtime failed reading it
+  // after the answer: an exception for each one, and in wrangler dev a
+  // stopped server. The Worker answers it instead and leaves the body alone
+  // (cancelling it stopped wrangler dev's proxy just the same).
+  if (!reading) {
+    return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+  }
+
+  const res = NOT_FOUND.test(url.pathname)
+    ? await notFound(request, env, url)
+    : RECEIVED.has(url.pathname) && url.search
+      ? await received(request, env, url)
+      : await env.ASSETS.fetch(request);
+  if (!beta) return res;
+  // Nothing behind the gate should ever be indexed.
+  const gated = new Response(res.body, res);
+  gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return gated;
+}

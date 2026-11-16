@@ -3,7 +3,7 @@
 
 import { describe, expect, it, beforeAll } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
@@ -27,11 +27,13 @@ const PATHS = [
   ...offerings.map((o) => `/book/${o.id}`),
 ];
 
-// Form destinations, not pages anyone should land on from search.
-const NOT_IN_SITEMAP = [
+// Not pages for search: a not-found page, a form, the page after one. Each
+// says noindex, claims no canonical, og:url or alternates, and stays out of
+// the sitemap. The plan pages are what a search should find.
+const NOINDEX = [
+  '/404',
   '/thank-you',
   '/book/received',
-  // A step on the way to the form, not a page anyone lands on from search.
   ...offerings.map((o) => `/book/${o.id}`),
 ];
 
@@ -43,6 +45,14 @@ const distFile = (route: string) => {
 };
 
 const html = (route: string) => readFileSync(distFile(route), 'utf8');
+
+/** Every HTML file the build wrote, from the dist folder itself. */
+const allPages = (dir = DIST): string[] =>
+  readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return allPages(path);
+    return name.endsWith('.html') ? [path] : [];
+  });
 
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
@@ -85,6 +95,19 @@ describe('routes', () => {
     }
   });
 
+  // Her monogram in the tab and on a phone's home screen. Before, every page
+  // load logged a 404 for /favicon.ico.
+  it('links a tab icon and a home-screen icon, and ships them', () => {
+    for (const route of ['/', '/ja', '/ja/book/dodgers-transfer', '/404']) {
+      const doc = html(route);
+      expect(doc, route).toMatch(/<link rel="icon" href="\/favicon.ico"/);
+      expect(doc, route).toMatch(/<link rel="apple-touch-icon" href="\/apple-touch-icon.png"/);
+    }
+    for (const file of ['favicon.ico', 'apple-touch-icon.png', 'icon-192.png']) {
+      expect(statSync(join(DIST, file)).size, file).toBeGreaterThan(1000);
+    }
+  });
+
   it('never ships the env example', () => {
     expect(existsSync(join(DIST, '.env.example'))).toBe(false);
   });
@@ -103,37 +126,81 @@ describe('locale correctness', () => {
   // and passed for months while the build was writing /ja.html into all of
   // them: the canonical, the alternates and the language link.
   const SITE = 'https://losangelesluxurytour.com';
-  const routes = PATHS.map((p) => ({ en: p, ja: p === '/' ? '/ja' : `/ja${p}` }));
+  // Every page the build writes, the two not-found pages included.
+  const routes = [...PATHS, '/404'].map((p) => ({ en: p, ja: p === '/' ? '/ja' : `/ja${p}` }));
+  const all = (tag: RegExp, doc: string) => doc.match(tag) ?? [];
 
-  it('gives every page a canonical and og:url that are its own public URL', () => {
+  // The list these checks read is every page the build writes: a page added
+  // without an entry in PATHS would otherwise get none of them.
+  it('reads every page the build writes', () => {
+    const built = allPages().map((file) => {
+      const route = file.slice(DIST.length).split(sep).join('/').replace(/\.html$/, '');
+      return route === '/index' ? '/' : route;
+    });
+    expect(new Set(built)).toEqual(new Set(routes.flatMap((pair) => [pair.en, pair.ja])));
+  });
+
+  // Exactly one of each, by value: a second, conflicting canonical passed a
+  // substring check.
+  it('gives a page for search one canonical and og:url, its own, and the rest noindex', () => {
     for (const pair of routes) {
       for (const route of [pair.en, pair.ja]) {
         const doc = html(route);
-        expect(doc, route).toContain(`<link rel="canonical" href="${SITE}${route}">`);
-        expect(doc, route).toContain(`<meta property="og:url" content="${SITE}${route}">`);
+        const canonical = all(/<link\b[^>]*\brel="canonical"[^>]*>/g, doc);
+        const ogUrl = all(/<meta\b[^>]*\bproperty="og:url"[^>]*>/g, doc);
+        const robots = all(/<meta\b[^>]*\bname="robots"[^>]*>/g, doc);
+        if (NOINDEX.includes(pair.en)) {
+          expect(canonical, route).toEqual([]);
+          expect(ogUrl, route).toEqual([]);
+          expect(robots, route).toEqual(['<meta name="robots" content="noindex">']);
+        } else {
+          expect(canonical, route).toEqual([`<link rel="canonical" href="${SITE}${route}">`]);
+          expect(ogUrl, route).toEqual([`<meta property="og:url" content="${SITE}${route}">`]);
+          expect(robots, route).toEqual([]);
+        }
       }
     }
   });
 
-  it('declares reciprocal hreflang alternates that point at real pages', () => {
+  it('declares exactly three reciprocal alternates on a page for search, and none elsewhere', () => {
     for (const pair of routes) {
       for (const route of [pair.en, pair.ja]) {
-        const doc = html(route);
-        expect(doc, `${route} en`).toContain(`hreflang="en" href="${SITE}${pair.en}"`);
-        expect(doc, `${route} ja`).toContain(`hreflang="ja" href="${SITE}${pair.ja}"`);
-        expect(doc, `${route} x-default`).toContain(`hreflang="x-default" href="${SITE}${pair.en}"`);
+        const alternates = all(/<link\b[^>]*\brel="alternate"[^>]*>/g, html(route));
+        expect(alternates, route).toEqual(
+          NOINDEX.includes(pair.en)
+            ? []
+            : [
+                `<link rel="alternate" hreflang="en" href="${SITE}${pair.en}">`,
+                `<link rel="alternate" hreflang="ja" href="${SITE}${pair.ja}">`,
+                `<link rel="alternate" hreflang="x-default" href="${SITE}${pair.en}">`,
+              ],
+        );
       }
     }
   });
 
-  // The canonical of a page and its sitemap entry are the same string.
+  // Entry for entry: the sitemap lists exactly the pages for search, and each
+  // entry's location and alternates are the ones its page declares.
   it('agrees with the sitemap', () => {
     const xml = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
-    for (const pair of routes) {
-      if (NOT_IN_SITEMAP.includes(pair.en)) continue;
-      for (const route of [pair.en, pair.ja]) {
-        expect(xml, route).toContain(`<loc>${SITE}${route}</loc>`);
-      }
+    const entries = [...xml.matchAll(/<url>([^]*?)<\/url>/g)].map(([, body]) => ({
+      loc: body.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? '',
+      alternates: [...body.matchAll(/<xhtml:link rel="alternate" hreflang="([^"]+)" href="([^"]+)"\/>/g)].map(
+        (m) => `${m[1]} ${m[2]}`,
+      ),
+    }));
+    const pages = routes.flatMap((pair) => (NOINDEX.includes(pair.en) ? [] : [pair.en, pair.ja]));
+    expect(entries.map((e) => e.loc).sort()).toEqual(pages.map((r) => SITE + r).sort());
+    for (const entry of entries) {
+      const route = entry.loc.slice(SITE.length);
+      const doc = html(route);
+      expect(all(/<link\b[^>]*\brel="canonical"[^>]*>/g, doc), route).toEqual([
+        `<link rel="canonical" href="${entry.loc}">`,
+      ]);
+      const declared = [...doc.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].map(
+        (m) => `${m[1]} ${m[2]}`,
+      );
+      expect(entry.alternates, route).toEqual(declared);
     }
   });
 
@@ -153,12 +220,44 @@ describe('locale correctness', () => {
     }
   });
 
+  // The site's own addresses, in every attribute that holds one: a link out
+  // to another site may end in .html, and is none of the build's business.
+  const ownUrls = (doc: string) =>
+    [...doc.matchAll(/(?:href|src|action|content)="([^"]*)"/g)]
+      .map((m) => m[1])
+      .filter((v) => (v.startsWith('/') && !v.startsWith('//')) || v.startsWith(SITE));
+
   // The build's own file names must never leak into a link.
-  it('links to no .html path anywhere', () => {
-    for (const p of [...PATHS, '/404']) {
-      for (const prefix of ['', '/ja']) {
-        const leaks = html(prefix + p).match(/(?:href|content)="[^"]*\.html["#?]/g) ?? [];
-        expect(leaks, prefix + p).toEqual([]);
+  it('links to no .html path of its own anywhere', () => {
+    for (const pair of routes) {
+      for (const route of [pair.en, pair.ja]) {
+        const leaks = ownUrls(html(route)).filter((v) => /\.html(?:[#?]|$)/.test(v));
+        expect(leaks, route).toEqual([]);
+      }
+    }
+  });
+
+  // The general form of what #78 fixed: a link to a file the build never
+  // wrote. Every address of its own, in a link, a source, an image set or a
+  // form's action, is a built file or a route the Worker answers.
+  it('links only to files the build wrote, or to a Worker route', () => {
+    const worker = new Set(Object.keys(SUBMISSIONS));
+    const resolves = (url: string) => {
+      const path = decodeURI(url.replace(SITE, '').split(/[?#]/)[0]) || '/';
+      if (worker.has(path)) return true;
+      if (path === '/') return existsSync(join(DIST, 'index.html'));
+      const file = join(DIST, path);
+      return (existsSync(file) && statSync(file).isFile()) || existsSync(`${file}.html`);
+    };
+    for (const pair of routes) {
+      for (const route of [pair.en, pair.ja]) {
+        const doc = html(route);
+        const sets = [...doc.matchAll(/srcset="([^"]+)"/g)].flatMap((m) =>
+          m[1].split(',').map((c) => c.trim().split(/\s+/)[0]),
+        );
+        const urls = [...ownUrls(doc), ...sets.filter((u) => u.startsWith('/'))];
+        expect(urls.length, route).toBeGreaterThan(10);
+        for (const url of urls) expect(resolves(url), `${route} -> ${url}`).toBe(true);
       }
     }
   });
@@ -1063,15 +1162,9 @@ describe('text over a photograph', () => {
 // that quietly moved on the site. ' | ' is a fold, ' // ' a line break, and
 // ‿ a word joiner, which holds a phrase together and is otherwise invisible.
 describe('Japanese line folds', () => {
-  // Every page the build writes: the not-found pages, and the English pages,
-  // whose only Japanese is the offer to read the page in Japanese.
-  const allPages = (dir = DIST): string[] =>
-    readdirSync(dir).flatMap((name) => {
-      const path = join(dir, name);
-      if (statSync(path).isDirectory()) return allPages(path);
-      return name.endsWith('.html') ? [path] : [];
-    });
-
+  // Every page the build writes (allPages, above): the not-found pages too,
+  // and the English pages, whose only Japanese is the offer to read the page
+  // in Japanese.
   it('folds every line where it did when this was last reviewed', async () => {
     const lines = new Set<string>();
     for (const file of allPages()) {
@@ -1692,14 +1785,15 @@ describe('the booking form', () => {
 describe('sitemap', () => {
   const xml = () => readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
 
-  it('lists every page in every locale', () => {
+  // '/404' is not one of PATHS, so it does not count against them.
+  it('lists every page for search in every locale', () => {
     expect(count(xml(), /<loc>/g)).toBe(
-      (PATHS.length - NOT_IN_SITEMAP.length) * 2,
+      PATHS.filter((p) => !NOINDEX.includes(p)).length * 2,
     );
   });
 
-  it('leaves the form destinations out', () => {
-    for (const p of NOT_IN_SITEMAP) {
+  it('leaves the not-found and form pages out', () => {
+    for (const p of NOINDEX) {
       expect(xml(), p).not.toContain(`<loc>https://losangelesluxurytour.com${p}</loc>`);
       expect(xml(), p).not.toContain(`<loc>https://losangelesluxurytour.com/ja${p}</loc>`);
     }
@@ -1856,5 +1950,10 @@ describe('the pages, after their own review', () => {
   it('takes the fold marks out of copied text', () => {
     const script = html('/ja').match(/addEventListener\('copy'[^]*?<\/script>/)?.[0] ?? '';
     expect(script).toContain('[\\u200b\\u2060]');
+  });
+
+  // The label face has no Japanese, so 本文へ移動 fell to the system gothic.
+  it('sets the Japanese skip link in the Japanese face', () => {
+    expect(css()).toMatch(/html\[lang=['"]?ja['"]?\] \.skip-link\{font-family:var\(--font-body\)/);
   });
 });

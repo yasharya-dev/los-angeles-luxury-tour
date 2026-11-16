@@ -17,6 +17,7 @@ const offering = offerings.find((o) => o.id === id)!;
   locale={locale}
   title={`ご予約リクエスト：${offering.name.ja}｜Los Angeles Luxury Tour`}
   description="ご希望の内容をお聞かせください。空き状況を確認のうえ、ご連絡いたします。"
+  noindex
 >
   <Book locale={locale} id={id} />
 </Base>

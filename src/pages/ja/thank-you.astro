@@ -3,6 +3,6 @@ import Base from '../../layouts/Base.astro';
 import Message from '../../views/Message.astro';
 const locale = 'ja' as const;
 ---
-<Base locale={locale} title="ありがとうございます｜Los Angeles Luxury Tour" description="メッセージをお送りしました。" offerBar={false}>
+<Base locale={locale} title="ありがとうございます｜Los Angeles Luxury Tour" description="メッセージをお送りしました。" offerBar={false} noindex>
   <Message locale={locale} kind="thanks" />
 </Base>

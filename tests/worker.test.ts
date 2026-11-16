@@ -189,6 +189,84 @@ describe('the Worker, end to end', () => {
     expect(await res.text()).toBe('asset');
   });
 
+  // Counted as it arrives: a stream that never ends must be refused at the
+  // cap, which reading it whole first would never reach. And a body of
+  // exactly 64 KB is still a form.
+  it('refuses an endless body at the cap, and takes one of exactly 64 KB', async () => {
+    const chunk = new TextEncoder().encode('x'.repeat(1024));
+    const endless = new ReadableStream({
+      pull(c) {
+        c.enqueue(chunk);
+      },
+    });
+    const send = (body: BodyInit) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body,
+          duplex: 'half',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        } as RequestInit),
+        env({ RESEND_API_KEY: 're_test' }),
+      );
+    expect((await send(endless)).status).toBe(413);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const base = new URLSearchParams(booking).toString() + '&notes=';
+    const exact = base + 'x'.repeat(64 * 1024 - base.length);
+    expect(exact.length).toBe(64 * 1024);
+    const ok = await send(exact);
+    expect(ok.status).toBe(200);
+    expect((await send(exact + 'x')).status).toBe(413);
+  });
+
+  // A connection that drops mid-upload: a bad request, not an uncaught error.
+  it('answers a body that breaks off with a bad request', async () => {
+    const broken = new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode('locale=ja&name='));
+        c.error(new Error('connection reset'));
+      },
+    });
+    const res = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: broken,
+        duplex: 'half',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      } as RequestInit),
+      env({ RESEND_API_KEY: 're_test' }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  // The form's own cap, 64 KB, for a body sent in chunks with no length:
+  // read as it arrives, not in full first.
+  it('holds a body sent without a length to the same cap, and reads a small one', async () => {
+    const stream = (text: string) =>
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new TextEncoder().encode(text));
+          c.close();
+        },
+      });
+    const send = (text: string) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body: stream(text),
+          duplex: 'half',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        } as RequestInit),
+        env({ RESEND_API_KEY: 're_test' }),
+      );
+    const big = new URLSearchParams({ ...booking, notes: 'x'.repeat(70 * 1024) }).toString();
+    expect((await send(big)).status).toBe(413);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const small = await send(new URLSearchParams(booking).toString());
+    expect(small.status).toBe(200);
+    expect(((await small.json()) as { ok?: boolean }).ok).toBe(true);
+  });
+
   it('only accepts POST on the form endpoints', async () => {
     const res = await worker.fetch(
       new Request('https://x.test/api/booking'),
@@ -541,5 +619,234 @@ describe('serviceLabel', () => {
 
   it('passes an unknown value through rather than dropping it', () => {
     expect(serviceLabel('something-else')).toBe('something-else');
+  });
+});
+
+describe('what every response carries', () => {
+  const asset = (status = 200) =>
+    ({
+      ASSETS: {
+        fetch: async () =>
+          new Response('asset', { status, headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } }),
+      },
+    }) as never;
+
+  // A file under /_astro/ is named by a hash of its content.
+  it('keeps a hashed file for a year, and nothing else', async () => {
+    const hashed = await worker.fetch(new Request('https://x.test/_astro/Base.D2ezkrIy.css'), asset());
+    expect(hashed.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    const page = await worker.fetch(new Request('https://x.test/ja/about'), asset());
+    expect(page.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+    const gone = await worker.fetch(new Request('https://x.test/_astro/gone.css'), asset(404));
+    expect(gone.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+  });
+
+  it('cannot be framed by another site, and is never sniffed', async () => {
+    for (const path of ['/', '/ja/book/dodgers-transfer', '/api/booking', '/_astro/x.js']) {
+      const res = await worker.fetch(new Request(`https://x.test${path}`), asset());
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+      expect(res.headers.get('Content-Security-Policy'), path).toBe("frame-ancestors 'none'");
+      expect(res.headers.get('X-Content-Type-Options'), path).toBe('nosniff');
+      expect(res.headers.get('Referrer-Policy'), path).toBe('strict-origin-when-cross-origin');
+    }
+  });
+});
+
+describe('the preview gate, through the Worker', () => {
+  const env = { ASSETS: { fetch: async () => new Response('asset') }, BETA_PASSWORD: 'pw' } as never;
+
+  // After a wrong password the address bar shows /api/beta; reopened, that
+  // was a bare 405.
+  it('sends the address of the login back to the gate', async () => {
+    const res = await worker.fetch(new Request('https://x.test/api/beta'), env);
+    expect(res.status).toBe(303);
+    expect(res.headers.get('Location')).toBe('https://x.test/');
+  });
+
+  it('answers a body that is not a form with the gate, not an error', async () => {
+    for (const [type, body] of [
+      ['application/json', '{"password":"pw"}'],
+      ['text/plain', 'pw'],
+    ]) {
+      const res = await worker.fetch(
+        new Request('https://x.test/api/beta', { method: 'POST', body, headers: { 'Content-Type': type } }),
+        env,
+      );
+      expect(res.status, type).toBe(401);
+      expect(await res.text(), type).toContain('パスワードが違うようです');
+    }
+  });
+
+  it('lets the right password through, to a path on this site only', async () => {
+    const login = (next: string) =>
+      worker.fetch(
+        new Request('https://x.test/api/beta', {
+          method: 'POST',
+          body: new URLSearchParams({ password: 'pw', next }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+        env,
+      );
+    const granted = await login('/ja/contact');
+    expect(granted.headers.get('Location')).toBe('/ja/contact');
+    // Through every header the Worker adds, the cookie is still there.
+    expect(granted.headers.get('Set-Cookie')).toMatch(/^lalt_beta=/);
+    expect(granted.headers.get('X-Frame-Options')).toBe('DENY');
+    expect((await login('/..//evil.example')).headers.get('Location')).toBe('/');
+    expect((await login('/\\evil.example/x')).headers.get('Location')).toBe('/');
+    expect((await login('/\t/evil.example/x')).headers.get('Location')).toBe('/');
+  });
+});
+
+// What the review of the caching and gate work found.
+describe('the gate and the cache, after review', () => {
+  const gated = (over: Record<string, unknown> = {}) =>
+    ({
+      ASSETS: {
+        fetch: async (req: Request) =>
+          new URL(req.url).pathname === '/_astro/x.css' && req.headers.get('If-None-Match')
+            ? new Response(null, { status: 304 })
+            : new Response('asset', { headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } }),
+      },
+      BETA_PASSWORD: 'pw',
+      ...over,
+    }) as never;
+  const cookie = async () => ((await grantAccess('pw', '/')).headers.get('Set-Cookie') ?? '').split(';')[0];
+
+  // Her mark, from the first screen on: the gate answered it with its page.
+  it('serves the icons before the gate', async () => {
+    for (const path of ['/favicon.ico', '/apple-touch-icon.png', '/icon-192.png']) {
+      const res = await worker.fetch(new Request(`https://x.test${path}`), gated());
+      expect(res.status, path).toBe(200);
+      expect(await res.text(), path).toBe('asset');
+    }
+  });
+
+  // Behind the gate a hashed file is the visitor's to keep, not a shared
+  // cache's; without the cookie it is the gate, kept by no one.
+  it('keeps the preview\'s files private, and never the gate itself', async () => {
+    const withCookie = { headers: { Cookie: await cookie() } };
+    const kept = await worker.fetch(new Request('https://x.test/_astro/Base.css', withCookie), gated());
+    expect(kept.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+    const again = await worker.fetch(
+      new Request('https://x.test/_astro/x.css', { headers: { ...withCookie.headers, 'If-None-Match': '"a"' } }),
+      gated(),
+    );
+    expect(again.status).toBe(304);
+    expect(again.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+    const gate = await worker.fetch(new Request('https://x.test/_astro/Base.css'), gated());
+    expect(gate.status).toBe(401);
+    expect(gate.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  // A sign-in from another site's page is refused, as the forms' posts are.
+  it('refuses a sign-in posted from another site', async () => {
+    const res = await worker.fetch(
+      new Request('https://x.test/api/beta', {
+        method: 'POST',
+        body: new URLSearchParams({ password: 'pw', next: '/' }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'https://evil.example' },
+      }),
+      gated(),
+    );
+    expect(res.status).toBe(403);
+    expect(res.headers.get('Set-Cookie')).toBeNull();
+  });
+
+  // A form sent once the cookie has run out meets the gate. After signing
+  // in, the visitor goes back to the form's page, not to a bare 405.
+  it('sends a caught form post back to its own page after signing in', async () => {
+    const res = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: new URLSearchParams({ locale: 'ja' }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Referer: 'https://x.test/ja/book/dodgers-transfer',
+        },
+      }),
+      gated(),
+    );
+    expect(res.status).toBe(401);
+    expect(await res.text()).toContain('name="next" value="/ja/book/dodgers-transfer"');
+    const elsewhere = await worker.fetch(
+      new Request('https://x.test/api/inquiry', { method: 'POST', headers: { Referer: 'https://evil.example/x' } }),
+      gated(),
+    );
+    expect(await elsewhere.text()).toContain('name="next" value="/"');
+  });
+});
+
+// What the end-to-end test of the caching and gate work found.
+describe('the Worker, after the end-to-end test', () => {
+  /** A file server that records what it was asked, and answers a condition
+      with 304 as the real one does. */
+  const files = () => {
+    const asked: Request[] = [];
+    const env = {
+      ASSETS: {
+        fetch: async (req: Request) => {
+          asked.push(req);
+          if (req.headers.get('If-None-Match')) return new Response(null, { status: 304 });
+          return new Response('<h1>Page not found</h1>', {
+            headers: { 'Content-Type': 'text/html; charset=utf-8', ETag: '"p"' },
+          });
+        },
+      },
+    };
+    return { asked, env: env as never };
+  };
+
+  // Their language link points at the other one by name, and a crawler
+  // following it found a page that says nothing is here, answering 200.
+  it('answers its not-found pages with 404, by name too', async () => {
+    for (const path of ['/404', '/ja/404']) {
+      const { env } = files();
+      const res = await worker.fetch(new Request(`https://x.test${path}`), env);
+      expect(res.status, path).toBe(404);
+      expect(await res.text(), path).toContain('Page not found');
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+    }
+    const { env } = files();
+    const head = await worker.fetch(new Request('https://x.test/404', { method: 'HEAD' }), env);
+    expect(head.status).toBe(404);
+    // A browser that kept the page asks again with its ETag: still the page.
+    const again = await worker.fetch(new Request('https://x.test/ja/404', { headers: { 'If-None-Match': '"p"' } }), env);
+    expect(again.status).toBe(404);
+    expect(await again.text()).toContain('Page not found');
+    // Other pages are untouched.
+    expect((await worker.fetch(new Request('https://x.test/ja/4040'), env)).status).toBe(200);
+  });
+
+  // Bots post to pages all day. The file server answers 405 without reading
+  // the body, and the runtime failed reading it afterwards: wrangler dev
+  // stopped on one.
+  it('turns away a body sent to a page without handing it to the files', async () => {
+    for (const path of ['/ja/contact', '/', '/api/beta', '/favicon.ico', '/_astro/x.css']) {
+      const { asked, env } = files();
+      const req = new Request(`https://x.test${path}`, { method: 'POST', body: 'password=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const res = await worker.fetch(req, env);
+      expect(res.status, path).toBe(405);
+      expect(res.headers.get('Allow'), path).toBe('GET, HEAD');
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+      expect(asked.length, path).toBe(0);
+    }
+  });
+
+  // Behind the gate an icon is served before it, for reading only: a post to
+  // one meets the gate like any other.
+  it('serves the icons before the gate to a read only', async () => {
+    const { asked, env } = files();
+    const gated = { ...(env as object), BETA_PASSWORD: 'pw' } as never;
+    const res = await worker.fetch(new Request('https://x.test/favicon.ico', { method: 'POST', body: 'x' }), gated);
+    expect(res.status).toBe(401);
+    // Signed in, a post to a page is turned away by the Worker as well.
+    const cookie = ((await grantAccess('pw', '/')).headers.get('Set-Cookie') ?? '').split(';')[0];
+    const signedIn = await worker.fetch(
+      new Request('https://x.test/ja/contact', { method: 'POST', body: 'x', headers: { Cookie: cookie } }),
+      gated,
+    );
+    expect(signedIn.status).toBe(405);
+    expect(asked.length).toBe(0);
   });
 });
