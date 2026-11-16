@@ -66,6 +66,15 @@ describe('redirect target', () => {
     expect(safeNext('javascript:alert(1)')).toBe('/');
   });
 
+  // A browser reads a backslash as a slash and drops a tab or a newline, so
+  // each of these leads off the site as // does.
+  it('refuses the paths a browser would read as another host', () => {
+    for (const raw of ['/\\evil.example/x', '/\t/evil.example/x', '/\n/evil.example', '/\\/evil.example']) {
+      expect(safeNext(raw), JSON.stringify(raw)).toBe('/');
+    }
+    expect(safeNext('/ja/book?service=temecula#form')).toBe('/ja/book?service=temecula#form');
+  });
+
   it('sends a redirect back to where they were going', async () => {
     const res = await grantAccess(PASSWORD, '/ja/contact');
     expect(res.status).toBe(303);

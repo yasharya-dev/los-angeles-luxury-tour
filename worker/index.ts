@@ -303,6 +303,42 @@ const forbidden = () =>
 /** More than any of the two forms can hold. */
 const MAX_BODY = 64 * 1024;
 
+/**
+ * The posted form, held to MAX_BODY. Counted as it arrives, not only by its
+ * Content-Length: a body sent in chunks has none, and would otherwise be read
+ * in full however large. 'bad' is anything that does not parse as a form.
+ */
+async function readForm(request: Request): Promise<FormData | 'large' | 'bad'> {
+  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) return 'large';
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = request.body?.getReader();
+  if (reader) {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY) {
+        await reader.cancel();
+        return 'large';
+      }
+      chunks.push(value);
+    }
+  }
+  const body = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  try {
+    const type = request.headers.get('Content-Type') ?? '';
+    return await new Response(body, { headers: { 'Content-Type': type } }).formData();
+  } catch {
+    return 'bad';
+  }
+}
+
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -334,15 +370,9 @@ async function handleSubmission(
   if (origin && origin !== url.origin) return forbidden();
 
   // Read the body only when it is a form, and of a size a form can be.
-  if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) {
-    return new Response('Too large', { status: 413 });
-  }
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return new Response('Bad request', { status: 400 });
-  }
+  const form = await readForm(request);
+  if (form === 'large') return new Response('Too large', { status: 413 });
+  if (form === 'bad') return new Response('Bad request', { status: 400 });
   const wantsJson = (request.headers.get('Accept') ?? '').includes(
     'application/json',
   );
@@ -454,42 +484,67 @@ async function received(request: Request, env: Env, url: URL): Promise<Response>
   return new Response(body, { status: res.status, headers });
 }
 
+/** A file under /_astro/ is named by a hash of its content, so it never
+    changes under its name: a browser may keep it for a year unasked. */
+const HASHED = /^\/_astro\//;
+
+/** What every response carries, whatever produced it. */
+function harden(res: Response, url: URL): Response {
+  const out = new Response(res.body, res);
+  const headers = out.headers;
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // No other site may frame a page of this one: a form shown inside someone
+  // else's frame is how a guest is led to send what they did not mean to.
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  if (HASHED.test(url.pathname) && (res.ok || res.status === 304)) {
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  return out;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const beta = env.BETA_PASSWORD;
-
-    if (beta) {
-      if (url.pathname === '/api/beta') {
-        if (request.method !== 'POST') {
-          return new Response('Method not allowed', { status: 405 });
-        }
-        const form = await request.formData();
-        const next = safeNext(clean(form.get('next'), 512) || '/');
-        const given = clean(form.get('password'), 200);
-        return given === beta
-          ? grantAccess(beta, next)
-          : gatePage({ failed: true, next });
-      }
-
-      if (!(await hasAccess(request, beta))) {
-        return gatePage({ failed: false, next: url.pathname + url.search });
-      }
-    }
-
-    const submission = SUBMISSIONS[url.pathname];
-    if (submission) return handleSubmission(request, env, submission, url);
-
-    const res =
-      (request.method === 'GET' || request.method === 'HEAD') &&
-      RECEIVED.has(url.pathname) &&
-      url.search
-        ? await received(request, env, url)
-        : await env.ASSETS.fetch(request);
-    if (!beta) return res;
-    // Nothing behind the gate should ever be indexed.
-    const gated = new Response(res.body, res);
-    gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
-    return gated;
+    return harden(await route(request, env), new URL(request.url));
   },
 };
+
+/** Where a request goes: the gate, a form, her received page, or the files. */
+async function route(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const beta = env.BETA_PASSWORD;
+
+  if (beta) {
+    if (url.pathname === '/api/beta') {
+      // Opened from the address bar, as after a wrong password: the gate.
+      if (request.method !== 'POST') return Response.redirect(new URL('/', url).href, 303);
+      const form = await readForm(request);
+      if (typeof form === 'string') return gatePage({ failed: true, next: '/' });
+      const next = safeNext(clean(form.get('next'), 512) || '/');
+      const given = clean(form.get('password'), 200);
+      return given === beta
+        ? grantAccess(beta, next)
+        : gatePage({ failed: true, next });
+    }
+
+    if (!(await hasAccess(request, beta))) {
+      return gatePage({ failed: false, next: url.pathname + url.search });
+    }
+  }
+
+  const submission = SUBMISSIONS[url.pathname];
+  if (submission) return handleSubmission(request, env, submission, url);
+
+  const res =
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    RECEIVED.has(url.pathname) &&
+    url.search
+      ? await received(request, env, url)
+      : await env.ASSETS.fetch(request);
+  if (!beta) return res;
+  // Nothing behind the gate should ever be indexed.
+  const gated = new Response(res.body, res);
+  gated.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return gated;
+}

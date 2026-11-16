@@ -30,6 +30,7 @@ src/
   components/   header, footer, the two forms, the plan list and its card, toggles, the icon, photo and phrase components
   styles/       tokens.css (the design tokens) and base.css (reset and utilities)
 worker/         the two form endpoints and the beta gate
+scripts/        og.mjs and icons.mjs: the share image and the tab and home-screen icons, made from the photography and the logo. Their output is committed under public/; rerun one when its source changes
 tests/          the suite, see below
 ```
 

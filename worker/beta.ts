@@ -94,27 +94,30 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
     font-family: Georgia, serif; font-size: 30px; letter-spacing: .18em;
     color: #d4af37; margin-bottom: 6px;
   }
+  /* The site's own floors: 16px to read, 14px for a label, 4.5:1 for text
+     and 3:1 for a field's edge. */
   .sub {
-    font-size: 9.5px; letter-spacing: .42em; color: rgba(245,245,250,.55);
-    text-transform: uppercase; margin-bottom: 44px;
+    font-size: 14px; letter-spacing: .2em; color: rgba(245,245,250,.68);
+    text-transform: uppercase; margin-bottom: 40px;
   }
   h1 { font-size: 16px; font-weight: 500; line-height: 2; margin: 0 0 8px; }
-  .en { font-size: 12.5px; line-height: 1.7; color: rgba(245,245,250,.55); margin: 0 0 28px; }
+  .en { font-size: 14px; line-height: 1.7; color: rgba(245,245,250,.68); margin: 0 0 28px; }
   input {
     width: 100%; padding: 13px 14px; background: #181818; color: #f5f5fa;
-    border: 1px solid rgba(212,175,55,.28); border-radius: 0; font-size: 16px;
+    border: 1px solid rgba(212,175,55,.6); border-radius: 0; font-size: 16px;
     font-family: inherit; text-align: center; letter-spacing: .08em;
   }
-  input:focus { outline: none; border-color: #d4af37; }
+  input:focus-visible { outline: 2px solid #d4af37; outline-offset: 2px; border-color: #d4af37; }
   button {
     width: 100%; margin-top: 14px; padding: 13px; background: none;
     color: #d4af37; border: 1px solid rgba(212,175,55,.55); border-radius: 0;
-    font-family: inherit; font-size: 13px; letter-spacing: .22em; cursor: pointer;
+    font-family: inherit; font-size: 14px; letter-spacing: .2em; cursor: pointer;
     transition: background .3s ease, color .3s ease;
   }
   button:hover { background: rgba(212,175,55,.1); color: #f5f5fa; }
-  .err { margin: 18px 0 0; font-size: 13px; color: #e8996b; line-height: 1.7; }
-  .foot { margin-top: 40px; font-size: 11px; color: rgba(245,245,250,.35); line-height: 1.8; }
+  button:focus-visible { outline: 2px solid #d4af37; outline-offset: 2px; }
+  .err { margin: 18px 0 0; font-size: 14px; color: #e8996b; line-height: 1.7; }
+  .foot { margin-top: 40px; font-size: 14px; color: rgba(245,245,250,.68); line-height: 1.8; }
 </style>
 </head>
 <body>
@@ -122,14 +125,14 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
     <div class="mark">LA</div>
     <div class="sub">Los Angeles Luxury Tour</div>
     <h1>こちらは公開前のプレビューです。</h1>
-    <p class="en">This site is not public yet. Please enter the password.</p>
+    <p class="en" lang="en">This site is not public yet. Please enter the password.</p>
     <form method="POST" action="/api/beta">
       <input type="hidden" name="next" value="${escapeAttr(opts.next)}">
       <input type="password" name="password" placeholder="パスワード"
              autocomplete="current-password" autofocus aria-label="パスワード">
       <button type="submit">確認する</button>
     </form>
-    ${opts.failed ? '<p class="err">パスワードが違うようです。もう一度お試しください。<br>That password did not match.</p>' : ''}
+    ${opts.failed ? '<p class="err" role="alert">パスワードが違うようです。もう一度お試しください。<br><span lang="en">That password did not match.</span></p>' : ''}
     <p class="foot">ご不明な点は Yash までご連絡ください。</p>
   </main>
 </body>
@@ -154,8 +157,19 @@ function escapeAttr(s: string): string {
     .replace(/>/g, '&gt;');
 }
 
-/** Only same-origin paths, so the gate cannot be used as an open redirect. */
+/**
+ * Only a path on this site, so the gate cannot be used as an open redirect.
+ * A browser reads a backslash as a slash and drops a tab or a newline, so
+ * /\evil.example and /<tab>/evil.example lead off the site as // does: the
+ * path is resolved the way a browser would, and must stay on this origin.
+ */
 export function safeNext(raw: string): string {
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
-  return raw;
+  if (!raw.startsWith('/') || /[\\\u0000-\u001f\u007f]/.test(raw)) return '/';
+  try {
+    const base = 'https://gate.invalid';
+    const url = new URL(raw, base);
+    return url.origin === base ? url.pathname + url.search + url.hash : '/';
+  } catch {
+    return '/';
+  }
 }

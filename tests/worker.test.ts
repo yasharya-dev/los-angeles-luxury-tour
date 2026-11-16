@@ -163,6 +163,34 @@ describe('the Worker, end to end', () => {
     expect(await res.text()).toBe('asset');
   });
 
+  // The form's own cap, 64 KB, for a body sent in chunks with no length:
+  // read as it arrives, not in full first.
+  it('holds a body sent without a length to the same cap, and reads a small one', async () => {
+    const stream = (text: string) =>
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new TextEncoder().encode(text));
+          c.close();
+        },
+      });
+    const send = (text: string) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body: stream(text),
+          duplex: 'half',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        } as RequestInit),
+        env({ RESEND_API_KEY: 're_test' }),
+      );
+    const big = new URLSearchParams({ ...booking, notes: 'x'.repeat(70 * 1024) }).toString();
+    expect((await send(big)).status).toBe(413);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const small = await send(new URLSearchParams(booking).toString());
+    expect(small.status).toBe(200);
+    expect(((await small.json()) as { ok?: boolean }).ok).toBe(true);
+  });
+
   it('only accepts POST on the form endpoints', async () => {
     const res = await worker.fetch(
       new Request('https://x.test/api/booking'),
@@ -470,5 +498,76 @@ describe('serviceLabel', () => {
 
   it('passes an unknown value through rather than dropping it', () => {
     expect(serviceLabel('something-else')).toBe('something-else');
+  });
+});
+
+describe('what every response carries', () => {
+  const asset = (status = 200) =>
+    ({
+      ASSETS: {
+        fetch: async () =>
+          new Response('asset', { status, headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } }),
+      },
+    }) as never;
+
+  // A file under /_astro/ is named by a hash of its content.
+  it('keeps a hashed file for a year, and nothing else', async () => {
+    const hashed = await worker.fetch(new Request('https://x.test/_astro/Base.D2ezkrIy.css'), asset());
+    expect(hashed.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    const page = await worker.fetch(new Request('https://x.test/ja/about'), asset());
+    expect(page.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+    const gone = await worker.fetch(new Request('https://x.test/_astro/gone.css'), asset(404));
+    expect(gone.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+  });
+
+  it('cannot be framed by another site, and is never sniffed', async () => {
+    for (const path of ['/', '/ja/book/dodgers-transfer', '/api/booking', '/_astro/x.js']) {
+      const res = await worker.fetch(new Request(`https://x.test${path}`), asset());
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+      expect(res.headers.get('Content-Security-Policy'), path).toBe("frame-ancestors 'none'");
+      expect(res.headers.get('X-Content-Type-Options'), path).toBe('nosniff');
+      expect(res.headers.get('Referrer-Policy'), path).toBe('strict-origin-when-cross-origin');
+    }
+  });
+});
+
+describe('the preview gate, through the Worker', () => {
+  const env = { ASSETS: { fetch: async () => new Response('asset') }, BETA_PASSWORD: 'pw' } as never;
+
+  // After a wrong password the address bar shows /api/beta; reopened, that
+  // was a bare 405.
+  it('sends the address of the login back to the gate', async () => {
+    const res = await worker.fetch(new Request('https://x.test/api/beta'), env);
+    expect(res.status).toBe(303);
+    expect(res.headers.get('Location')).toBe('https://x.test/');
+  });
+
+  it('answers a body that is not a form with the gate, not an error', async () => {
+    for (const [type, body] of [
+      ['application/json', '{"password":"pw"}'],
+      ['text/plain', 'pw'],
+    ]) {
+      const res = await worker.fetch(
+        new Request('https://x.test/api/beta', { method: 'POST', body, headers: { 'Content-Type': type } }),
+        env,
+      );
+      expect(res.status, type).toBe(401);
+      expect(await res.text(), type).toContain('パスワードが違うようです');
+    }
+  });
+
+  it('lets the right password through, to a path on this site only', async () => {
+    const login = (next: string) =>
+      worker.fetch(
+        new Request('https://x.test/api/beta', {
+          method: 'POST',
+          body: new URLSearchParams({ password: 'pw', next }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+        env,
+      );
+    expect((await login('/ja/contact')).headers.get('Location')).toBe('/ja/contact');
+    expect((await login('/\\evil.example/x')).headers.get('Location')).toBe('/');
+    expect((await login('/\t/evil.example/x')).headers.get('Location')).toBe('/');
   });
 });
