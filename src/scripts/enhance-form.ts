@@ -11,6 +11,8 @@
  * `[data-submit]`. A required field `f-x` pairs with an error line `e-x`; a
  * group of required radios named `x` does too.
  */
+import { threeYearsOn, todayInLA } from '../data/calendar';
+
 type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 // The Worker names the field it refused. Its own word for each, here.
@@ -55,19 +57,15 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (known) service.value = wanted;
   }
 
-  /* A date picker should not offer yesterday. Local date, not UTC: at 8pm in
-     Los Angeles the UTC date is already tomorrow. */
-  const today = new Date();
-  const local = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 10);
-  // And no further out than the Worker takes: three years.
-  const far = `${Number(local.slice(0, 4)) + 3}${local.slice(4)}`;
+  /* A date picker should not offer a day already past where the plan takes
+     place, nor one further out than the Worker takes: the same two dates the
+     Worker checks, wherever the guest is. */
+  const today = todayInLA();
   form
     .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
     .forEach((d) => {
-      d.min = local;
-      d.max = far;
+      d.min = today;
+      d.max = threeYearsOn(today);
     });
 
   // Bring a field to fix into view with its label, then focus it. Safari does
@@ -145,18 +143,20 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (submit.disabled) return;
     sendErr.hidden = true;
 
-    let bad = false;
+    // Every mark first, then one scroll to the first. Safari stops a smooth
+    // scroll when the page grows above it, which each error line shown
+    // after the scroll had started would do.
+    let first: Field | undefined;
     for (const input of required()) {
       const invalid = !valid(input);
       showError(input, invalid);
-      if (invalid && !bad) {
-        reveal(input);
-        bad = true;
-      }
+      if (invalid) first ??= input;
     }
-
-    formErr.hidden = !bad;
-    if (bad) return;
+    formErr.hidden = !first;
+    if (first) {
+      reveal(first);
+      return;
+    }
 
     submit.disabled = true;
     submit.textContent = submit.dataset.sending ?? 'Sending';
@@ -186,11 +186,12 @@ export function enhanceForm(form: HTMLFormElement): void {
     // A cast, as for the select above: the shared types reject Field here.
     const input = field ? (form.querySelector(field) as Field | null) : null;
     if (input || body.error === 'missing') {
+      // The page settles before the scroll, as above.
+      formErr.hidden = false;
       if (input) {
         showError(input, true);
         reveal(input);
       }
-      formErr.hidden = false;
       return;
     }
     sendErr.hidden = false;

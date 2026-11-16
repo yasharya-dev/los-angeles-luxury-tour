@@ -3,6 +3,7 @@
 // it reads back. The Worker imports this, so nothing here may import an image.
 
 import type { Locale } from '../i18n/ui';
+import { threeYearsOn, todayInLA } from './calendar';
 import { offerings } from './offerings';
 import { plans, type Plan } from './plans';
 
@@ -29,10 +30,14 @@ export function planFor(id: string): Plan | undefined {
   return plans.find((p) => p.slug === id);
 }
 
-/** Her plans offer their own capacity and, where she allows it, one more choice. */
+/** Her plans offer their own capacity and, where she allows it, one more
+    choice. Any other plan starts at its own minimum, if its price has one. */
 export function guestOptions(id: string): GuestOption[] {
   const plan = planFor(id);
-  if (!plan) return GENERAL;
+  if (!plan) {
+    const min = offerings.find((o) => o.id === id)?.minGuests ?? 1;
+    return GENERAL.filter((g) => g.value === '6+' || Number(g.value) >= min);
+  }
   const list = Array.from({ length: plan.capacity }, (_, i) => guests(i + 1));
   if (plan.over) list.push({ value: 'over', label: plan.over.label });
   return list;
@@ -60,7 +65,8 @@ export const problemText: Record<Locale, Record<Problem | 'name' | 'email' | 'mi
     service: 'プランを選択してください。',
     type: '送迎タイプを選択してください。',
     route: '送迎区間を選択してください。',
-    date: 'ご利用希望日を選択してください。',
+    // Also for a date already past, so it asks to check, not to choose.
+    date: 'ご利用希望日をご確認ください。',
     guests: 'ご利用人数を選択してください。',
     name: 'お名前をご記入ください。',
     email: 'メールアドレスをご確認ください。',
@@ -70,7 +76,7 @@ export const problemText: Record<Locale, Record<Problem | 'name' | 'email' | 'mi
     service: 'Please choose a plan.',
     type: 'Please choose a transfer.',
     route: 'Please choose a route.',
-    date: 'Please choose a date.',
+    date: 'Please check the date.',
     guests: 'Please tell us how many guests.',
     name: 'Please enter your name.',
     email: 'Please check the email address.',
@@ -112,24 +118,17 @@ export function checkBooking(
     }
   }
 
+  // From today in Los Angeles, where the plan takes place: the same floor the
+  // form's date picker has.
   const date = input.date ?? '';
-  if (!isDate(date) || date < yesterday() || date > threeYearsOut()) {
+  const today = todayInLA();
+  if (!isDate(date) || date < today || date > threeYearsOn(today)) {
     return { ok: false, problem: 'date' };
   }
   const party = guestOptions(offering.id).find((g) => g.value === input.guests);
   if (!party) return { ok: false, problem: 'guests' };
 
   return { ok: true, booking: { service: offering.id, type, route, date, guests: party.value } };
-}
-
-/** As far ahead as a request can sensibly be made. */
-function threeYearsOut(): string {
-  return new Date(Date.now() + 3 * 366 * 86_400_000).toISOString().slice(0, 10);
-}
-
-/** Yesterday in UTC: the earliest date anyone anywhere can still call today. */
-function yesterday(): string {
-  return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 }
 
 /** 2026-12-05 reads 2026年12月5日（土） or Saturday, December 5, 2026. The

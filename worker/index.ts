@@ -272,6 +272,10 @@ function page(lang: string, body: string, status: number): Response {
   );
 }
 
+/** Escaped, with a fold after each Japanese stop and comma. The page sets
+    keep-all, under which Safari folds nowhere else and cuts a word instead. */
+const folds = (s: string) => escapeHtml(s).replace(/([。、：])/g, '$1<wbr>');
+
 function failPage(
   locale: Locale,
   kind: 'check' | 'send',
@@ -281,13 +285,16 @@ function failPage(
 ): Response {
   const f = FAIL[locale];
   const what = problem ? (problemText[locale] as Record<string, string>)[problem] : undefined;
+  // The address follows a Japanese colon with no space, and may fold there.
   const mail =
-    kind === 'send' ? ` <a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
+    kind === 'send'
+      ? `${locale === 'ja' ? '<wbr>' : ' '}<a href="mailto:${CONTACT.email}">${CONTACT.email}</a>`
+      : '';
   return page(
     locale,
-    `<p>${escapeHtml(f[kind])}${mail}</p>` +
-      (what ? `<p>${escapeHtml(what)}</p>` : '') +
-      `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${escapeHtml(f.back)}</a></p>`,
+    `<p>${folds(f[kind])}${mail}</p>` +
+      (what ? `<p>${folds(what)}</p>` : '') +
+      `<p><a href="${escapeHtml(back)}" onclick="history.back();return false">${folds(f.back)}</a></p>`,
     status,
   );
 }

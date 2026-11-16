@@ -30,6 +30,10 @@ export interface Offering {
   priceNote?: Partial<Record<Locale, string>>;
   /** For a plan without its own page: what its card opens to show. */
   detail?: Record<Locale, PlanDetail>;
+  /** The fewest guests its price is for, when that is more than one. */
+  minGuests?: number;
+  /** The booking form's notes hint, for a plan with no pickup to mention. */
+  notesHint?: Record<Locale, string>;
 }
 
 export interface PlanDetail {
@@ -92,6 +96,8 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $2,000', ja: '約326,000円〜' },
     priceNote: { en: 'for two', ja: '（$2,000〜）／2名様〜' },
+    // Her price is for two and up (／2名様〜), so the form starts there.
+    minGuests: 2,
   },
 
   {
@@ -235,6 +241,11 @@ export const offerings: Offering[] = [
     },
     price: { en: 'from $20', ja: '3,000円〜' },
     priceNote: { en: 'per booking', ja: '／1件' },
+    // Tickets only: her pickup hint does not apply. Our Japanese, for her read.
+    notesHint: {
+      en: 'The game, seats you would like, anything you would like us to know.',
+      ja: 'ご希望の試合やお席など、お気軽にお知らせください。',
+    },
     detail: {
       en: {
         body: 'Tickets bought on your behalf, with the section and seat chosen to suit you. Stadium tours and pre-game tours can be booked the same way.',

@@ -42,6 +42,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-mid);
+  /* A long question folds into even lines, not one word left over. */
+  text-wrap: balance;
 }
 
 html[lang='ja'] .label {
@@ -62,8 +64,11 @@ html[lang='ja'] .label {
 .input {
   width: 100%;
   /* One height for a text field, a select and a date field, which otherwise
-     each come out a pixel or three different. A textarea sets its own. */
-  height: 52px;
+     each come out a pixel or three different. A floor, not a fixed height:
+     with the text alone enlarged, the box grows instead of cutting the value
+     in half. A textarea sets its own. */
+  height: auto;
+  min-height: 52px;
   background: var(--surface);
   /* --field-edge, not a gold tint: a control's edge has to clear 3:1. */
   border: 1px solid var(--field-edge);
@@ -93,6 +98,13 @@ select.input {
 }
 html[data-theme='dark'] select.input {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4af37' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* The browsers' own grey is 2.4:1 in Safari. A hint is read, so it gets the
+   site's soft ink, still lighter than what the guest types. */
+.input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
 }
 
 /* A ring as well as the border: the border alone moves from one mid-tone to
@@ -127,6 +139,13 @@ html[data-theme='dark'] select.input {
   color: var(--err);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* The address in the send-failure line is the way out: marked as a link by
+   more than its colour, which is close to the error's own. */
+.form__err a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 /* The approval notice on the booking form. A hairline box, not a warning:

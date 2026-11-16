@@ -243,6 +243,8 @@ describe('the Worker, end to end', () => {
     const body = await res.text();
     expect(res.status).toBe(400);
     expect(body).toContain('送迎区間を選択してください。');
+    // A fold after each stop: under keep-all Safari has none of its own.
+    expect(body).toContain('送信できませんでした。<wbr>前のページに戻り、<wbr>入力内容をご確認ください。<wbr>');
     expect(body).toContain('href="/ja/book/dodgers-transfer" onclick="history.back();return false"');
   });
 

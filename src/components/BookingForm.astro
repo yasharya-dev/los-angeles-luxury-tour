@@ -7,6 +7,7 @@ import { yenAmount, lowestPrice } from '../data/plans';
 import { planPhotos } from '../data/plan-photos';
 import { guestOptions, hasChoice, planFor, problemText } from '../data/booking';
 import { cancellation } from '../data/cancellation';
+import { isJapanese, phrases } from '../i18n/phrase';
 import Icon from './Icon.astro';
 import Monogram from './Monogram.astro';
 import Photo from './Photo.astro';
@@ -90,6 +91,14 @@ const copy = {
 const c = copy[locale];
 const err = problemText[locale];
 
+// Her notes hint mentions the pickup; a plan without one has its own. An
+// attribute cannot hold <wbr>, so its phrase points are zero-width spaces:
+// Safari would otherwise fold the Japanese mid-word.
+const notesHint = offering.notesHint?.[locale] ?? c.notesPlaceholder;
+const notesPlaceholder = isJapanese(notesHint)
+  ? phrases(notesHint).join(String.fromCharCode(0x200b))
+  : notesHint;
+
 // What the summary card and the price box show before a choice: the plan's
 // lowest price as a from-price. A choice puts its own price there.
 const unit = plan?.unit[locale] ?? offering.priceNote?.[locale] ?? '';
@@ -120,9 +129,9 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     <span class="pick__thumb">
       {
         photo ? (
-          <Photo class="pick__photo" src={photo.src} alt="" aspect={1} sizes="72px" />
+          <Photo class="pick__photo" src={photo.src} alt="" aspect={1} sizes="72px" priority />
         ) : (
-          <Monogram size={40} lazy />
+          <Monogram size={40} />
         )
       }
     </span>
@@ -150,6 +159,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
               name="type"
               value={row.id}
               required
+              aria-invalid="false"
               data-price={yenAmount(row.yen, locale)}
               data-needs-route={row.route ? '' : undefined}
             />
@@ -158,7 +168,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-type" hidden>
-          {err.type}
+          <Phrases text={err.type} />
         </p>
       </fieldset>
     )
@@ -176,12 +186,12 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
         </legend>
         {choice.routes.map((way) => (
           <label class="option">
-            <input type="radio" name="route" value={way.id} />
+            <input type="radio" name="route" value={way.id} aria-invalid="false" />
             <span class="option__label">{way.label[locale]}</span>
           </label>
         ))}
         <p class="err" id="e-route" hidden>
-          {err.route}
+          <Phrases text={err.route} />
         </p>
       </fieldset>
     )
@@ -198,9 +208,10 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="date"
       type="date"
       required
+      aria-invalid="false"
       data-min-today
     />
-    <p class="err" id="e-date" hidden>{err.date}</p>
+    <p class="err" id="e-date" hidden><Phrases text={err.date} /></p>
   </div>
 
   <div class="field">
@@ -208,7 +219,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       {c.guests} <span class="req" aria-hidden="true">*</span>
       <span class="sr-only">{c.required}</span>
     </label>
-    <select class="input" id="f-guests" name="guests" required>
+    <select class="input" id="f-guests" name="guests" required aria-invalid="false">
       <option value="">{c.guestsPlaceholder}</option>
       {guestOptions(id).map((g) => <option value={g.value}>{g.label[locale]}</option>)}
     </select>
@@ -219,7 +230,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
         </p>
       )
     }
-    <p class="err" id="e-guests" hidden>{err.guests}</p>
+    <p class="err" id="e-guests" hidden><Phrases text={err.guests} /></p>
   </div>
 
   <div class="field">
@@ -247,9 +258,10 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="name"
       type="text"
       required
+      aria-invalid="false"
       autocomplete="name"
     />
-    <p class="err" id="e-name" hidden>{err.name}</p>
+    <p class="err" id="e-name" hidden><Phrases text={err.name} /></p>
   </div>
 
   <div class="field">
@@ -263,11 +275,12 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       name="email"
       type="email"
       required
+      aria-invalid="false"
       autocomplete="email"
       inputmode="email"
       pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
     />
-    <p class="err" id="e-email" hidden>{err.email}</p>
+    <p class="err" id="e-email" hidden><Phrases text={err.email} /></p>
   </div>
 
   <div class="field">
@@ -291,7 +304,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       id="f-notes"
       name="notes"
       rows="4"
-      placeholder={c.notesPlaceholder}></textarea>
+      placeholder={notesPlaceholder}></textarea>
   </div>
 
   {/* Her price box: the base price of the choice, and what happens next. */}
@@ -330,10 +343,13 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   {turnstileKey && <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="light" />}
 
-  <p class="form__err" data-form-error hidden>{c.formErr}</p>
-  {/* A failed send is not the visitor's fault. Say so, and give a way out. */}
+  <p class="form__err" data-form-error hidden><Phrases text={c.formErr} /></p>
+  {/* A failed send is not the visitor's fault. Say so, and give a way out.
+      The address follows the Japanese colon with no space, as type does. */}
   <p class="form__err" data-send-error hidden role="alert">
-    {c.sendErr} <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+    <Phrases text={c.sendErr} />{locale === 'en' ? ' ' : <wbr />}<a
+      href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a
+    >
   </p>
 
   <div class="booking__send">
@@ -520,6 +536,18 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
   .option input:focus-visible {
     outline: 2px solid var(--gold-text);
     outline-offset: 2px;
+  }
+  /* Windows contrast themes repaint the drawn dot as the background and the
+     chosen row's gold as every other edge. Keep the dot, and ring the row. */
+  @media (forced-colors: active) {
+    .option input:checked::before {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+    .option:has(input:checked) {
+      outline: 2px solid Highlight;
+      outline-offset: -1px;
+    }
   }
   .option__label {
     flex: 1;
