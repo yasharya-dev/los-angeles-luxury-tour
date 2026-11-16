@@ -223,9 +223,9 @@ const terms = cancellation[locale];
   </p>
 
   {/* Her optional phone bar (10A 04): the from-price and her label, at the
-      foot of the screen while the price card's button is off the screen and
-      before her closing panel. Hidden until the script below takes it out,
-      so it never shows without one. */}
+      foot of the screen once the price card's button has gone above it, and
+      until her closing panel comes up. Hidden until the script below takes
+      it out, so it never shows without one. */}
   <div class="plan-bar plate" data-plan-bar hidden>
     <p class="plan-bar__price">
       <span class="plan-bar__amount">{lowestPrice(plan, locale)}</span>{' '}
@@ -239,17 +239,10 @@ const terms = cancellation[locale];
 </div>
 
 <script>
-  import { watchPlanBar } from '../scripts/plan-bar';
+  import { startPlanBar } from '../scripts/plan-bar';
 
-  const bar = document.querySelector<HTMLElement>('[data-plan-bar]');
-  const request = document.querySelector('[data-plan-request]');
-  const closing = document.querySelector('[data-plan-closing]');
-  if (bar && request && closing && 'IntersectionObserver' in window) {
-    const watch = watchPlanBar(bar, request, closing);
-    addEventListener('resize', watch.update);
-  }
+  startPlanBar();
 </script>
-
 
 <style>
   /* One column, the same on every screen: her layout, centred on a wide one.
@@ -655,15 +648,21 @@ const terms = cancellation[locale];
       border-top: 1px solid var(--hairline);
       visibility: hidden;
       transform: translateY(100%);
-      transition:
-        transform 0.25s ease,
-        visibility 0s linear 0.25s;
     }
+    /* It slides in, and goes at once: a bar on its way out would still sit
+       over what the page is bringing into view. */
     .plan-bar.is-shown {
       visibility: visible;
       transform: none;
       transition: transform 0.25s ease;
     }
+  }
+
+  /* In the dark theme the page is the bar's own black: the bar is lifted to
+     the raised surface, with a shadow above it. */
+  :global(html[data-theme='dark']) .plan-bar:not([hidden]) {
+    background: var(--surface);
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
   }
 
   @media (prefers-reduced-motion: reduce) {

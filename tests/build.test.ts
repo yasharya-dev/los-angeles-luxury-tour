@@ -738,8 +738,9 @@ describe('the header and footer', () => {
   // The old language switch was a pill fixed to the corner of the screen,
   // over the content, and her brief asks for no floating EN in the way.
   // The one thing pinned over a page is her own plan-page phone bar (10A 04),
-  // which shows only while neither request button is on screen, and sits at
-  // the foot of the screen, away from the language link in the header.
+  // which shows only once the price card's button has gone above the screen
+  // and until her closing panel comes up, and sits at the foot of the screen,
+  // away from the language link in the header.
   it('pins nothing over the page but her plan bar', () => {
     const pinned = [...css().matchAll(/([^{}]+)\{[^{}]*position:fixed/g)].map((m) => m[1].trim());
     expect(pinned.length).toBeGreaterThan(0);
@@ -1489,6 +1490,11 @@ describe('her plan page, in her order', () => {
       );
       expect(watcher.length, route).toBe(1);
       expect(watcher[0], route).toContain('IntersectionObserver');
+      // The button counts on the screen or below it, her panel on the
+      // screen or above it; the bar re-measures itself as its size changes.
+      expect(watcher[0], route).toContain('0px 0px 100000px 0px');
+      expect(watcher[0], route).toContain('100000px 0px 0px 0px');
+      expect(watcher[0], route).toContain('ResizeObserver');
     }
     // Off by default; on a phone held upright, fixed at the foot of the
     // screen but hidden and below it until shown; never in print.
@@ -1502,8 +1508,13 @@ describe('her plan page, in her order', () => {
     expect(resting).toContain('position:fixed');
     expect(resting).toContain('visibility:hidden');
     expect(resting).toMatch(/transform:translateY\(100%\)/);
+    // It slides in and goes at once: no transition on the way out.
+    expect(resting).not.toMatch(/transition/);
     expect(shown).toContain('visibility:visible');
     expect(shown).toContain('transform:none');
+    expect(shown).toMatch(/transition:transform/);
+    // Lifted off the page's own black in the dark theme.
+    expect(styles).toMatch(/html\[data-theme=['"]?dark['"]?\] \.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*background:var\(--surface\)/);
     expect(styles).toMatch(/@media print\{\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none!important/);
     // The price is never squeezed under the button: the figure keeps its
     // width, and the button is what gives way.
