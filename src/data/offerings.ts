@@ -243,7 +243,7 @@ export const offerings: Offering[] = [
     priceNote: { en: 'per booking', ja: '／1件' },
     // Tickets only: her pickup hint does not apply. Our Japanese, for her read.
     notesHint: {
-      en: 'The game, seats you would like, anything you would like us to know.',
+      en: 'The game and seats you would like, or anything else we should know.',
       ja: 'ご希望の試合やお席など、お気軽にお知らせください。',
     },
     detail: {

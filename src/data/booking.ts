@@ -66,6 +66,7 @@ export const problemText: Record<Locale, Record<Problem | 'name' | 'email' | 'mi
     type: '送迎タイプを選択してください。',
     route: '送迎区間を選択してください。',
     // Also for a date already past, so it asks to check, not to choose.
+    // Ours, for her read, like every line here.
     date: 'ご利用希望日をご確認ください。',
     guests: 'ご利用人数を選択してください。',
     name: 'お名前をご記入ください。',

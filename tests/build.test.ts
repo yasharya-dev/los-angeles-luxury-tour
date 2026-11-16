@@ -1058,6 +1058,8 @@ describe('Japanese line folds', () => {
         lines.add(
           inner
             .replace(/<wbr[^>]*>/g, ' | ')
+            // A label's folds are U+200B (see Phrases.astro): folds all the same.
+            .replace(/​/g, ' | ')
             .replace(/<br[^>]*>/g, ' // ')
             .replace(/<[^>]+>/g, '')
             .replace(/\s+/g, ' ')
@@ -1544,8 +1546,19 @@ describe('the booking form', () => {
 
   // Japanese sets no half-width space after its own comma or colon.
   it('puts a link straight after a Japanese comma or colon', () => {
+    // Every tag but the link's own is invisible in the line: out first, so a
+    // </span> or a scoped <wbr> cannot hide a space between the two.
+    const seenLine = (markup: string) => markup.replace(/<(?!\/?a[\s>])[^>]+>/g, '');
     for (const p of ['/ja/book', '/ja/consult', '/ja/book/temecula']) {
-      expect(html(p), p).not.toMatch(/[、：]\s+(<wbr>)?<a /);
+      expect(seenLine(html(p)), p).not.toMatch(/[、：]\s+<a /);
+    }
+    const sendLine = (p: string) =>
+      seenLine(html(p).match(/<p class="form__err" data-send-error[^]*?<\/p>/)?.[0] ?? '');
+    for (const p of ['/ja/consult', '/ja/book/temecula']) {
+      expect(sendLine(p), p).toContain('ご連絡ください：​<a href="mailto:');
+    }
+    for (const p of ['/consult', '/book/temecula']) {
+      expect(sendLine(p), p).toContain('directly at ​<a href="mailto:');
     }
   });
 

@@ -57,7 +57,8 @@ const copy = {
     sending: 'Sending',
     sendNote: 'Your booking is not final yet.',
     formErr: 'Please check the marked fields above.',
-    sendErr: 'Something went wrong sending that. Please email us directly at',
+    // Ends in its space: the address follows straight on in every language.
+    sendErr: 'Something went wrong sending that. Please email us directly at ',
     required: 'required',
   },
   ja: {
@@ -84,12 +85,14 @@ const copy = {
     sendNote: 'この時点では予約は確定していません。',
     formErr: '上の印の項目をご確認ください。',
     sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
+    // Ours, for her read.
     required: '必須',
   },
 } as const;
 
 const c = copy[locale];
 const err = problemText[locale];
+const FOLD = String.fromCharCode(0x200b);
 
 // Her notes hint mentions the pickup; a plan without one has its own. An
 // attribute cannot hold <wbr>, so its phrase points are zero-width spaces:
@@ -168,7 +171,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-type" hidden>
-          <Phrases text={err.type} />
+          <Phrases text={err.type} label />
         </p>
       </fieldset>
     )
@@ -191,7 +194,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
           </label>
         ))}
         <p class="err" id="e-route" hidden>
-          <Phrases text={err.route} />
+          <Phrases text={err.route} label />
         </p>
       </fieldset>
     )
@@ -211,7 +214,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       aria-invalid="false"
       data-min-today
     />
-    <p class="err" id="e-date" hidden><Phrases text={err.date} /></p>
+    <p class="err" id="e-date" hidden><Phrases text={err.date} label /></p>
   </div>
 
   <div class="field">
@@ -226,11 +229,11 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     {
       plan?.over && (
         <p class="caption over-note" id="n-over">
-          <Phrases text={plan.over.note[locale]} />
+          <Phrases text={plan.over.note[locale]} label />
         </p>
       )
     }
-    <p class="err" id="e-guests" hidden><Phrases text={err.guests} /></p>
+    <p class="err" id="e-guests" hidden><Phrases text={err.guests} label /></p>
   </div>
 
   <div class="field">
@@ -261,7 +264,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       aria-invalid="false"
       autocomplete="name"
     />
-    <p class="err" id="e-name" hidden><Phrases text={err.name} /></p>
+    <p class="err" id="e-name" hidden><Phrases text={err.name} label /></p>
   </div>
 
   <div class="field">
@@ -280,7 +283,7 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       inputmode="email"
       pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
     />
-    <p class="err" id="e-email" hidden><Phrases text={err.email} /></p>
+    <p class="err" id="e-email" hidden><Phrases text={err.email} label /></p>
   </div>
 
   <div class="field">
@@ -343,13 +346,12 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
 
   {turnstileKey && <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="light" />}
 
-  <p class="form__err" data-form-error hidden><Phrases text={c.formErr} /></p>
+  <p class="form__err" data-form-error hidden><Phrases text={c.formErr} label /></p>
   {/* A failed send is not the visitor's fault. Say so, and give a way out.
-      The address follows the Japanese colon with no space, as type does. */}
+      The address may fold onto a line of its own. Any space before it is the
+      copy's: none after a Japanese colon. */}
   <p class="form__err" data-send-error hidden role="alert">
-    <Phrases text={c.sendErr} />{locale === 'en' ? ' ' : <wbr />}<a
-      href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a
-    >
+    <Phrases text={c.sendErr} label />{FOLD}<a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
   </p>
 
   <div class="booking__send">

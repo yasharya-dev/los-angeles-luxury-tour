@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
   SUBMISSIONS,
   clean,
@@ -11,6 +11,17 @@ import worker, {
 } from '../worker/index';
 import { SUMMARY_MARK } from '../src/data/booking';
 import { grantAccess } from '../worker/beta';
+
+// The Worker refuses a booking before today in Los Angeles, and the fixtures
+// are dated 2027: the clock is pinned to the day these were written, so the
+// suite, and npm run deploy with it, does not start failing as they pass.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('clean', () => {
   it('trims and returns strings', () => {
@@ -246,6 +257,26 @@ describe('the Worker, end to end', () => {
     // A fold after each stop: under keep-all Safari has none of its own.
     expect(body).toContain('送信できませんでした。<wbr>前のページに戻り、<wbr>入力内容をご確認ください。<wbr>');
     expect(body).toContain('href="/ja/book/dodgers-transfer" onclick="history.back();return false"');
+  });
+
+  // A send that fails is not the guest's fault: the page says so and hands
+  // over the address, straight after the Japanese colon, after a space in
+  // English, the space being the copy's.
+  it('gives a visitor without script the address when a send fails, in each language', async () => {
+    const unsent = (fields: Record<string, string>) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body: new URLSearchParams(fields),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }),
+        env(),
+      );
+    const ja = await unsent({ ...transfer, locale: 'ja' });
+    expect(ja.status).toBe(500);
+    expect(await ja.text()).toContain('ご連絡ください：<wbr><a href="mailto:losangelesluxurytour@gmail.com">');
+    const en = await unsent({ ...transfer, locale: 'en' });
+    expect(await en.text()).toContain('directly at <a href="mailto:losangelesluxurytour@gmail.com">');
   });
 
   it('sends the consultation on to the thank-you page too', async () => {

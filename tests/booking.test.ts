@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { threeYearsOn, todayInLA } from '../src/data/calendar';
 import {
   checkBooking,
@@ -10,6 +10,18 @@ import {
 } from '../src/data/booking';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
+
+// A request is refused before today in Los Angeles, and the fixtures are
+// dated 2027: on the real clock this file would start failing as those days
+// pass, and npm run deploy with it. The clock is pinned to the day these were
+// written; a test about the clock sets its own.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-15T20:00:00Z'));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const transfer = {
   service: 'dodgers-transfer',

@@ -56,7 +56,8 @@ const copy = {
     sending: 'Sending',
     reply: 'You will usually hear back within 24 hours.',
     formErr: 'Please check the marked fields above.',
-    sendErr: 'Something went wrong sending that. Please email us directly at',
+    // Ends in its space: the address follows straight on in every language.
+    sendErr: 'Something went wrong sending that. Please email us directly at ',
     star: 'with an asterisk',
   },
 
@@ -103,11 +104,13 @@ const copy = {
     reply: '通常24時間以内にご返信いたします。',
     formErr: '上の印の項目をご確認ください。',
     sendErr: '送信に失敗しました。お手数ですが直接ご連絡ください：',
+    // Ours, for her read: what a screen reader hears for the star.
     star: '＊印',
   },
 } as const;
 
 const c = copy[locale];
+const FOLD = String.fromCharCode(0x200b);
 ---
 
 <section class="section form-section" id="form">
@@ -150,7 +153,7 @@ const c = copy[locale];
           aria-invalid="false"
           autocomplete="name"
         />
-        <p class="err" id="e-name" hidden><Phrases text={c.nameErr} /></p>
+        <p class="err" id="e-name" hidden><Phrases text={c.nameErr} label /></p>
       </div>
 
       <div class="field">
@@ -168,19 +171,19 @@ const c = copy[locale];
           inputmode="email"
           pattern="[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
         />
-        <p class="err" id="e-email" hidden><Phrases text={c.emailErr} /></p>
+        <p class="err" id="e-email" hidden><Phrases text={c.emailErr} label /></p>
       </div>
 
       <div class="row">
         <div class="field">
-          <label class="label" for="f-lang"><Phrases text={c.lang} /></label>
+          <label class="label" for="f-lang"><Phrases text={c.lang} label /></label>
           <select class="input" id="f-lang" name="language">
             {c.langOpts.map((o) => <option value={o}>{o}</option>)}
           </select>
         </div>
 
         <div class="field">
-          <label class="label" for="f-guests"><Phrases text={c.guests} /></label>
+          <label class="label" for="f-guests"><Phrases text={c.guests} label /></label>
           <select class="input" id="f-guests" name="guests">
             {c.guestOpts.map((o) => <option value={o}>{o}</option>)}
           </select>
@@ -189,7 +192,7 @@ const c = copy[locale];
 
       {/* Free text, not a picker - "sometime next spring" is a real answer. */}
       <div class="field">
-        <label class="label" for="f-dates"><Phrases text={c.dates} /></label>
+        <label class="label" for="f-dates"><Phrases text={c.dates} label /></label>
         <input
           class="input"
           id="f-dates"
@@ -201,7 +204,7 @@ const c = copy[locale];
 
       {/* A plan card links here with ?service=<id>; the script pre-selects it. */}
       <div class="field">
-        <label class="label" for="f-service"><Phrases text={c.service} /></label>
+        <label class="label" for="f-service"><Phrases text={c.service} label /></label>
         <select class="input" id="f-service" name="service">
           <option value="">{c.serviceNone}</option>
           {tierOrder.map((tier) => (
@@ -216,7 +219,7 @@ const c = copy[locale];
 
       <div class="field">
         <label class="label" for="f-hoping">
-          <Phrases text={c.hoping} /> <span class="req" aria-hidden="true">*</span>
+          <Phrases text={c.hoping} label /> <span class="req" aria-hidden="true">*</span>
         </label>
         <textarea
           class="input textarea"
@@ -225,14 +228,14 @@ const c = copy[locale];
           rows="5"
           required
           aria-invalid="false"></textarea>
-        <p class="err" id="e-hoping" hidden><Phrases text={c.hopingErr} /></p>
+        <p class="err" id="e-hoping" hidden><Phrases text={c.hopingErr} label /></p>
       </div>
 
       <div class="field">
-        <label class="label" for="f-heard"><Phrases text={c.heard} /></label>
+        <label class="label" for="f-heard"><Phrases text={c.heard} label /></label>
         {/* The discount is part of the question: read with the field, and with
             the name field it is about. */}
-        <p class="caption hint" id="h-heard"><Phrases text={c.heardNote} /></p>
+        <p class="caption hint" id="h-heard"><Phrases text={c.heardNote} label /></p>
         <select class="input" id="f-heard" name="heard" aria-describedby="h-heard">
           {/* The first option is the placeholder. Empty value, so an unanswered
               question sends nothing and the Worker leaves the row out. */}
@@ -243,7 +246,7 @@ const c = copy[locale];
       </div>
 
       <div class="field">
-        <label class="label" for="f-ref"><Phrases text={c.referrer} /></label>
+        <label class="label" for="f-ref"><Phrases text={c.referrer} label /></label>
         <input class="input" id="f-ref" name="referrer" type="text" aria-describedby="h-heard" />
       </div>
 
@@ -257,13 +260,12 @@ const c = copy[locale];
         )
       }
 
-      <p class="form__err" data-form-error hidden><Phrases text={c.formErr} /></p>
+      <p class="form__err" data-form-error hidden><Phrases text={c.formErr} label /></p>
       {/* A failed send is not the visitor's fault. Say so, and give a way out.
-          The address follows the Japanese colon with no space, as type does. */}
+          The address may fold onto a line of its own. Any space before it is
+          the copy's: none after a Japanese colon. */}
       <p class="form__err" data-send-error hidden role="alert">
-        <Phrases text={c.sendErr} />{locale === 'en' ? ' ' : <wbr />}<a
-          href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a
-        >
+        <Phrases text={c.sendErr} label />{FOLD}<a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
       </p>
 
       <div class="form__foot">

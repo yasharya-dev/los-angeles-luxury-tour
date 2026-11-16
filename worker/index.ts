@@ -253,7 +253,8 @@ const FAIL: Record<Locale, { check: string; send: string; back: string }> = {
   },
   en: {
     check: 'We could not send that. Please go back and check the form.',
-    send: 'Something went wrong sending that. Please email us directly at',
+    // Ends in its space: the address follows straight on in every language.
+    send: 'Something went wrong sending that. Please email us directly at ',
     back: 'Go back',
   },
 };
@@ -285,11 +286,9 @@ function failPage(
 ): Response {
   const f = FAIL[locale];
   const what = problem ? (problemText[locale] as Record<string, string>)[problem] : undefined;
-  // The address follows a Japanese colon with no space, and may fold there.
-  const mail =
-    kind === 'send'
-      ? `${locale === 'ja' ? '<wbr>' : ' '}<a href="mailto:${CONTACT.email}">${CONTACT.email}</a>`
-      : '';
+  // Any space before the address is the copy's; folds() lets it fold after a
+  // Japanese colon.
+  const mail = kind === 'send' ? `<a href="mailto:${CONTACT.email}">${CONTACT.email}</a>` : '';
   return page(
     locale,
     `<p>${folds(f[kind])}${mail}</p>` +

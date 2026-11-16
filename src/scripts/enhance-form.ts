@@ -59,14 +59,18 @@ export function enhanceForm(form: HTMLFormElement): void {
 
   /* A date picker should not offer a day already past where the plan takes
      place, nor one further out than the Worker takes: the same two dates the
-     Worker checks, wherever the guest is. */
-  const today = todayInLA();
-  form
-    .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
-    .forEach((d) => {
-      d.min = today;
-      d.max = threeYearsOn(today);
-    });
+     Worker checks, wherever the guest is. Set again on every send, for a page
+     left open past midnight in Los Angeles (late afternoon in Japan). */
+  const bound = () => {
+    const today = todayInLA();
+    form
+      .querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]')
+      .forEach((d) => {
+        d.min = today;
+        d.max = threeYearsOn(today);
+      });
+  };
+  bound();
 
   // Bring a field to fix into view with its label, then focus it. Safari does
   // not scroll a focused radio or select into view by itself.
@@ -143,6 +147,8 @@ export function enhanceForm(form: HTMLFormElement): void {
     if (submit.disabled) return;
     sendErr.hidden = true;
 
+    bound();
+
     // Every mark first, then one scroll to the first. Safari stops a smooth
     // scroll when the page grows above it, which each error line shown
     // after the scroll had started would do.
@@ -150,7 +156,7 @@ export function enhanceForm(form: HTMLFormElement): void {
     for (const input of required()) {
       const invalid = !valid(input);
       showError(input, invalid);
-      if (invalid) first ??= input;
+      if (invalid && !first) first = input;
     }
     formErr.hidden = !first;
     if (first) {

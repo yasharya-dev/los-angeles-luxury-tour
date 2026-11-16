@@ -63,10 +63,10 @@ html[lang='ja'] .label {
 
 .input {
   width: 100%;
-  /* One height for a text field, a select and a date field, which otherwise
-     each come out a pixel or three different. A floor, not a fixed height:
-     with the text alone enlarged, the box grows instead of cutting the value
-     in half. A textarea sets its own. */
+  /* A text field, a select and a date field share a 52px floor, which
+     otherwise each come out a pixel or three different. A floor, not a fixed
+     height: with the text alone enlarged, the box grows instead of cutting
+     the value in half. A textarea sets its own. */
   height: auto;
   min-height: 52px;
   background: var(--surface);
@@ -98,6 +98,12 @@ select.input {
 }
 html[data-theme='dark'] select.input {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4af37' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Chromium pads the inside of a date field by a pixel above and below,
+   which took it to 53.2px beside its 52px neighbours. */
+.input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
 }
 
 /* The browsers' own grey is 2.4:1 in Safari. A hint is read, so it gets the
