@@ -736,12 +736,17 @@ describe('the header and footer', () => {
   });
 
   // The old language switch was a pill fixed to the corner of the screen,
-  // over the content. Her brief: nothing may cover the page.
-  // Nothing is pinned over a page. (Her plan page's optional booking bar was
-  // left out: on a page that short one of its two request buttons is always
-  // on screen, and a bar would only cover what is under it.)
-  it('pins nothing over the page', () => {
-    expect(css()).not.toMatch(/position:fixed/);
+  // over the content, and her brief asks for no floating EN in the way.
+  // The one thing pinned over a page is her own plan-page phone bar (10A 04),
+  // which shows only once the price card's button has gone above the screen
+  // and until her closing panel comes up, and sits at the foot of the screen,
+  // away from the language link in the header.
+  it('pins nothing over the page but her plan bar', () => {
+    const pinned = [...css().matchAll(/([^{}]+)\{[^{}]*position:fixed/g)].map((m) => m[1].trim());
+    expect(pinned.length).toBeGreaterThan(0);
+    for (const selector of pinned) {
+      expect(selector).toMatch(/^\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)$/);
+    }
   });
 
   // A link whose whole text is "EN" needs a name that says more, and the name
@@ -1448,15 +1453,102 @@ describe('her plan page, in her order', () => {
   });
 
   // Both ways in by the price, and the request again in the closing panel;
-  // the consultation link once, as her closing panel has none.
+  // the consultation link once, as her closing panel has none. The third
+  // link to the form is her phone bar's.
   it('puts both actions by the price, and the request again at the end', () => {
     for (const prefix of ['', '/ja']) {
       const doc = html(prefix + page);
-      expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(2);
+      expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(3);
       expect(count(doc, new RegExp(`href="${prefix}/consult[?]service=dodgers-transfer"`, 'g'))).toBe(1);
       const closing = doc.match(/<section class="closing plate"[^]*?<\/section>/)?.[0] ?? '';
       expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer"`));
+      // What her phone bar watches: the price card's button, and her panel.
+      expect(count(doc, / data-plan-request/g)).toBe(1);
+      expect(doc).toMatch(/<a class="btn btn--solid pricing__cta"[^>]* data-plan-request/);
+      expect(closing).toMatch(/^<section class="closing plate"[^>]* data-plan-closing/);
     }
+  });
+
+  // Her optional phone bar (10A 04): her from-price and her label, off the
+  // page until its script runs, and on a phone held upright only.
+  it('carries her phone bar, hidden until its script shows it', () => {
+    const bar = (route: string) => html(route).match(/<div class="plan-bar plate" data-plan-bar hidden[^]*?<\/div>/)?.[0] ?? '';
+    const ja = bar('/ja' + page).replace(/<[^>]+>/g, '');
+    expect(ja).toContain('49,800円〜 ／1組');
+    expect(ja).toContain('予約リクエスト');
+    expect(bar('/ja' + page)).toContain('href="/ja/book/dodgers-transfer"');
+    const en = bar(page).replace(/<[^>]+>/g, '');
+    expect(en).toContain('from ¥49,800 per group');
+    expect(en).toContain('Booking request');
+    expect(bar(page)).toContain('href="/book/dodgers-transfer"');
+    // Its script, which takes it out of hidden and watches the two, is on
+    // both pages: read from the script elements themselves.
+    for (const route of [page, '/ja' + page]) {
+      const scripts = [...html(route).matchAll(/<script\b[^>]*>([^]*?)<\/script>/g)].map((m) => m[1]);
+      const watcher = scripts.filter(
+        (js) => js.includes('[data-plan-bar]') && js.includes('[data-plan-request]') && js.includes('[data-plan-closing]'),
+      );
+      expect(watcher.length, route).toBe(1);
+      expect(watcher[0], route).toContain('IntersectionObserver');
+      // The button counts on the screen or below it, her panel on the
+      // screen or above it; the bar re-measures itself as its size changes.
+      expect(watcher[0], route).toContain('0px 0px 100000px 0px');
+      expect(watcher[0], route).toContain('100000px 0px 0px 0px');
+      expect(watcher[0], route).toContain('ResizeObserver');
+      // The wait starts again on a scroll or a touch.
+      expect(watcher[0], route).toMatch(/addEventListener\(`scroll`|addEventListener\(['"]scroll['"]/);
+      expect(watcher[0], route).toMatch(/addEventListener\(`pointerdown`|addEventListener\(['"]pointerdown['"]/);
+    }
+    // Off by default; on a phone held upright, fixed at the foot of the
+    // screen but hidden and below it until shown; never in print.
+    const styles = css();
+    expect(styles).toMatch(/\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none\}/);
+    const phone = styles.match(
+      /@media \((?:max-width:\s?680px|width<=680px)\) and \((?:min-height:\s?480px|height>=480px)\)\{(\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*\})(\.plan-bar\[data-astro-cid-[^\]]+\]\.is-shown\{[^}]*\})/,
+    );
+    expect(phone).not.toBeNull();
+    const [, resting, shown] = phone ?? [];
+    expect(resting).toContain('position:fixed');
+    expect(resting).toContain('visibility:hidden');
+    expect(resting).toMatch(/transform:translateY\(100%\)/);
+    // It slides in and goes at once: no transition on the way out.
+    expect(resting).not.toMatch(/transition/);
+    expect(shown).toContain('visibility:visible');
+    expect(shown).toContain('transform:none');
+    expect(shown).toMatch(/transition:transform/);
+    // Lifted off the page's own black in the dark theme.
+    expect(styles).toMatch(/html\[data-theme=['"]?dark['"]?\] \.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*background:var\(--raised\)/);
+    // Taps pass through it while it slides in.
+    expect(styles).toMatch(/\.plan-bar\[data-astro-cid-[^\]]+\]\.is-arriving\{pointer-events:none/);
+    expect(styles).toMatch(/@media print\{\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none!important/);
+    // The price is never squeezed under the button: the figure keeps its
+    // width, and the button is what gives way.
+    const price = styles.match(/\.plan-bar__price\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(price).not.toMatch(/min-width:0/);
+    const cta = styles.match(/\.plan-bar__cta\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(cta).not.toMatch(/flex:none/);
+    expect(cta).not.toMatch(/min-width:0/);
+  });
+
+  it('keeps the bar to her plan pages', () => {
+    const own = new Set(plans.flatMap((plan) => [`/experience/${plan.slug}`, `/ja/experience/${plan.slug}`]));
+    let seen = 0;
+    for (const file of allPages()) {
+      const route = file.slice(DIST.length).split(sep).join('/').replace(/\.html$/, '');
+      if (own.has(route)) {
+        expect(readFileSync(file, 'utf8'), route).toContain('data-plan-bar');
+        seen++;
+      } else {
+        expect(readFileSync(file, 'utf8'), route).not.toContain('data-plan-bar');
+      }
+    }
+    expect(seen).toBe(own.size);
+  });
+
+  // Her own English label from her October sample, as round 2 showed it.
+  it('heads her service rows with her English label', () => {
+    expect(html(page)).toMatch(/<h3 class="h3 part__title"[^>]*>Service includes<\/h3>/);
+    expect(html(page)).not.toContain('What is included');
   });
 
   // Her October terms, kept inside the two accordions she names, with her
@@ -1955,5 +2047,14 @@ describe('the pages, after their own review', () => {
   // The label face has no Japanese, so 本文へ移動 fell to the system gothic.
   it('sets the Japanese skip link in the Japanese face', () => {
     expect(css()).toMatch(/html\[lang=['"]?ja['"]?\] \.skip-link\{font-family:var\(--font-body\)/);
+  });
+
+  // As a flex row its halves copied onto two lines and find-in-page did not
+  // match across them: inline, with a real space, it is one line of text.
+  it('keeps the registration line one line of text, with a real space', () => {
+    for (const route of ['/', '/ja']) {
+      expect(html(route), route).toMatch(/California Seller of Travel<\/span> <span class="site-footer__whole"/);
+    }
+    expect(css()).not.toMatch(/\.site-footer__registration\[data-astro-cid-[^\]]+\]\{[^}]*display:flex/);
   });
 });

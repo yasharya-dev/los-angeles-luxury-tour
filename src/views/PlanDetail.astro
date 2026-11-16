@@ -2,7 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { bySlug, bookPath, consultPath, type Tier } from '../data/offerings';
-import { planBySlug, yenAmount } from '../data/plans';
+import { planBySlug, yenAmount, lowestPrice } from '../data/plans';
 import { planPhotos } from '../data/plan-photos';
 import { cancellation } from '../data/cancellation';
 import Icon from '../components/Icon.astro';
@@ -97,7 +97,7 @@ const terms = cancellation[locale];
       }
     </dl>
     <p class="caption pricing__note">{plan.priceNote[locale]}</p>
-    <a class="btn btn--solid pricing__cta" href={book}>
+    <a class="btn btn--solid pricing__cta" href={book} data-plan-request>
       {t('plan.request')}
       <Icon name="arrow-right" size={18} />
     </a>
@@ -205,7 +205,7 @@ const terms = cancellation[locale];
   </div>
 
   {/* Her black closing panel: 完全予約制, her line, the gold button. */}
-  <section class="closing plate" aria-labelledby="plan-closing">
+  <section class="closing plate" aria-labelledby="plan-closing" data-plan-closing>
     <p class="closing__label">{t('plan.byReservation')}</p>
     <h2 class="h2 closing__title" id="plan-closing"><Phrases text={plan.closing[locale]} /></h2>
     <a class="btn btn--solid" href={book}>
@@ -221,8 +221,28 @@ const terms = cancellation[locale];
       {t('cta.back')}
     </a>
   </p>
+
+  {/* Her optional phone bar (10A 04): the from-price and her label, at the
+      foot of the screen once the price card's button has gone above it, and
+      until her closing panel comes up. Hidden until the script below takes
+      it out, so it never shows without one. */}
+  <div class="plan-bar plate" data-plan-bar hidden>
+    <p class="plan-bar__price">
+      <span class="plan-bar__amount">{lowestPrice(plan, locale)}</span>{' '}
+      <span class="plan-bar__unit">{unit}</span>
+    </p>
+    <a class="btn btn--solid plan-bar__cta" href={book}>
+      {t('plan.bar')}
+      <Icon name="arrow-right" size={18} class="plan-bar__arrow" />
+    </a>
+  </div>
 </div>
 
+<script>
+  import { startPlanBar } from '../scripts/plan-bar';
+
+  startPlanBar();
+</script>
 
 <style>
   /* One column, the same on every screen: her layout, centred on a wide one.
@@ -603,5 +623,121 @@ const terms = cancellation[locale];
   }
   .back a:hover {
     color: var(--gold-text);
+  }
+
+  /* ---------------------------------------------------------- phone bar */
+
+  /* Her bar is for a phone held upright: off on a wide screen, on a phone on
+     its side and on paper. A plate, so its gold and ink are the dark ones.
+     It sits under the header's menu, which opens over it. */
+  .plan-bar {
+    display: none;
+  }
+
+  @media (max-width: 680px) and (min-height: 480px) {
+    .plan-bar:not([hidden]) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px var(--gutter);
+      background: var(--bar);
+      border-top: 1px solid var(--hairline);
+      visibility: hidden;
+      transform: translateY(100%);
+    }
+    /* It slides in, and goes at once: a bar on its way out would still sit
+       over what the page is bringing into view. */
+    .plan-bar.is-shown {
+      visibility: visible;
+      transform: none;
+      transition: transform 0.25s ease;
+    }
+  }
+
+  /* In the dark theme the page is the bar's own black: the bar is lifted to
+     the raised surface, with a shadow above it. */
+  :global(html[data-theme='dark']) .plan-bar:not([hidden]) {
+    background: var(--raised);
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  /* While it slides in, taps pass through it to what the guest meant to tap
+     at the foot of the screen. */
+  .plan-bar.is-arriving {
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plan-bar:not([hidden]),
+    .plan-bar.is-shown {
+      transition: none;
+    }
+  }
+
+  @media print {
+    .plan-bar {
+      display: none !important;
+    }
+  }
+
+  /* Her price takes the room the button leaves, as one line where it fits;
+     the unit goes under the figure before the button gives way. The figure
+     itself never shrinks: a flex item keeps its widest unbroken piece, so the
+     price is never cut. */
+  .plan-bar__price {
+    flex: 1 1 0;
+    margin: 0;
+    line-height: 1.3;
+  }
+  .plan-bar__amount {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-text);
+    white-space: nowrap;
+  }
+  :global(html[lang='ja']) .plan-bar__amount {
+    font-family: var(--font-body);
+    font-size: 19px;
+  }
+  .plan-bar__unit {
+    display: inline-block;
+    font-size: 14px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  /* Tighter than the page's buttons, as it shares the row with the price.
+     It keeps its full width unless the price, at its narrowest, still leaves
+     too little: then its English label folds between its two words, in two
+     even lines. Her Japanese label never folds inside itself. */
+  .plan-bar__cta {
+    flex: 0 1 auto;
+    min-height: var(--tap);
+    padding: 8px 16px;
+    letter-spacing: 0.06em;
+    text-wrap: balance;
+  }
+  :global(html[lang='ja']) .plan-bar__cta {
+    letter-spacing: 0.04em;
+    word-break: keep-all;
+  }
+
+  /* Where the row is tight the arrow goes, so the label keeps one line:
+     under 390px for the longer English label, under 360px for hers. */
+  @media (max-width: 389px) {
+    :global(html[lang='en']) .plan-bar :global(.plan-bar__arrow) {
+      display: none;
+    }
+  }
+  @media (max-width: 359px) {
+    .plan-bar :global(.plan-bar__arrow) {
+      display: none;
+    }
   }
 </style>
