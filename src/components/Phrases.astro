@@ -16,9 +16,11 @@
   them, and a screen reader then reads the label phrase by phrase every time
   the field takes focus. Text that names or describes a control is rendered
   with `label`: its folds are U+200B, which no browser reads as a space.
+  Inside a phrase, the characters Chromium folds at even under keep-all are
+  joined to their neighbours (see `glue` in i18n/phrase.ts).
 */
 import { BR, type Text } from '../i18n/text';
-import { isJapanese, phrases } from '../i18n/phrase';
+import { glue, isJapanese, phrases } from '../i18n/phrase';
 
 interface Props {
   text: Text;
@@ -36,7 +38,12 @@ const FOLD = String.fromCharCode(0x200b);
   parts === null ? (
     text
   ) : label ? (
-    <span class="phrases">{parts.filter((part) => part !== BR).join(FOLD)}</span>
+    <span class="phrases">
+      {parts
+        .filter((part) => part !== BR)
+        .map(glue)
+        .join(FOLD)}
+    </span>
   ) : (
     <span class="phrases">
       {parts.map((part, i) =>
@@ -45,7 +52,7 @@ const FOLD = String.fromCharCode(0x200b);
         ) : (
           <>
             {i > 0 && parts[i - 1] !== BR && <wbr />}
-            {part}
+            {glue(part)}
           </>
         ),
       )}

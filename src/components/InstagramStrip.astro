@@ -57,6 +57,13 @@ const title = {
     flex: none;
     color: var(--gold-text);
   }
+  /* At 320px her first phrase needs the arrow's room to stay whole; the whole
+     card is the link, so the arrow is not what says so. */
+  @media (max-width: 339px) {
+    .ig__link :global(.ig__arrow) {
+      display: none;
+    }
+  }
 
   .ig__text {
     flex: 1;

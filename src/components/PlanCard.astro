@@ -38,9 +38,12 @@ const t = useTranslations(locale);
 const more = t('plan.details');
 const name = o.name[locale];
 const unit = o.priceNote?.[locale];
-// English details are separated by a middle dot. A no-break space before it
-// keeps the dot at the end of a line, never at the start of the next.
-const blurb = o.blurb[locale].replaceAll(' \u00b7 ', '\u00a0\u00b7 ');
+// English details are items separated by a middle dot. Each item stays whole
+// where it fits, so a line folds between items, not inside 'LAX pickup', and
+// a no-break space keeps the dot at the end of the line before. Japanese
+// folds at its own \u30fb (see Phrases).
+const blurb = o.blurb[locale];
+const items = locale === 'en' ? blurb.split(' \u00b7 ') : null;
 
 const Foot = href ? 'div' : 'details';
 const Row = href ? 'div' : 'summary';
@@ -56,7 +59,23 @@ const Name = `h${level}` as const;
 
     <div class="plan__body">
       <Name class="plan__name"><Phrases text={name} /></Name>
-      <p class="plan__blurb"><Phrases text={blurb} /></p>
+      <p class="plan__blurb">
+        {
+          items ? (
+            items.map((item, i) => (
+              <>
+                {i > 0 && ' '}
+                <span class="plan__item">
+                  {item}
+                  {i < items.length - 1 && '\u00a0·'}
+                </span>
+              </>
+            ))
+          ) : (
+            <Phrases text={blurb} />
+          )
+        }
+      </p>
     </div>
 
     <Foot class="plan__foot">
@@ -141,6 +160,8 @@ const Name = `h${level}` as const;
     min-width: 0;
   }
 
+  /* Two lines of a long name come out even, rather than one word alone, in
+     both languages: 'Dodgers game private / transfer' left the last word. */
   .plan__name {
     margin: 0;
     font-family: var(--font-display);
@@ -148,14 +169,13 @@ const Name = `h${level}` as const;
     font-weight: 600;
     line-height: 1.3;
     color: var(--ink);
+    text-wrap: balance;
   }
-  /* Two lines of a long name come out even, rather than one word alone. */
   :global(html[lang='ja']) .plan__name {
     font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.5;
     letter-spacing: 0.02em;
-    text-wrap: balance;
   }
 
   /* Balanced, like the name: two even lines, not one long and one word. */
@@ -165,6 +185,10 @@ const Name = `h${level}` as const;
     line-height: 1.6;
     color: var(--ink-soft);
     text-wrap: balance;
+  }
+  /* Whole where it fits; an item wider than the card still wraps inside. */
+  .plan__item {
+    display: inline-block;
   }
 
   .plan__foot {

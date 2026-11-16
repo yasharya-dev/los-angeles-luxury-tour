@@ -149,3 +149,33 @@ html[data-theme='dark'] {
   --cta-edge: #d4af37;
   --on-cta: #101010;
 }
+
+/* Paper is white. A page printed from the dark theme takes the cream ink
+   above, value for value (a test holds the two together); a plate keeps the
+   dark tokens set on it and prints as it looks (base.css). */
+@media print {
+  html[data-theme='dark'] {
+    color-scheme: light;
+    --bg: #faf9f6;
+    --bg-deep: #f2f0e9;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --card: #ffffff;
+    --ink: #191919;
+    --ink-mid: rgba(25, 25, 25, 0.84);
+    --ink-soft: rgba(25, 25, 25, 0.64);
+    --gold-text: #806419;
+    --gold-deco: #b18a3a;
+    --hairline: rgba(177, 138, 58, 0.6);
+    --hairline-soft: rgba(177, 138, 58, 0.26);
+    --card-edge: rgba(177, 138, 58, 0.4);
+    --field-edge: rgba(25, 25, 25, 0.55);
+    --err: #a14a1d;
+    --btn-hover: rgba(177, 138, 58, 0.1);
+    --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
+    --cta: #b18a3a;
+    --cta-hover: #c29b4d;
+    --cta-edge: #94712b;
+    --on-cta: #191919;
+  }
+}

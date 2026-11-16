@@ -37,7 +37,7 @@ export const ui = {
 
     'toggle.dark': 'Dark mode',
 
-    'cta.back': 'Back to all journeys',
+    'cta.back': 'Back to all plans',
 
     // A plan's three controls, the same words wherever a plan appears. The
     // booking form takes a request that she confirms, so it is "request".

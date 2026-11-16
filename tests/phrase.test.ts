@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isJapanese, phrases } from '../src/i18n/phrase';
+import { glue, isJapanese, phrases } from '../src/i18n/phrase';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
 import type { Text } from '../src/i18n/text';
@@ -179,5 +179,65 @@ describe('phrases', () => {
     const parts = phrases('9:00〜18:00・ホテル発着・受賞ワイナリー3か所');
     expect(parts[0]).toBe('9:00〜18:00・');
     expect(parts.at(-1)).toBe('受賞ワイナリー3か所');
+  });
+
+  // The full site test of round 3 found these compounds cut in two, in both
+  // engines: a seam before a one-kanji suffix, and one leaving a two-kanji
+  // word on its own.
+  it('keeps a suffix with its word, and a two-kanji word with its compound', () => {
+    const joined = (text: string) => phrases(text).join('|');
+    expect(joined('一夜限りの出張シェフ付きディナー体験')).not.toContain('シェフ|付き');
+    expect(joined('一夜限りの出張シェフ付きディナー体験')).toContain('出張シェフ付き|ディナー体験');
+    expect(joined('空港到着日やホテルチェックアウト後も、お荷物を')).not.toContain('|後');
+    expect(joined('表示料金は、ご宿泊先⇔ドジャースタジアム間の送迎料金です。')).not.toContain('|間');
+    expect(joined('ご利用人数・お荷物の量・訪問エリアなどにより、')).not.toContain('訪問|エリア');
+    // A long compound still opens where both sides are words of their own.
+    expect(joined('ドジャース観戦チケット購入代行')).toBe('ドジャース|観戦チケット|購入代行');
+  });
+
+  // A short word stays with its neighbour only while the piece that makes
+  // is short: a fifteen-character piece is more than a phone's ※ list holds.
+  it('opens a short-word seam again when keeping it would make a long piece', () => {
+    expect(phrases('観戦チケットおよび駐車場代等の実費は、表示料金に含まれておりません。')[0]).toBe('観戦');
+    expect(phrases('はい。貸切プライベートツアーのため、').join('|')).not.toContain('貸切|');
+  });
+});
+
+// Chromium folds at a few characters inside a phrase even under keep-all.
+// The word joiner (U+2060) between them is invisible and never folds.
+describe('glue', () => {
+  const WJ = String.fromCharCode(0x2060);
+  const show = (s: string) => s.split(WJ).join('+');
+
+  // Under keep-all Chromium holds two letters or digits together, and still
+  // folds beside any punctuation or symbol. Each gets a joiner, both sides.
+  it('joins every mark and symbol inside a phrase to its neighbours', () => {
+    expect(show(glue('空港送迎（LAX⇔ホテル往復）'))).toBe('空港送迎+（+LAX+⇔+ホテル往復+）');
+    expect(show(glue('あなたの“やりたい”を'))).toBe('あなたの+“+やりたい+”+を');
+    expect(show(glue('1軒4〜6種ほどを'))).toBe('1軒4+〜+6種ほどを');
+    expect(show(glue('（1軒あたり$20〜）'))).toBe('（+1軒あたり+$+20+〜+）');
+    expect(show(glue('試合終了後のお迎え（往復・復路）'))).toBe('試合終了後のお迎え+（+往復+・+復路+）');
+    // Two letters, or a letter and kana, are held already: no joiner there.
+    expect(show(glue('LAXお迎え・'))).toBe('LAXお迎え+・');
+    expect(show(glue('In-N-Out・'))).toBe('In+-+N+-+Out+・');
+  });
+
+  // A slash before a figure is 'per': the fold goes before it (cut()), and
+  // the unit after it stays whole.
+  it('keeps a unit after its slash, and leaves the phrase ends alone', () => {
+    expect(show(glue('／1グループ'))).toBe('／+1グループ');
+    expect(show(glue('ご宿泊先⇔'))).toBe('ご宿泊先+⇔');
+    expect(show(glue('スタジアムツアー／'))).toBe('スタジアムツアー+／');
+    for (const piece of ['／1グループ', 'ご宿泊先⇔', '（$2,480〜）']) {
+      expect(glue(piece).startsWith(WJ), piece).toBe(false);
+      expect(glue(piece).endsWith(WJ), piece).toBe(false);
+    }
+  });
+
+  it('adds nothing but joiners, and nothing to English', () => {
+    for (const text of ['空港送迎（LAX⇔ホテル往復）', 'セクション・座席の指定可', '約432,000円〜']) {
+      expect(glue(text).split(WJ).join('')).toBe(text);
+    }
+    expect(glue('Private tours, by reservation only')).toBe('Private tours, by reservation only');
   });
 });

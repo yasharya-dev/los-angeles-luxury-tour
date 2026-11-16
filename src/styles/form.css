@@ -46,11 +46,15 @@
   text-wrap: balance;
 }
 
+/* Half-width marks without proportional kana: WebKit lays a palt run out at
+   its full width, which left the required star 10 to 12px after the label;
+   with no feature at all ・ and brackets go full width and loose. */
 html[lang='ja'] .label {
   font-family: var(--font-body);
   font-size: 15px;
   letter-spacing: 0.08em;
   text-transform: none;
+  font-feature-settings: 'halt';
 }
 
 .req {

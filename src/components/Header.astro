@@ -14,7 +14,22 @@ const t = useTranslations(locale);
 const p = (path: string) => localizePath(path, locale);
 
 const current = pagePath(Astro.url.pathname);
-const isCurrent = (path: string) => current === p(path);
+
+// The page a link names is aria-current="page". A page inside a section marks
+// that section's link "true", so a visitor on a plan page, or in the middle of
+// booking, still sees where they are: plans are under Experience, and the two
+// forms and what follows them under Contact.
+const within: Record<string, string[]> = {
+  '/experience': [],
+  '/about': [],
+  '/contact': ['/book', '/consult', '/thank-you'],
+};
+const currentFor = (href: string): 'page' | 'true' | undefined => {
+  if (current === p(href)) return 'page';
+  const roots = [href, ...within[href]].map(p);
+  const inside = roots.some((root) => current.startsWith(`${root}/`));
+  return inside || within[href].map(p).includes(current) ? 'true' : undefined;
+};
 
 const links = [
   { href: '/experience', label: t('nav.experience') },
@@ -47,7 +62,7 @@ const links = [
           <a
             class="nav__link"
             href={p(l.href)}
-            aria-current={isCurrent(l.href) ? 'page' : undefined}
+            aria-current={currentFor(l.href)}
           >
             {l.label}
           </a>
@@ -73,7 +88,7 @@ const links = [
               <a
                 class="menu__link"
                 href={p(l.href)}
-                aria-current={isCurrent(l.href) ? 'page' : undefined}
+                aria-current={currentFor(l.href)}
               >
                 {l.label}
                 <Icon name="chevron-right" size={18} />
@@ -209,7 +224,7 @@ const links = [
     white-space: nowrap;
   }
   .nav__link:hover,
-  .nav__link[aria-current='page'] {
+  .nav__link[aria-current] {
     color: var(--gold-text);
   }
 
@@ -274,7 +289,7 @@ const links = [
     color: var(--ink);
   }
   .menu__link:hover,
-  .menu__link[aria-current='page'] {
+  .menu__link[aria-current] {
     color: var(--gold-text);
   }
 
