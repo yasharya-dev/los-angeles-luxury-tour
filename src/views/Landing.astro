@@ -255,9 +255,10 @@ const c = copy[locale];
   }
 
   /* Three equal cards side by side on every screen, as she asked. On a phone
-     the row keeps the page's gutters, the gaps close to 6px and the cards
+     the row keeps the page's gutters, the gaps close to 4px and the cards
      carry no side padding: her longest line, 「オーダーメイドの」, is eight
-     full-width characters, and a third of a 360px screen is all it has. */
+     full-width characters, and a third of a 360px screen is all it has. A
+     wider gap takes the title under her 14px at 375px. */
   .reasons__list {
     list-style: none;
     margin: 0 auto;
@@ -268,7 +269,7 @@ const c = copy[locale];
   }
   @media (max-width: 480px) {
     .reasons__list {
-      gap: 6px;
+      gap: 4px;
     }
   }
 
@@ -304,9 +305,9 @@ const c = copy[locale];
   /* Her longest line, 「オーダーメイドの」, must not fold. Set with
      proportional kana it is 7.1 characters wide in Chromium and in WebKit,
      so the size is the card's width over 7.6: the line fits with a little
-     air. That is 13.5px on a 360px phone and her 14px floor from 372px, which
-     is every iPhone. (The vw line is for a browser without container
-     units.) */
+     air. The width is inside the card's border. That is 13.4px on a 360px
+     phone and her 14px floor from 374px, which is every iPhone. (The vw line
+     is for a browser without container units.) */
   :global(html[lang='ja']) .reason__title {
     padding-inline: 0;
     font-family: var(--font-body);
