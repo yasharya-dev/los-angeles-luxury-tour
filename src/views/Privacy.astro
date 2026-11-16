@@ -120,4 +120,10 @@ const c = copy[locale];
   .block__h {
     margin-bottom: 14px;
   }
+  /* The address is long enough to take a line of its own on a phone, where
+     it is a target, not a word in a sentence: padding gives it 44px to hit
+     without moving a line of the text. */
+  .block a {
+    padding-block: 10px;
+  }
 </style>
