@@ -736,12 +736,16 @@ describe('the header and footer', () => {
   });
 
   // The old language switch was a pill fixed to the corner of the screen,
-  // over the content. Her brief: nothing may cover the page.
-  // Nothing is pinned over a page. (Her plan page's optional booking bar was
-  // left out: on a page that short one of its two request buttons is always
-  // on screen, and a bar would only cover what is under it.)
-  it('pins nothing over the page', () => {
-    expect(css()).not.toMatch(/position:fixed/);
+  // over the content, and her brief asks for no floating EN in the way.
+  // The one thing pinned over a page is her own plan-page phone bar (10A 04),
+  // which shows only while neither request button is on screen, and sits at
+  // the foot of the screen, away from the language link in the header.
+  it('pins nothing over the page but her plan bar', () => {
+    const pinned = [...css().matchAll(/([^{}]+)\{[^{}]*position:fixed/g)].map((m) => m[1].trim());
+    expect(pinned.length).toBeGreaterThan(0);
+    for (const selector of pinned) {
+      expect(selector).toMatch(/^\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)$/);
+    }
   });
 
   // A link whose whole text is "EN" needs a name that says more, and the name
@@ -1448,15 +1452,51 @@ describe('her plan page, in her order', () => {
   });
 
   // Both ways in by the price, and the request again in the closing panel;
-  // the consultation link once, as her closing panel has none.
+  // the consultation link once, as her closing panel has none. The third
+  // link to the form is her phone bar's.
   it('puts both actions by the price, and the request again at the end', () => {
     for (const prefix of ['', '/ja']) {
       const doc = html(prefix + page);
-      expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(2);
+      expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(3);
+      expect(count(doc, / data-plan-request/g)).toBe(2);
       expect(count(doc, new RegExp(`href="${prefix}/consult[?]service=dodgers-transfer"`, 'g'))).toBe(1);
       const closing = doc.match(/<section class="closing plate"[^]*?<\/section>/)?.[0] ?? '';
-      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer"`));
+      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer" data-plan-request`));
     }
+  });
+
+  // Her optional phone bar (10A 04): her from-price and her label, off the
+  // page until its script runs, and on a phone held upright only.
+  it('carries her phone bar, hidden until its script shows it', () => {
+    const bar = (route: string) => html(route).match(/<div class="plan-bar plate" data-plan-bar hidden[^]*?<\/div>/)?.[0] ?? '';
+    const ja = bar('/ja' + page).replace(/<[^>]+>/g, '');
+    expect(ja).toContain('49,800円〜 ／1組');
+    expect(ja).toContain('予約リクエスト');
+    expect(bar('/ja' + page)).toContain('href="/ja/book/dodgers-transfer"');
+    const en = bar(page).replace(/<[^>]+>/g, '');
+    expect(en).toContain('from ¥49,800 per group');
+    expect(en).toContain('Booking request');
+    expect(bar(page)).toContain('href="/book/dodgers-transfer"');
+    // Its script, which takes it out of hidden, is on the page.
+    expect(html('/ja' + page)).toMatch(/<script[^>]*>[^]*data-plan-bar[^]*<\/script>/);
+    // Shown only under her phone width on an upright screen, never in print,
+    // and off by default.
+    const styles = css();
+    expect(styles).toMatch(/\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none\}/);
+    expect(styles).toMatch(/@media \((?:max-width:\s?680px|width<=680px)\) and \((?:min-height:\s?480px|height>=480px)\)\{\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*position:fixed/);
+    expect(styles).toMatch(/@media print\{\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none!important/);
+  });
+
+  it('keeps the bar to her plan pages', () => {
+    for (const route of ['/', '/ja', '/ja/experience', '/ja/experience/temecula', '/ja/book/dodgers-transfer']) {
+      expect(html(route), route).not.toContain('data-plan-bar');
+    }
+  });
+
+  // Her own English label from her October sample, as round 2 showed it.
+  it('heads her service rows with her English label', () => {
+    expect(html(page)).toMatch(/<h3 class="h3 part__title"[^>]*>Service includes<\/h3>/);
+    expect(html(page)).not.toContain('What is included');
   });
 
   // Her October terms, kept inside the two accordions she names, with her
@@ -1955,5 +1995,12 @@ describe('the pages, after their own review', () => {
   // The label face has no Japanese, so 本文へ移動 fell to the system gothic.
   it('sets the Japanese skip link in the Japanese face', () => {
     expect(css()).toMatch(/html\[lang=['"]?ja['"]?\] \.skip-link\{font-family:var\(--font-body\)/);
+  });
+
+  // Copied or found, the registration line read 'TravelRegistration'.
+  it('keeps a real space between the halves of the registration line', () => {
+    for (const route of ['/', '/ja']) {
+      expect(html(route), route).toMatch(/California Seller of Travel<\/span> <span class="site-footer__whole"/);
+    }
   });
 });

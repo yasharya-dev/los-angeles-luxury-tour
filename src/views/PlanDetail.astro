@@ -2,7 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { useTranslations, localizePath } from '../i18n/utils';
 import { bySlug, bookPath, consultPath, type Tier } from '../data/offerings';
-import { planBySlug, yenAmount } from '../data/plans';
+import { planBySlug, yenAmount, lowestPrice } from '../data/plans';
 import { planPhotos } from '../data/plan-photos';
 import { cancellation } from '../data/cancellation';
 import Icon from '../components/Icon.astro';
@@ -97,7 +97,7 @@ const terms = cancellation[locale];
       }
     </dl>
     <p class="caption pricing__note">{plan.priceNote[locale]}</p>
-    <a class="btn btn--solid pricing__cta" href={book}>
+    <a class="btn btn--solid pricing__cta" href={book} data-plan-request>
       {t('plan.request')}
       <Icon name="arrow-right" size={18} />
     </a>
@@ -208,7 +208,7 @@ const terms = cancellation[locale];
   <section class="closing plate" aria-labelledby="plan-closing">
     <p class="closing__label">{t('plan.byReservation')}</p>
     <h2 class="h2 closing__title" id="plan-closing"><Phrases text={plan.closing[locale]} /></h2>
-    <a class="btn btn--solid" href={book}>
+    <a class="btn btn--solid" href={book} data-plan-request>
       {t('plan.request')}
       <Icon name="arrow-right" size={18} />
     </a>
@@ -221,7 +221,29 @@ const terms = cancellation[locale];
       {t('cta.back')}
     </a>
   </p>
+
+  {/* Her optional phone bar (10A 04): the from-price and her label, at the
+      foot of the screen while neither request button is in view. Hidden
+      until the script below takes it out, so it never shows without one. */}
+  <div class="plan-bar plate" data-plan-bar hidden>
+    <p class="plan-bar__price">
+      <span class="plan-bar__amount">{lowestPrice(plan, locale)}</span>{' '}
+      <span class="plan-bar__unit">{unit}</span>
+    </p>
+    <a class="btn btn--solid plan-bar__cta" href={book}>
+      {t('plan.bar')}
+      <Icon name="arrow-right" size={18} class="plan-bar__arrow" />
+    </a>
+  </div>
 </div>
+
+<script>
+  import { watchPlanBar } from '../scripts/plan-bar';
+
+  const bar = document.querySelector<HTMLElement>('[data-plan-bar]');
+  const buttons = [...document.querySelectorAll<HTMLElement>('[data-plan-request]')];
+  if (bar && buttons.length && 'IntersectionObserver' in window) watchPlanBar(bar, buttons);
+</script>
 
 
 <style>
@@ -603,5 +625,96 @@ const terms = cancellation[locale];
   }
   .back a:hover {
     color: var(--gold-text);
+  }
+
+  /* ---------------------------------------------------------- phone bar */
+
+  /* Her bar is for a phone held upright: off on a wide screen, on a phone on
+     its side and on paper. A plate, so its gold and ink are the dark ones.
+     It sits under the header's menu, which opens over it. */
+  .plan-bar {
+    display: none;
+  }
+
+  @media (max-width: 680px) and (min-height: 480px) {
+    .plan-bar:not([hidden]) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px var(--gutter) max(10px, env(safe-area-inset-bottom));
+      background: var(--bar);
+      border-top: 1px solid var(--hairline);
+      visibility: hidden;
+      transform: translateY(100%);
+      transition:
+        transform 0.25s ease,
+        visibility 0s linear 0.25s;
+    }
+    .plan-bar.is-shown {
+      visibility: visible;
+      transform: none;
+      transition: transform 0.25s ease;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plan-bar:not([hidden]),
+    .plan-bar.is-shown {
+      transition: none;
+    }
+  }
+
+  @media print {
+    .plan-bar {
+      display: none !important;
+    }
+  }
+
+  /* Her price as one line where it fits; the unit goes under the figure
+     before the button is squeezed. */
+  .plan-bar__price {
+    margin: 0;
+    min-width: 0;
+    line-height: 1.3;
+  }
+  .plan-bar__amount {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-text);
+    white-space: nowrap;
+  }
+  :global(html[lang='ja']) .plan-bar__amount {
+    font-family: var(--font-body);
+    font-size: 19px;
+  }
+  .plan-bar__unit {
+    display: inline-block;
+    font-size: 14px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  /* Tighter than the page's buttons, as it shares the row with the price. */
+  .plan-bar__cta {
+    flex: none;
+    min-height: var(--tap);
+    padding: 8px 16px;
+    letter-spacing: 0.06em;
+  }
+  :global(html[lang='ja']) .plan-bar__cta {
+    letter-spacing: 0.04em;
+  }
+
+  /* On the narrowest phones the arrow goes, so the label keeps one line. */
+  @media (max-width: 359px) {
+    .plan-bar :global(.plan-bar__arrow) {
+      display: none;
+    }
   }
 </style>

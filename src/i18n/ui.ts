@@ -44,7 +44,11 @@ export const ui = {
     'plan.details': 'Details',
     'plan.request': 'Request this plan',
     'plan.ask': 'or ask a question first',
-    'plan.services': 'What is included',
+    // Hers: 'Service Includes:' in her sample plan of 2026-10-23, in the
+    // site's sentence case.
+    'plan.services': 'Service includes',
+    // Hers: BOOKING REQUEST, her own English for 予約リクエスト (10B).
+    'plan.bar': 'Booking request',
     'plan.usage': 'Service details',
     'plan.byReservation': 'By reservation only',
 
@@ -89,6 +93,8 @@ export const ui = {
     'plan.ask': 'まずは相談する',
     // Hers, from the plan page in her brief of 2026-11-05.
     'plan.services': 'サービス内容',
+    // Hers: the phone bar's button, 10A 04.
+    'plan.bar': '予約リクエスト',
     'plan.usage': 'ご利用について',
     'plan.byReservation': '完全予約制',
 
