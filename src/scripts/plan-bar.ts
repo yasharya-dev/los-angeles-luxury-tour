@@ -1,32 +1,71 @@
 // Her phone bar on a plan page (brief of 2026-11-05, 10A 04): the from-price
-// and a way to the booking form, kept at the foot of the screen while neither
-// of the page's own request buttons is in view. It goes once the closing
-// panel's button has been passed, so it never sits over a button, the end of
-// the page or the footer. Without script it never shows, and the two buttons
-// are on the page either way.
+// and a way to the booking form, at the foot of the screen while the price
+// card's request button is off the screen and her closing panel has not been
+// reached. Each state is read from where the page is now, not from how it got
+// there, so a jump (a link, a reload, find-in-page) cannot leave it wrong.
+// Without script it never shows; the page's own buttons are there either way.
+
+/** A root reaching this far above the screen counts anything above it. */
+const AND_ABOVE = '100000px 0px 0px 0px';
+
+/** Room kept clear of the bar above it: a focus ring's width and offset. */
+const RING = 8;
+
+export interface PlanBar {
+  /** Measures again, as after a resize or a turn of the phone. */
+  update(): void;
+  disconnect(): void;
+}
 
 /**
- * Shows `bar` (by its `is-shown` class) exactly while none of `buttons` is in
- * view and the last of them is not above the screen. Takes the bar out of
- * `hidden`, which keeps it off the page until this runs. Returns the observer.
+ * Shows `bar` (its `is-shown` class) while `request` is off the screen and
+ * `closing` is neither on it nor above it. While it shows, `root` keeps the
+ * bar's height clear at the foot of the screen for focus, find-in-page and
+ * fragment scrolling, so nothing focused or found ends up under it
+ * (WCAG 2.4.11). Takes the bar out of `hidden`, which keeps it off the page
+ * until this runs.
  */
 export function watchPlanBar(
   bar: HTMLElement,
-  buttons: readonly HTMLElement[],
+  request: Element,
+  closing: Element,
+  root: HTMLElement = document.documentElement,
   Observer: typeof IntersectionObserver = IntersectionObserver,
-): IntersectionObserver {
-  const last = buttons[buttons.length - 1];
-  const inView = new Set<Element>();
-  let past = false;
-  const observer = new Observer((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) inView.add(entry.target);
-      else inView.delete(entry.target);
-      if (entry.target === last) past = !entry.isIntersecting && entry.boundingClientRect.top < 0;
-    }
-    bar.classList.toggle('is-shown', inView.size === 0 && !past);
+): PlanBar {
+  let requestOnScreen = false;
+  let closingReached = false;
+
+  const update = () => {
+    const shown = !requestOnScreen && !closingReached;
+    bar.classList.toggle('is-shown', shown);
+    // Measured, not a constant: the bar is taller in English, and when its
+    // label folds on a narrow phone. Zero where the stylesheet keeps the bar
+    // off, as on a wide screen or a phone on its side.
+    const height = bar.offsetHeight;
+    root.style.scrollPaddingBottom = shown && height ? `${height + RING}px` : '';
+  };
+
+  const onScreen = new Observer((entries) => {
+    for (const entry of entries) requestOnScreen = entry.isIntersecting;
+    update();
   });
-  for (const button of buttons) observer.observe(button);
+  const reached = new Observer(
+    (entries) => {
+      for (const entry of entries) closingReached = entry.isIntersecting;
+      update();
+    },
+    { rootMargin: AND_ABOVE },
+  );
+  onScreen.observe(request);
+  reached.observe(closing);
   bar.hidden = false;
-  return observer;
+
+  return {
+    update,
+    disconnect() {
+      onScreen.disconnect();
+      reached.disconnect();
+      root.style.scrollPaddingBottom = '';
+    },
+  };
 }

@@ -1,17 +1,17 @@
 // Her phone bar on the plan page (src/scripts/plan-bar.ts), run against a
-// stand-in for IntersectionObserver: the test says which button crosses the
-// screen and where, as the browser would.
+// stand-in for IntersectionObserver: the test says what is on the screen, or
+// above it, as the browser would.
 import { describe, expect, it } from 'vitest';
 import { watchPlanBar } from '../src/scripts/plan-bar';
 
 class FakeObserver {
-  static last: FakeObserver;
-  readonly root = null;
-  readonly rootMargin = '0px';
-  readonly thresholds = [0];
+  static made: FakeObserver[] = [];
   targets: Element[] = [];
-  constructor(private readonly callback: IntersectionObserverCallback) {
-    FakeObserver.last = this;
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    readonly options: IntersectionObserverInit = {},
+  ) {
+    FakeObserver.made.push(this);
   }
   observe(target: Element) {
     this.targets.push(target);
@@ -21,23 +21,21 @@ class FakeObserver {
   takeRecords() {
     return [];
   }
-  /** Each entry: the button, whether any of it is on screen, its top edge. */
-  report(...entries: Array<[Element, boolean, number]>) {
+  /** Reports each target as intersecting its root or not. */
+  report(...entries: Array<[Element, boolean]>) {
     this.callback(
-      entries.map(
-        ([target, isIntersecting, top]) =>
-          ({ target, isIntersecting, boundingClientRect: { top } }) as unknown as IntersectionObserverEntry,
-      ),
+      entries.map(([target, isIntersecting]) => ({ target, isIntersecting }) as unknown as IntersectionObserverEntry),
       this as unknown as IntersectionObserver,
     );
   }
 }
 
-/** The bar: its `hidden` and its classes are all the script touches. */
-function fakeBar() {
+/** The bar: its `hidden`, its classes and its height are all the script reads. */
+function fakeBar(height = 66) {
   const classes = new Set<string>();
   return {
     hidden: true,
+    offsetHeight: height,
     classList: {
       toggle(name: string, force?: boolean) {
         const on = force ?? !classes.has(name);
@@ -50,65 +48,95 @@ function fakeBar() {
   } as unknown as HTMLElement;
 }
 
-function setUp() {
-  const bar = fakeBar();
-  const price = { id: 'price' } as unknown as HTMLElement;
-  const closing = { id: 'closing' } as unknown as HTMLElement;
-  watchPlanBar(bar, [price, closing], FakeObserver as unknown as typeof IntersectionObserver);
-  const io = FakeObserver.last;
+function setUp(height?: number) {
+  FakeObserver.made = [];
+  const bar = fakeBar(height);
+  const request = { id: 'request' } as unknown as Element;
+  const closing = { id: 'closing' } as unknown as Element;
+  const root = { style: { scrollPaddingBottom: '' } } as unknown as HTMLElement;
+  const watch = watchPlanBar(bar, request, closing, root, FakeObserver as unknown as typeof IntersectionObserver);
+  const [onScreen, reached] = FakeObserver.made;
   const shown = () => bar.classList.contains('is-shown');
-  return { bar, price, closing, io, shown };
+  return { bar, request, closing, root, watch, onScreen, reached, shown };
 }
 
 describe('her phone bar on the plan page', () => {
-  it('watches both request buttons, and comes out of hidden only when it runs', () => {
-    const { bar, price, closing, io } = setUp();
-    expect(io.targets).toEqual([price, closing]);
+  // The price card's button counts while on the screen; the closing panel
+  // counts on the screen and anywhere above it, so a jump past it is seen.
+  it('watches the price button on the screen and the closing panel on it or above it', () => {
+    const { bar, request, closing, onScreen, reached } = setUp();
+    expect(onScreen.targets).toEqual([request]);
+    expect(onScreen.options.rootMargin).toBeUndefined();
+    expect(reached.targets).toEqual([closing]);
+    expect(reached.options.rootMargin).toMatch(/^\d{5,}px 0px 0px 0px$/);
     expect(bar.hidden).toBe(false);
   });
 
-  // The top of the page on most phones: the photo and the title, neither
-  // button yet.
-  it('shows while neither button is on screen', () => {
-    const { price, closing, io, shown } = setUp();
-    io.report([price, false, 823], [closing, false, 1790]);
+  // The top of the page on most phones: the photo and the title, the price
+  // card still below.
+  it('shows while the price button is off the screen and the panel is not reached', () => {
+    const { request, closing, onScreen, reached, shown } = setUp();
+    onScreen.report([request, false]);
+    reached.report([closing, false]);
     expect(shown()).toBe(true);
   });
 
-  // A tall screen opens with the price card's button already in view.
-  it('waits while the price card button is on screen', () => {
-    const { price, closing, io, shown } = setUp();
-    io.report([price, true, 700], [closing, false, 1790]);
+  it('steps aside while the price button is on the screen', () => {
+    const { request, closing, onScreen, reached, shown } = setUp();
+    reached.report([closing, false]);
+    onScreen.report([request, true]);
     expect(shown()).toBe(false);
-    // Scrolled past it: the bar takes over.
-    io.report([price, false, -60]);
+    onScreen.report([request, false]);
     expect(shown()).toBe(true);
   });
 
-  // From the closing panel on, the page's own button and then the footer
-  // are what is on screen: the bar does not come back over them.
-  it('goes for good once the closing panel button has been passed', () => {
-    const { price, closing, io, shown } = setUp();
-    io.report([price, false, -400], [closing, false, 500]);
-    expect(shown()).toBe(true);
-    io.report([closing, true, 300]);
+  // Her panel and everything after it: the bar never sits on her black
+  // panel, the footer or the legal lines.
+  it('steps aside from the closing panel on, and comes back above it', () => {
+    const { request, closing, onScreen, reached, shown } = setUp();
+    onScreen.report([request, false]);
+    reached.report([closing, true]);
     expect(shown()).toBe(false);
-    io.report([closing, false, -40]);
-    expect(shown()).toBe(false);
-    // Back up the page, past the closing panel again: the bar returns.
-    io.report([closing, true, 200]);
-    expect(shown()).toBe(false);
-    io.report([closing, false, 700]);
+    reached.report([closing, false]);
     expect(shown()).toBe(true);
   });
 
-  // Either button in view is enough to stand the bar down, whichever came
-  // first in one report.
-  it('stays down while either button is on screen', () => {
-    const { price, closing, io, shown } = setUp();
-    io.report([price, true, 500], [closing, true, 900]);
+  // A jump from the top to the foot of the page (the end key, find-in-page,
+  // a link): the price button is off the screen before and after, so it says
+  // nothing; the panel, now above the screen, still counts as reached.
+  it('reads a jump past both from where the page is now', () => {
+    const { request, closing, onScreen, reached, shown } = setUp();
+    onScreen.report([request, false]);
+    reached.report([closing, false]);
+    expect(shown()).toBe(true);
+    reached.report([closing, true]);
     expect(shown()).toBe(false);
-    io.report([price, false, -50]);
-    expect(shown()).toBe(false);
+    // And back to the middle in one jump.
+    reached.report([closing, false]);
+    expect(shown()).toBe(true);
+  });
+
+  // WCAG 2.4.11: what a keyboard focuses, or find-in-page finds, is
+  // scrolled clear of the bar, ring included.
+  it('keeps the bar\'s height clear for focus while it shows, and only then', () => {
+    const { request, closing, root, onScreen, reached, watch } = setUp(70);
+    onScreen.report([request, false]);
+    reached.report([closing, false]);
+    expect(root.style.scrollPaddingBottom).toBe('78px');
+    onScreen.report([request, true]);
+    expect(root.style.scrollPaddingBottom).toBe('');
+    onScreen.report([request, false]);
+    watch.disconnect();
+    expect(root.style.scrollPaddingBottom).toBe('');
+  });
+
+  // Where the stylesheet keeps the bar off (a wide or short screen) it has
+  // no height, and the page keeps no room for it.
+  it('keeps no room where the bar is off', () => {
+    const { request, closing, root, onScreen, reached, shown } = setUp(0);
+    onScreen.report([request, false]);
+    reached.report([closing, false]);
+    expect(shown()).toBe(true);
+    expect(root.style.scrollPaddingBottom).toBe('');
   });
 });

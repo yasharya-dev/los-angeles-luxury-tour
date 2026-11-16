@@ -205,10 +205,10 @@ const terms = cancellation[locale];
   </div>
 
   {/* Her black closing panel: 完全予約制, her line, the gold button. */}
-  <section class="closing plate" aria-labelledby="plan-closing">
+  <section class="closing plate" aria-labelledby="plan-closing" data-plan-closing>
     <p class="closing__label">{t('plan.byReservation')}</p>
     <h2 class="h2 closing__title" id="plan-closing"><Phrases text={plan.closing[locale]} /></h2>
-    <a class="btn btn--solid" href={book} data-plan-request>
+    <a class="btn btn--solid" href={book}>
       {t('plan.request')}
       <Icon name="arrow-right" size={18} />
     </a>
@@ -223,8 +223,9 @@ const terms = cancellation[locale];
   </p>
 
   {/* Her optional phone bar (10A 04): the from-price and her label, at the
-      foot of the screen while neither request button is in view. Hidden
-      until the script below takes it out, so it never shows without one. */}
+      foot of the screen while the price card's button is off the screen and
+      before her closing panel. Hidden until the script below takes it out,
+      so it never shows without one. */}
   <div class="plan-bar plate" data-plan-bar hidden>
     <p class="plan-bar__price">
       <span class="plan-bar__amount">{lowestPrice(plan, locale)}</span>{' '}
@@ -241,8 +242,12 @@ const terms = cancellation[locale];
   import { watchPlanBar } from '../scripts/plan-bar';
 
   const bar = document.querySelector<HTMLElement>('[data-plan-bar]');
-  const buttons = [...document.querySelectorAll<HTMLElement>('[data-plan-request]')];
-  if (bar && buttons.length && 'IntersectionObserver' in window) watchPlanBar(bar, buttons);
+  const request = document.querySelector('[data-plan-request]');
+  const closing = document.querySelector('[data-plan-closing]');
+  if (bar && request && closing && 'IntersectionObserver' in window) {
+    const watch = watchPlanBar(bar, request, closing);
+    addEventListener('resize', watch.update);
+  }
 </script>
 
 
@@ -645,7 +650,7 @@ const terms = cancellation[locale];
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 10px var(--gutter) max(10px, env(safe-area-inset-bottom));
+      padding: 10px var(--gutter);
       background: var(--bar);
       border-top: 1px solid var(--hairline);
       visibility: hidden;
@@ -674,11 +679,13 @@ const terms = cancellation[locale];
     }
   }
 
-  /* Her price as one line where it fits; the unit goes under the figure
-     before the button is squeezed. */
+  /* Her price takes the room the button leaves, as one line where it fits;
+     the unit goes under the figure before the button gives way. The figure
+     itself never shrinks: a flex item keeps its widest unbroken piece, so the
+     price is never cut. */
   .plan-bar__price {
+    flex: 1 1 0;
     margin: 0;
-    min-width: 0;
     line-height: 1.3;
   }
   .plan-bar__amount {
@@ -700,18 +707,29 @@ const terms = cancellation[locale];
     white-space: nowrap;
   }
 
-  /* Tighter than the page's buttons, as it shares the row with the price. */
+  /* Tighter than the page's buttons, as it shares the row with the price.
+     It keeps its full width unless the price, at its narrowest, still leaves
+     too little: then its English label folds between its two words, in two
+     even lines. Her Japanese label never folds inside itself. */
   .plan-bar__cta {
-    flex: none;
+    flex: 0 1 auto;
     min-height: var(--tap);
     padding: 8px 16px;
     letter-spacing: 0.06em;
+    text-wrap: balance;
   }
   :global(html[lang='ja']) .plan-bar__cta {
     letter-spacing: 0.04em;
+    word-break: keep-all;
   }
 
-  /* On the narrowest phones the arrow goes, so the label keeps one line. */
+  /* Where the row is tight the arrow goes, so the label keeps one line:
+     under 390px for the longer English label, under 360px for hers. */
+  @media (max-width: 389px) {
+    :global(html[lang='en']) .plan-bar :global(.plan-bar__arrow) {
+      display: none;
+    }
+  }
   @media (max-width: 359px) {
     .plan-bar :global(.plan-bar__arrow) {
       display: none;

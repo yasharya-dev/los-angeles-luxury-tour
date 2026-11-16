@@ -1458,10 +1458,13 @@ describe('her plan page, in her order', () => {
     for (const prefix of ['', '/ja']) {
       const doc = html(prefix + page);
       expect(count(doc, new RegExp(`href="${prefix}/book/dodgers-transfer"`, 'g'))).toBe(3);
-      expect(count(doc, / data-plan-request/g)).toBe(2);
       expect(count(doc, new RegExp(`href="${prefix}/consult[?]service=dodgers-transfer"`, 'g'))).toBe(1);
       const closing = doc.match(/<section class="closing plate"[^]*?<\/section>/)?.[0] ?? '';
-      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer" data-plan-request`));
+      expect(closing).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${prefix}/book/dodgers-transfer"`));
+      // What her phone bar watches: the price card's button, and her panel.
+      expect(count(doc, / data-plan-request/g)).toBe(1);
+      expect(doc).toMatch(/<a class="btn btn--solid pricing__cta"[^>]* data-plan-request/);
+      expect(closing).toMatch(/^<section class="closing plate"[^>]* data-plan-closing/);
     }
   });
 
@@ -1477,20 +1480,53 @@ describe('her plan page, in her order', () => {
     expect(en).toContain('from ¥49,800 per group');
     expect(en).toContain('Booking request');
     expect(bar(page)).toContain('href="/book/dodgers-transfer"');
-    // Its script, which takes it out of hidden, is on the page.
-    expect(html('/ja' + page)).toMatch(/<script[^>]*>[^]*data-plan-bar[^]*<\/script>/);
-    // Shown only under her phone width on an upright screen, never in print,
-    // and off by default.
+    // Its script, which takes it out of hidden and watches the two, is on
+    // both pages: read from the script elements themselves.
+    for (const route of [page, '/ja' + page]) {
+      const scripts = [...html(route).matchAll(/<script\b[^>]*>([^]*?)<\/script>/g)].map((m) => m[1]);
+      const watcher = scripts.filter(
+        (js) => js.includes('[data-plan-bar]') && js.includes('[data-plan-request]') && js.includes('[data-plan-closing]'),
+      );
+      expect(watcher.length, route).toBe(1);
+      expect(watcher[0], route).toContain('IntersectionObserver');
+    }
+    // Off by default; on a phone held upright, fixed at the foot of the
+    // screen but hidden and below it until shown; never in print.
     const styles = css();
     expect(styles).toMatch(/\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none\}/);
-    expect(styles).toMatch(/@media \((?:max-width:\s?680px|width<=680px)\) and \((?:min-height:\s?480px|height>=480px)\)\{\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*position:fixed/);
+    const phone = styles.match(
+      /@media \((?:max-width:\s?680px|width<=680px)\) and \((?:min-height:\s?480px|height>=480px)\)\{(\.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*\})(\.plan-bar\[data-astro-cid-[^\]]+\]\.is-shown\{[^}]*\})/,
+    );
+    expect(phone).not.toBeNull();
+    const [, resting, shown] = phone ?? [];
+    expect(resting).toContain('position:fixed');
+    expect(resting).toContain('visibility:hidden');
+    expect(resting).toMatch(/transform:translateY\(100%\)/);
+    expect(shown).toContain('visibility:visible');
+    expect(shown).toContain('transform:none');
     expect(styles).toMatch(/@media print\{\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none!important/);
+    // The price is never squeezed under the button: the figure keeps its
+    // width, and the button is what gives way.
+    const price = styles.match(/\.plan-bar__price\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(price).not.toMatch(/min-width:0/);
+    const cta = styles.match(/\.plan-bar__cta\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(cta).not.toMatch(/flex:none/);
+    expect(cta).not.toMatch(/min-width:0/);
   });
 
   it('keeps the bar to her plan pages', () => {
-    for (const route of ['/', '/ja', '/ja/experience', '/ja/experience/temecula', '/ja/book/dodgers-transfer']) {
-      expect(html(route), route).not.toContain('data-plan-bar');
+    const own = new Set(plans.flatMap((plan) => [`/experience/${plan.slug}`, `/ja/experience/${plan.slug}`]));
+    let seen = 0;
+    for (const file of allPages()) {
+      const route = file.slice(DIST.length).split(sep).join('/').replace(/\.html$/, '');
+      if (own.has(route)) {
+        expect(readFileSync(file, 'utf8'), route).toContain('data-plan-bar');
+        seen++;
+      } else {
+        expect(readFileSync(file, 'utf8'), route).not.toContain('data-plan-bar');
+      }
     }
+    expect(seen).toBe(own.size);
   });
 
   // Her own English label from her October sample, as round 2 showed it.
@@ -1997,10 +2033,12 @@ describe('the pages, after their own review', () => {
     expect(css()).toMatch(/html\[lang=['"]?ja['"]?\] \.skip-link\{font-family:var\(--font-body\)/);
   });
 
-  // Copied or found, the registration line read 'TravelRegistration'.
-  it('keeps a real space between the halves of the registration line', () => {
+  // As a flex row its halves copied onto two lines and find-in-page did not
+  // match across them: inline, with a real space, it is one line of text.
+  it('keeps the registration line one line of text, with a real space', () => {
     for (const route of ['/', '/ja']) {
       expect(html(route), route).toMatch(/California Seller of Travel<\/span> <span class="site-footer__whole"/);
     }
+    expect(css()).not.toMatch(/\.site-footer__registration\[data-astro-cid-[^\]]+\]\{[^}]*display:flex/);
   });
 });
