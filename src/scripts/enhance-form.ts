@@ -12,6 +12,7 @@
  * group of required radios named `x` does too.
  */
 import { threeYearsOn, todayInLA } from '../data/calendar';
+import { SEND_DEADLINE } from '../data/deadlines';
 
 type Field = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
@@ -24,9 +25,6 @@ const FIELD: Record<string, string> = {
   type: 'input[name="type"]',
   route: 'input[name="route"]',
 };
-
-/** How long a send may take before the guest is told it failed, in ms. */
-export const SEND_DEADLINE = 20_000;
 
 declare global {
   interface Window {

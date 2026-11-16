@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
-  MAIL_DEADLINE,
   SUBMISSIONS,
   clean,
   cleanLine,
@@ -11,7 +10,7 @@ import worker, {
   thanksPath,
 } from '../worker/index';
 import { SUMMARY_MARK } from '../src/data/booking';
-import { SEND_DEADLINE } from '../src/scripts/enhance-form';
+import { MAIL_DEADLINE, SEND_DEADLINE } from '../src/data/deadlines';
 import { grantAccess } from '../worker/beta';
 
 // The Worker refuses a booking before today in Los Angeles, and the fixtures
@@ -23,6 +22,20 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
+});
+
+// The Workers runtime reads every named export of the Worker's module as an
+// entrypoint, and will not start if one is not a function or an object: an
+// exported number stopped wrangler dev cold, and would have failed the
+// deploy, though every test here passed in node.
+describe('the module the runtime loads', () => {
+  it('exports nothing the Workers runtime cannot load as an entrypoint', async () => {
+    const mod = await import('../worker/index');
+    for (const [name, value] of Object.entries(mod)) {
+      expect(['function', 'object'], name).toContain(typeof value);
+      expect(value, name).not.toBeNull();
+    }
+  });
 });
 
 describe('clean', () => {

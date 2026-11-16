@@ -4,7 +4,8 @@
 // Safari stops a smooth scroll when the page grows above it, so every error
 // mark has to be shown before the one scroll to the first field.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SEND_DEADLINE, enhanceForm } from '../src/scripts/enhance-form';
+import { SEND_DEADLINE } from '../src/data/deadlines';
+import { enhanceForm } from '../src/scripts/enhance-form';
 
 type Handler = (event: { preventDefault(): void; target?: unknown }) => unknown;
 

@@ -16,6 +16,7 @@ import {
   type Booking,
   type Summary,
 } from '../src/data/booking';
+import { MAIL_DEADLINE } from '../src/data/deadlines';
 
 // Serves the static build and handles the two forms: POST /api/inquiry is the
 // consultation form, POST /api/booking is a booking request. Everything about
@@ -312,13 +313,6 @@ const forbidden = () =>
 
 /** More than any of the two forms can hold. */
 const MAX_BODY = 64 * 1024;
-
-/**
- * How long the mail service gets, in ms. Past it the send has failed, and the
- * guest hears so with time to write instead: a booking takes at most two
- * sends, well inside the form's own 20 seconds (scripts/enhance-form.ts).
- */
-export const MAIL_DEADLINE = 8_000;
 
 async function sendMail(env: Env, mail: Record<string, unknown>): Promise<boolean> {
   const stop = new AbortController();
