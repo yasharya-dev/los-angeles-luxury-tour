@@ -1495,6 +1495,9 @@ describe('her plan page, in her order', () => {
       expect(watcher[0], route).toContain('0px 0px 100000px 0px');
       expect(watcher[0], route).toContain('100000px 0px 0px 0px');
       expect(watcher[0], route).toContain('ResizeObserver');
+      // The wait starts again on a scroll or a touch.
+      expect(watcher[0], route).toMatch(/addEventListener\(`scroll`|addEventListener\(['"]scroll['"]/);
+      expect(watcher[0], route).toMatch(/addEventListener\(`pointerdown`|addEventListener\(['"]pointerdown['"]/);
     }
     // Off by default; on a phone held upright, fixed at the foot of the
     // screen but hidden and below it until shown; never in print.
@@ -1514,7 +1517,9 @@ describe('her plan page, in her order', () => {
     expect(shown).toContain('transform:none');
     expect(shown).toMatch(/transition:transform/);
     // Lifted off the page's own black in the dark theme.
-    expect(styles).toMatch(/html\[data-theme=['"]?dark['"]?\] \.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*background:var\(--surface\)/);
+    expect(styles).toMatch(/html\[data-theme=['"]?dark['"]?\] \.plan-bar\[data-astro-cid-[^\]]+\]:not\(\[hidden\]\)\{[^}]*background:var\(--raised\)/);
+    // Taps pass through it while it slides in.
+    expect(styles).toMatch(/\.plan-bar\[data-astro-cid-[^\]]+\]\.is-arriving\{pointer-events:none/);
     expect(styles).toMatch(/@media print\{\.plan-bar\[data-astro-cid-[^\]]+\]\{display:none!important/);
     // The price is never squeezed under the button: the figure keeps its
     // width, and the button is what gives way.

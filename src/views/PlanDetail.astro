@@ -661,8 +661,14 @@ const terms = cancellation[locale];
   /* In the dark theme the page is the bar's own black: the bar is lifted to
      the raised surface, with a shadow above it. */
   :global(html[data-theme='dark']) .plan-bar:not([hidden]) {
-    background: var(--surface);
+    background: var(--raised);
     box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  /* While it slides in, taps pass through it to what the guest meant to tap
+     at the foot of the screen. */
+  .plan-bar.is-arriving {
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

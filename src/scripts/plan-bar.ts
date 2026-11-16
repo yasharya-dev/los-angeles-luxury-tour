@@ -6,9 +6,11 @@
 //
 // Each state is read from where the page is now, not from how it got there,
 // so a jump (a link, a reload, find-in-page) cannot leave it wrong. It comes
-// up only once the page has been still for a moment in that stretch, so
-// scrolling through does not make it flash, and it goes at once. Without
-// script it never shows; the page's own buttons are there either way.
+// up only once the guest has been still for a moment in that stretch, so
+// scrolling through does not make it flash, and it goes at once. On a short
+// page, like the Dodgers transfer, that stretch is short and the bar is rare:
+// the page's own buttons are nearly always in view, which is the bar's job
+// anyway. Without script it never shows.
 
 /** A root reaching this far below the screen counts anything below it. */
 const AND_BELOW = '0px 0px 100000px 0px';
@@ -21,9 +23,14 @@ const RING = 8;
 /** How long the page is still, in the bar's stretch, before it comes up. */
 export const SETTLE = 180;
 
+/** How long after it starts to come up the bar lets taps through: its
+    250ms slide, and a margin. */
+export const ARRIVE = 300;
+
 export interface PlanBar {
   /** Measures again; the bar's own size changes call it too. */
   update(): void;
+  /** Stops for good: no observer, timer or room is left behind. */
   disconnect(): void;
 }
 
@@ -34,19 +41,21 @@ export interface PlanBarDeps {
   Resize?: typeof ResizeObserver;
   setTimer?: (run: () => void, ms: number) => unknown;
   clearTimer?: (timer: unknown) => void;
-  /** Calls `run` on every scroll of the page; returns how to stop. */
-  onScroll?: (run: () => void) => () => void;
+  /** Calls `run` whenever the guest scrolls or touches the page; returns how
+      to stop. */
+  onActivity?: (run: () => void) => () => void;
 }
 
 /**
  * Shows `bar` (its `is-shown` class) while `request` is above the screen and
- * `closing` is below it, once the page has been still there for SETTLE.
+ * `closing` is below it, once the guest has been still there for SETTLE.
  * Wherever the bar can show (a phone held upright, where it has a height)
  * and fits, `root` keeps its height clear at the foot of the screen for
  * focus, find-in-page and fragment scrolling, so nothing focused or found
  * lands under it, even when that scroll is what brings it up (WCAG 2.4.11).
- * A bar that does not fit, as at 200% text, never shows. Takes the bar out
- * of `hidden`.
+ * A bar that does not fit, as at 200% text, never shows. While it slides in
+ * (`is-arriving`), taps pass through it to what the guest meant to tap.
+ * Takes the bar out of `hidden`.
  */
 export function watchPlanBar(
   bar: HTMLElement,
@@ -59,17 +68,24 @@ export function watchPlanBar(
   const Resize = deps.Resize ?? (typeof ResizeObserver === 'undefined' ? undefined : ResizeObserver);
   const setTimer = deps.setTimer ?? ((run: () => void, ms: number) => setTimeout(run, ms));
   const clearTimer = deps.clearTimer ?? ((timer: unknown) => clearTimeout(timer as ReturnType<typeof setTimeout>));
-  const onScroll =
-    deps.onScroll ??
+  const onActivity =
+    deps.onActivity ??
     ((run: () => void) => {
       addEventListener('scroll', run, { passive: true });
-      return () => removeEventListener('scroll', run);
+      addEventListener('pointerdown', run, { passive: true });
+      return () => {
+        removeEventListener('scroll', run);
+        removeEventListener('pointerdown', run);
+      };
     });
 
-  // Unknown until each observer has reported, so nothing shows on a guess.
+  // Unknown until each observer has reported: wanted() is false until both
+  // have, so nothing shows on a guess.
   let requestOnOrBelow: boolean | undefined;
   let closingOnOrAbove: boolean | undefined;
-  let timer: unknown;
+  let waiting: unknown;
+  let arriving: unknown;
+  let stopped = false;
 
   const wanted = () => requestOnOrBelow === false && closingOnOrAbove === false;
 
@@ -84,22 +100,37 @@ export function watchPlanBar(
     return fits;
   };
 
+  const cancel = (timer: unknown) => {
+    if (timer !== undefined) clearTimer(timer);
+    return undefined;
+  };
+
   const hide = () => {
-    if (timer !== undefined) {
-      clearTimer(timer);
-      timer = undefined;
-    }
+    waiting = cancel(waiting);
+    arriving = cancel(arriving);
+    bar.classList.toggle('is-arriving', false);
     bar.classList.toggle('is-shown', false);
   };
 
+  const show = () => {
+    bar.classList.toggle('is-shown', true);
+    bar.classList.toggle('is-arriving', true);
+    arriving = setTimer(() => {
+      arriving = undefined;
+      bar.classList.toggle('is-arriving', false);
+    }, ARRIVE);
+  };
+
   const update = () => {
+    if (stopped) return;
     const fits = room();
-    if (requestOnOrBelow === undefined || closingOnOrAbove === undefined) return;
     if (!wanted() || !fits) return hide();
-    if (bar.classList.contains('is-shown') || timer !== undefined) return;
-    timer = setTimer(() => {
-      timer = undefined;
-      if (wanted() && room()) bar.classList.toggle('is-shown', true);
+    // One wait at a time, and none once it is up.
+    if (bar.classList.contains('is-shown') || waiting !== undefined) return;
+    waiting = setTimer(() => {
+      waiting = undefined;
+      // Measured again: the row may have stopped fitting during the wait.
+      if (!stopped && wanted() && room()) show();
     }, SETTLE);
   };
 
@@ -117,28 +148,29 @@ export function watchPlanBar(
     },
     { rootMargin: AND_ABOVE },
   );
-  // The fonts arriving, text zoom, a label folding, a turn of the phone.
+  // The fonts arriving, text zoom, a label folding, a turn of the phone. Its
+  // parts too: one can widen the row without changing the bar's own height.
   const size = Resize ? new Resize(() => update()) : undefined;
-  // Still scrolling in the stretch: the wait starts again.
-  const stopScroll = onScroll(() => {
-    if (timer === undefined) return;
-    clearTimer(timer);
-    timer = undefined;
+  // Still scrolling or touching in the stretch: the wait starts again.
+  const stopActivity = onActivity(() => {
+    if (waiting === undefined) return;
+    waiting = cancel(waiting);
     update();
   });
 
   onOrBelow.observe(request);
   onOrAbove.observe(closing);
-  size?.observe(bar);
+  if (size) for (const el of [bar, ...Array.from(bar.children)]) size.observe(el);
   bar.hidden = false;
 
   return {
     update,
     disconnect() {
+      stopped = true;
       onOrBelow.disconnect();
       onOrAbove.disconnect();
       size?.disconnect();
-      stopScroll();
+      stopActivity();
       hide();
       root.style.scrollPaddingBottom = '';
     },
