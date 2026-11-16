@@ -162,6 +162,12 @@ a:hover {
   transform: translate(-50%, 0);
 }
 
+/* The label face has no Japanese: 本文へ移動 fell to the system gothic. */
+html[lang='ja'] .skip-link {
+  font-family: var(--font-body);
+  letter-spacing: 0.06em;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

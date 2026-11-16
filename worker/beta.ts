@@ -76,9 +76,10 @@ export async function grantAccess(
 export function gatePage(opts: { failed: boolean; next: string }): Response {
   // A wrong password: the line sits above the field and the field points to
   // it. The field has focus on arrival, and a line already on the page is
-  // not reliably announced by role=alert alone.
+  // not reliably announced by role=alert alone. One sentence to a line: the
+  // two together are wider than a phone's card, and left a character alone.
   const error = opts.failed
-    ? '<p class="err" id="gate-err" role="alert">パスワードが違うようです。もう一度お試しください。<br><span lang="en">That password did not match.</span></p>'
+    ? '<p class="err" id="gate-err" role="alert">パスワードが違うようです。<br>もう一度お試しください。<br><span lang="en">That password did not match.</span></p>'
     : '';
   const invalid = opts.failed ? ' aria-invalid="true" aria-describedby="gate-err"' : '';
   const html = `<!doctype html>
@@ -89,6 +90,7 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
 <meta name="robots" content="noindex, nofollow">
 <title>Los Angeles Luxury Tour</title>
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   :root { color-scheme: dark; }
@@ -117,6 +119,8 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
     font-family: inherit; text-align: center; letter-spacing: .08em;
   }
   input:focus-visible { outline: 2px solid #d4af37; outline-offset: 2px; border-color: #d4af37; }
+  /* The field's only visible label. Chromium's own grey is 3.85:1 here. */
+  input::placeholder { color: rgba(245,245,250,.68); opacity: 1; }
   button {
     width: 100%; margin-top: 14px; padding: 13px; background: none;
     color: #d4af37; border: 1px solid rgba(212,175,55,.55); border-radius: 0;
@@ -149,7 +153,7 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
 
   return new Response(html, {
     // 401 keeps crawlers out even if the URL leaks.
-    status: opts.failed ? 401 : 401,
+    status: 401,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',

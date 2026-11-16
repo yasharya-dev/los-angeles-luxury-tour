@@ -507,6 +507,16 @@ async function received(request: Request, env: Env, url: URL): Promise<Response>
   return new Response(body, { status: res.status, headers });
 }
 
+/** Her not-found pages, asked for by name, as their language link does: a
+    page that says nothing is here answers 404 there as well. Fetched without
+    the visitor's conditions, so the answer is the page and never a 304. */
+const NOT_FOUND = /^\/(ja\/)?404$/;
+
+async function notFound(request: Request, env: Env, url: URL): Promise<Response> {
+  const page = await env.ASSETS.fetch(new Request(url.href, { method: request.method }));
+  return page.ok ? new Response(page.body, { status: 404, headers: page.headers }) : page;
+}
+
 /** A file under /_astro/ is named by a hash of its content, so it never
     changes under its name: a browser may keep it for a year unasked. */
 const HASHED = /^\/_astro\//;
@@ -555,11 +565,12 @@ export default {
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const beta = env.BETA_PASSWORD;
+  const reading = request.method === 'GET' || request.method === 'HEAD';
 
   if (beta) {
     // Her mark, in the tab and on a home screen, from the first screen on:
     // public, and nothing of the preview.
-    if (ICONS.has(url.pathname)) return env.ASSETS.fetch(request);
+    if (ICONS.has(url.pathname) && reading) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/beta') {
       // Opened from the address bar, as after a wrong password: the gate.
@@ -579,7 +590,7 @@ async function route(request: Request, env: Env): Promise<Response> {
     if (!(await hasAccess(request, beta))) {
       // After signing in, back to where the visitor was going. A form's post
       // is not a place to go back to: its own page instead.
-      const page = (request.method === 'GET' || request.method === 'HEAD') && !url.pathname.startsWith('/api/');
+      const page = reading && !url.pathname.startsWith('/api/');
       return gatePage({ failed: false, next: page ? url.pathname + url.search : cameFrom(request, url) });
     }
   }
@@ -587,10 +598,18 @@ async function route(request: Request, env: Env): Promise<Response> {
   const submission = SUBMISSIONS[url.pathname];
   if (submission) return handleSubmission(request, env, submission, url);
 
-  const res =
-    (request.method === 'GET' || request.method === 'HEAD') &&
-    RECEIVED.has(url.pathname) &&
-    url.search
+  // Pages and files are only read. Handed anything else, the file server
+  // answered 405 without reading the body, and the runtime failed reading it
+  // after the answer: an exception for each one, and in wrangler dev a
+  // stopped server. The Worker answers it instead and leaves the body alone
+  // (cancelling it stopped wrangler dev's proxy just the same).
+  if (!reading) {
+    return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+  }
+
+  const res = NOT_FOUND.test(url.pathname)
+    ? await notFound(request, env, url)
+    : RECEIVED.has(url.pathname) && url.search
       ? await received(request, env, url)
       : await env.ASSETS.fetch(request);
   if (!beta) return res;

@@ -140,6 +140,24 @@ describe('the gate page', () => {
     expect(bad).toContain('<p class="en" lang="en">This site is not public yet.');
     expect(bad).toContain('<span lang="en">That password did not match.</span>');
     expect(bad).toContain('<link rel="icon" href="/favicon.ico"');
+    // The same three as every page, so a home screen has her mark at size.
+    expect(bad).toContain('<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">');
+    expect(bad).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png">');
+  });
+
+  // The two sentences together are wider than the card on most phones and
+  // left a character alone on the second line.
+  it('gives each sentence of the wrong-password line its own line', async () => {
+    const bad = await gatePage({ failed: true, next: '/' }).text();
+    expect(bad).toContain('パスワードが違うようです。<br>もう一度お試しください。<br>');
+    expect(gatePage({ failed: true, next: '/' }).status).toBe(401);
+  });
+
+  // The placeholder is the field's only visible label: the site's floor, not
+  // the browser's grey.
+  it('draws the placeholder at the site\'s ink', async () => {
+    const html = await gatePage({ failed: false, next: '/' }).text();
+    expect(html).toMatch(/input::placeholder\s*\{\s*color:\s*rgba\(245,245,250,\.68\);\s*opacity:\s*1;\s*\}/);
   });
 
   // The site's own floors, on the first screen she sees: 14px for anything

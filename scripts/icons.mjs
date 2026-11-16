@@ -61,12 +61,16 @@ async function bold(sigma, gain) {
     .toBuffer();
 }
 
-/** The mark on black, `inset` of the square left as a margin each side. */
+/** The mark on black, `inset` of the square left as a margin each side. The
+    margin is whole pixels and the same on every side: a mark of odd size in
+    an even square sat half a pixel off, against the right and bottom edges
+    at 16px. */
 async function icon(size, inset, source = mark) {
-  const inner = Math.round(size * (1 - 2 * inset));
+  const pad = Math.round(size * inset);
+  const inner = size - 2 * pad;
   const drawn = await sharp(source).resize(inner, inner).toBuffer();
   return sharp({ create: { width: size, height: size, channels: 4, background: BLACK } })
-    .composite([{ input: drawn, gravity: 'centre' }])
+    .composite([{ input: drawn, left: pad, top: pad }])
     .png()
     .toBuffer();
 }

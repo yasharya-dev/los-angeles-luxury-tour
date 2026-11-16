@@ -1951,4 +1951,9 @@ describe('the pages, after their own review', () => {
     const script = html('/ja').match(/addEventListener\('copy'[^]*?<\/script>/)?.[0] ?? '';
     expect(script).toContain('[\\u200b\\u2060]');
   });
+
+  // The label face has no Japanese, so 本文へ移動 fell to the system gothic.
+  it('sets the Japanese skip link in the Japanese face', () => {
+    expect(css()).toMatch(/html\[lang=['"]?ja['"]?\] \.skip-link\{font-family:var\(--font-body\)/);
+  });
 });

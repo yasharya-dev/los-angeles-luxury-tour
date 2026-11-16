@@ -776,3 +776,77 @@ describe('the gate and the cache, after review', () => {
     expect(await elsewhere.text()).toContain('name="next" value="/"');
   });
 });
+
+// What the end-to-end test of the caching and gate work found.
+describe('the Worker, after the end-to-end test', () => {
+  /** A file server that records what it was asked, and answers a condition
+      with 304 as the real one does. */
+  const files = () => {
+    const asked: Request[] = [];
+    const env = {
+      ASSETS: {
+        fetch: async (req: Request) => {
+          asked.push(req);
+          if (req.headers.get('If-None-Match')) return new Response(null, { status: 304 });
+          return new Response('<h1>Page not found</h1>', {
+            headers: { 'Content-Type': 'text/html; charset=utf-8', ETag: '"p"' },
+          });
+        },
+      },
+    };
+    return { asked, env: env as never };
+  };
+
+  // Their language link points at the other one by name, and a crawler
+  // following it found a page that says nothing is here, answering 200.
+  it('answers its not-found pages with 404, by name too', async () => {
+    for (const path of ['/404', '/ja/404']) {
+      const { env } = files();
+      const res = await worker.fetch(new Request(`https://x.test${path}`), env);
+      expect(res.status, path).toBe(404);
+      expect(await res.text(), path).toContain('Page not found');
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+    }
+    const { env } = files();
+    const head = await worker.fetch(new Request('https://x.test/404', { method: 'HEAD' }), env);
+    expect(head.status).toBe(404);
+    // A browser that kept the page asks again with its ETag: still the page.
+    const again = await worker.fetch(new Request('https://x.test/ja/404', { headers: { 'If-None-Match': '"p"' } }), env);
+    expect(again.status).toBe(404);
+    expect(await again.text()).toContain('Page not found');
+    // Other pages are untouched.
+    expect((await worker.fetch(new Request('https://x.test/ja/4040'), env)).status).toBe(200);
+  });
+
+  // Bots post to pages all day. The file server answers 405 without reading
+  // the body, and the runtime failed reading it afterwards: wrangler dev
+  // stopped on one.
+  it('turns away a body sent to a page without handing it to the files', async () => {
+    for (const path of ['/ja/contact', '/', '/api/beta', '/favicon.ico', '/_astro/x.css']) {
+      const { asked, env } = files();
+      const req = new Request(`https://x.test${path}`, { method: 'POST', body: 'password=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const res = await worker.fetch(req, env);
+      expect(res.status, path).toBe(405);
+      expect(res.headers.get('Allow'), path).toBe('GET, HEAD');
+      expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+      expect(asked.length, path).toBe(0);
+    }
+  });
+
+  // Behind the gate an icon is served before it, for reading only: a post to
+  // one meets the gate like any other.
+  it('serves the icons before the gate to a read only', async () => {
+    const { asked, env } = files();
+    const gated = { ...(env as object), BETA_PASSWORD: 'pw' } as never;
+    const res = await worker.fetch(new Request('https://x.test/favicon.ico', { method: 'POST', body: 'x' }), gated);
+    expect(res.status).toBe(401);
+    // Signed in, a post to a page is turned away by the Worker as well.
+    const cookie = ((await grantAccess('pw', '/')).headers.get('Set-Cookie') ?? '').split(';')[0];
+    const signedIn = await worker.fetch(
+      new Request('https://x.test/ja/contact', { method: 'POST', body: 'x', headers: { Cookie: cookie } }),
+      gated,
+    );
+    expect(signedIn.status).toBe(405);
+    expect(asked.length).toBe(0);
+  });
+});
