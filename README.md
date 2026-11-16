@@ -101,7 +101,8 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 | `tests/i18n.test.ts` | Path helpers, including the build's `.html` paths, and dictionary key parity |
 | `tests/phrase.test.ts` | Where Japanese may fold: lossless, never inside a katakana word, a dictionary word or a compound verb, never a one-character phrase, kinsoku respected, an authored space as the only fold of a title |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
-| `tests/booking.test.ts` | The booking rules: a plan's own choices only, the route only where it applies, real dates, the guest list per plan, and how a request reads back |
+| `tests/booking.test.ts` | The booking rules: a plan's own choices only, the route only where it applies, real dates from today in Los Angeles, the guest list per plan, and how a request reads back. The clock is pinned |
+| `tests/enhance-form.test.ts` | The forms' script on a stand-in page: every error mark shown before the one scroll to the first field to fix, on an empty send and on a field the Worker refused, and the date picker's bounds moving with the clock |
 | `tests/worker.test.ts` | Input cleaning, one-line fields, a single email address, HTML escaping, plan labels, redirect paths, refused choices and origins, the guest receipt and what it may carry, the received page's summary, and both endpoints driven end to end with Resend stubbed |
 | `tests/beta.test.ts` | The gate: cookie signing, open-redirect guard, `noindex`, the page itself |
 
