@@ -44,11 +44,14 @@
   color: var(--ink-mid);
 }
 
+/* Without proportional kana: WebKit lays a palt run out at its full width,
+   which left the required star 10 to 12px after the label. */
 html[lang='ja'] .label {
   font-family: var(--font-body);
   font-size: 15px;
   letter-spacing: 0.08em;
   text-transform: none;
+  font-feature-settings: normal;
 }
 
 .req {

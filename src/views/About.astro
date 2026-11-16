@@ -38,7 +38,7 @@ const copy = {
       'We stay close to what each guest hopes for, and bring you a Los Angeles trip that stays with you.',
     ],
 
-    founderTitle: 'I have always loved to travel. That is why there is time I want to share.',
+    founderTitle: 'Because I have always loved to travel, there are moments I want to share with you.',
     founder: [
       'I grew up in Japan and now live in Southern California.',
       'In the many countries I have visited, I have known hospitality that stays with you, and the special time that only travel brings.',
@@ -47,9 +47,10 @@ const copy = {
     portraitAlt: 'Portrait of the founder',
 
     coastAlt: 'Waves breaking below a house on the Malibu coast',
-    expTitle: 'Not only where you go. How you spend the time, in your own way.',
+    // Held together, so the line never ends on a lone 'go.'
+    expTitle: 'Not only where you go. How you spend the time, in your own way.',
     exp: [
-      'More than a round of the sights: we propose a trip at your pace and to your wishes, one that lets you feel what Los Angeles really is.',
+      'More than a sightseeing tour: we plan a trip at your pace and around your wishes, one that lets you feel what Los Angeles really is.',
       'With real local knowledge and careful support in Japanese, even a first visit is one you can enjoy at ease.',
     ],
 
@@ -122,10 +123,12 @@ const c = copy[locale];
           aspect={3 / 4}
           keep="top"
           sizes="(min-width: 640px) 240px, 124px"
+          priority
         />
-        {/* Her line: 「Amelia Kay Perrin | Founder」. The bar is a separator:
-            a screen reader gets a comma in its place, and it is dropped
-            where the two halves stack under a narrow portrait. */}
+        {/* Her line: 「Amelia Kay Perrin | Founder」, in her capitals. The bar
+            is a separator: a screen reader gets a comma in its place, and
+            it is dropped where the two halves stack under a narrow portrait,
+            which cannot hold the line on one row. */}
         <figcaption class="founder__caption" lang={en}>
           <span class="founder__name">Amelia Kay Perrin</span>
           <span class="sr-only">, </span>
@@ -250,18 +253,29 @@ const c = copy[locale];
     display: none;
     color: var(--gold-text);
   }
+  /* Her 'Founder', as she wrote it: the part names are capitals, her
+     caption is not. */
   .founder__role {
     margin-top: 2px;
     font-family: var(--font-label);
     font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
     color: var(--gold-text);
   }
 
   .founder__para + .founder__para {
     margin-top: 0.7em;
+  }
+
+  /* On the narrowest phones the text beside the portrait would run two or
+     three words a line: the portrait sits above it instead. */
+  @media (max-width: 359px) {
+    .founder__figure {
+      float: none;
+      margin: 0 auto 16px;
+      text-align: center;
+    }
   }
 
   /* From here the portrait has a column to itself, with the heading and the

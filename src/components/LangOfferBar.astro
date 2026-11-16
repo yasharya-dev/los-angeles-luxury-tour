@@ -1,5 +1,6 @@
 ---
 import type { Locale } from '../i18n/ui';
+import Phrases from './Phrases.astro';
 
 interface Props {
   locale: Locale;
@@ -14,22 +15,22 @@ const show = locale === 'en';
 
 {
   show && (
-    <div class="lang-offer plate" data-lang-offer hidden>
-      <p class="lang-offer__text" lang="ja">
-        このページは日本語でもご覧いただけます。
+    <aside class="lang-offer plate" data-lang-offer hidden aria-label="日本語版のご案内" lang="ja">
+      <p class="lang-offer__text">
+        <Phrases text="このページは日本語でもご覧いただけます。" />
       </p>
-      <a class="lang-offer__go" href={jaHref} lang="ja" hreflang="ja" data-lang-link>
+      <a class="lang-offer__go" href={jaHref} hreflang="ja" data-lang-link>
         日本語で読む
       </a>
       <button
         class="lang-offer__close"
         type="button"
         data-lang-offer-close
-        aria-label="Dismiss"
+        aria-label="閉じる"
       >
         &times;
       </button>
-    </div>
+    </aside>
   )
 }
 

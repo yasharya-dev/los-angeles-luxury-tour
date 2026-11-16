@@ -1,6 +1,7 @@
 ---
 import type { Locale } from '../i18n/ui';
 import { CONTACT } from '../data/contact';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
@@ -13,11 +14,11 @@ const copy = {
   en: {
     kicker: 'Privacy',
     title: 'What happens to what you share with us',
-    updated: 'Last updated October 2026',
+    updated: 'Last updated November 2026',
     sections: [
       {
         h: 'What we collect',
-        b: 'Only what you type into the consultation or booking form: your name, email address, LINE ID if you give one, preferred language, plan, the transfer and route you choose, dates, number of guests, where you are staying, what you are hoping for, requests or notes, and how you heard about us. Nothing else, and nothing you have not chosen to write.',
+        b: 'Only what you type into the consultation or booking form: your name, email address, LINE ID if you give one, preferred language, plan, the transfer and route you choose, dates, number of guests, where you are staying, what you are hoping for, requests or notes, how you heard about us, and the name of a friend who referred you, if you give one. Nothing else, and nothing you have not chosen to write.',
       },
       {
         h: 'Why we collect it',
@@ -45,11 +46,11 @@ const copy = {
   ja: {
     kicker: 'プライバシーポリシー',
     title: 'お預かりする情報について',
-    updated: '最終更新：2026年10月',
+    updated: '最終更新：2026年11月',
     sections: [
       {
         h: '取得する情報',
-        b: 'お問い合わせフォームまたはご予約フォームにご記入いただいた内容のみです。お名前、メールアドレス、LINE ID（ご記入いただいた場合）、ご希望の言語、プラン、送迎タイプ・送迎区間、ご旅行の時期やご希望日、人数、ご宿泊先、ご希望の内容やご要望、当サービスをお知りになったきっかけ。それ以外の情報は取得いたしません。',
+        b: 'お問い合わせフォームまたはご予約フォームにご記入いただいた内容のみです。お名前、メールアドレス、LINE ID（ご記入いただいた場合）、ご希望の言語、プラン、送迎タイプ・送迎区間、ご旅行の時期やご希望日、人数、ご宿泊先、ご希望の内容やご要望、当サービスをお知りになったきっかけ、ご紹介者のお名前（ご記入いただいた場合）。それ以外の情報は取得いたしません。',
       },
       {
         h: '利用目的',
@@ -65,7 +66,7 @@ const copy = {
       },
       {
         h: 'クッキーについて',
-        b: '本サイトでは、トラッキングクッキーや広告は使用しておりません。言語とテーマの設定はお客様のブラウザ内にのみ保存され、外部に送信されることはありません。アクセス数の集計にはCloudflare Web Analyticsを使用しており、クッキーを用いず、個人を特定することもありません。',
+        b: '本サイトでは、トラッキングクッキーや広告は使用しておりません。言語とテーマの設定はお客様のブラウザ内にのみ保存され、外部に送信されることはありません。アクセス数の集計にはCloudflare Web Analyticsを使用しており、クッキーを用いず、個人を特定することもありません。',
       },
       {
         h: 'お問い合わせ',
@@ -89,11 +90,11 @@ const c = copy[locale];
         <section class="block">
           <h2 class="h3 block__h">{s.h}</h2>
           <p class="body">
-            {s.b}
+            <Phrases text={s.b} />
+            {/* The address follows a Japanese colon with no space. */}
             {i === c.sections.length - 1 && (
               <>
-                {' '}
-                <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+                {locale === 'en' ? ' ' : <wbr />}<a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
               </>
             )}
           </p>

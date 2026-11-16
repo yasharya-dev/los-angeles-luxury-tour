@@ -55,7 +55,6 @@ if (CONTACT.facebook) {
           class="site-footer__icon"
           href={link.href}
           rel={link.rel}
-          aria-label={link.label}
           title={link.label}
         >
           <Icon name={link.icon} size={28} />
@@ -155,10 +154,13 @@ if (CONTACT.facebook) {
   .site-footer__privacy a:hover {
     color: var(--gold-text);
   }
+  /* Without proportional kana: WebKit underlines a palt run at its full
+     width, past the last character. */
   :global(html[lang='ja']) .site-footer__privacy a {
     font-family: var(--font-body);
     letter-spacing: 0.06em;
     text-transform: none;
+    font-feature-settings: normal;
   }
 
   /* The legal lines, as issued: a name and a registration number are never

@@ -229,6 +229,9 @@ const terms = cancellation[locale];
      The photo runs to the edges of the column; everything else keeps the
      page's gutter. Sections follow on at one even spacing, without bands. */
   .plan-page {
+    /* The one spacing between her four parts: price, experience, details,
+       closing. */
+    --part-gap: clamp(24px, 4vw, 32px);
     max-width: 680px;
     margin-inline: auto;
     padding-bottom: clamp(36px, 6vw, 56px);
@@ -262,6 +265,14 @@ const terms = cancellation[locale];
     }
     .hero__photo {
       border-radius: var(--radius-card);
+    }
+  }
+
+  /* A phone on its side: the photo leaves room for the title in the first
+     screen, cropped rather than shrunk. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .hero__photo {
+      max-height: 55svh;
     }
   }
 
@@ -309,7 +320,7 @@ const terms = cancellation[locale];
   /* ------------------------------------------------------------ pricing */
 
   .pricing {
-    margin-top: 20px;
+    margin-top: var(--part-gap);
     padding: 4px clamp(16px, 4vw, 22px) 14px;
   }
 
@@ -379,7 +390,7 @@ const terms = cancellation[locale];
   /* --------------------------------------------------------- experience */
 
   .experience {
-    margin-top: clamp(32px, 6vw, 44px);
+    margin-top: var(--part-gap);
   }
 
   .experience__title {
@@ -445,18 +456,21 @@ const terms = cancellation[locale];
     font-size: 15px;
     color: var(--ink-soft);
   }
+  /* Without proportional kana: WebKit lays a palt run out at its full width
+     and draws it narrower, so a right-aligned value stopped short. */
   .usage__value {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
     color: var(--ink);
     text-align: right;
+    font-feature-settings: normal;
   }
 
   /* ------------------------------------------------------------ details */
 
   .details {
-    margin-top: clamp(28px, 5vw, 36px);
+    margin-top: var(--part-gap);
     padding-inline: clamp(16px, 4vw, 22px);
   }
 
@@ -531,7 +545,7 @@ const terms = cancellation[locale];
      would otherwise be the page's own. */
   .closing {
     border: 1px solid var(--hairline);
-    margin-top: clamp(32px, 6vw, 44px);
+    margin-top: var(--part-gap);
     padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
     border-radius: var(--radius-card);
     background: var(--bar);

@@ -28,14 +28,15 @@ const FOLD = String.fromCharCode(0x200b);
 const copy = {
   en: {
     heroEyebrow: ['By reservation only', 'Private tours in Japanese'],
-    heroTitle: 'A Los Angeles journey that is yours alone.',
+    // Held together, so no width leaves 'is yours alone.' or a lone word.
+    heroTitle: 'A Los Angeles journey that is yours alone.',
     heroAlt: 'Palm-lined road above downtown Los Angeles at golden hour',
     cta: 'Ask about your trip',
 
     valueKicker: 'Peace of mind, enjoyment, satisfaction',
     valueTitle: 'Los Angeles, with more freedom and more luxury.',
     valueBody:
-      'A Japanese guide who lives here supports a trip that is yours alone, from getting around to seeing the sights.',
+      'A Japanese guide based in Los Angeles supports a trip made just for you, from getting around to seeing the sights.',
 
     reasonsTitle: 'Three reasons guests choose us',
     reasons: [['At ease, in Japanese'], ['A luxury car, fully private'], ['A trip made to order']],
@@ -201,9 +202,8 @@ const c = copy[locale];
     margin-inline: 0;
   }
 
-  /* The English label is 45 letters and never fits one line on a phone; the
-     Japanese one stops fitting under 340px. There the halves stack, without
-     a bar left hanging at the end of the first line. */
+  /* The English label is 45 letters and never fits one line on a phone:
+     the halves stack, without the bar. */
   @media (max-width: 599px) {
     :global(html[lang='en']) .hero__bar {
       display: none;
@@ -212,11 +212,10 @@ const c = copy[locale];
       display: block;
     }
   }
+  /* Hers stops fitting one line under 340px. The second half goes under the
+     first, and her bar stays where her label has it, after 完全予約制. */
   @media (max-width: 339px) {
-    .hero__bar {
-      display: none;
-    }
-    .hero__part {
+    :global(html[lang='ja']) .hero__part:last-child {
       display: block;
     }
   }
@@ -256,9 +255,9 @@ const c = copy[locale];
   }
 
   /* Three equal cards side by side on every screen, as she asked. On a phone
-     the row runs 4px wider than the text column each side and the cards carry
-     no side padding: her longest line, 「オーダーメイドの」, is eight full-width
-     characters, and a third of a 360px screen is all it has. */
+     the row keeps the page's gutters, the gaps close to 6px and the cards
+     carry no side padding: her longest line, 「オーダーメイドの」, is eight
+     full-width characters, and a third of a 360px screen is all it has. */
   .reasons__list {
     list-style: none;
     margin: 0 auto;
@@ -269,7 +268,7 @@ const c = copy[locale];
   }
   @media (max-width: 480px) {
     .reasons__list {
-      margin-inline: -4px;
+      gap: 6px;
     }
   }
 
@@ -293,7 +292,8 @@ const c = copy[locale];
     margin: 0;
     padding-inline: 4px;
     font-family: var(--font-label);
-    font-size: clamp(13px, 3.4vw, 15px);
+    /* Her 14px floor for a label, from the narrowest phone this layout has. */
+    font-size: clamp(14px, 3.6vw, 15px);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.5;
@@ -348,8 +348,9 @@ const c = copy[locale];
     }
   }
 
-  /* From here the cards are wide enough for each title on one line. */
-  @media (min-width: 600px) {
+  /* From here the cards are wide enough for each title on one line: at 500px
+     a card is 146px, and 「オーダーメイドの旅」 needs 138px at 17px. */
+  @media (min-width: 500px) {
     :global(html[lang='ja']) .reason__title {
       width: auto;
     }

@@ -34,6 +34,10 @@
 // hiragana into kanji, which is a prefix or an inflection (お|出迎え, 買い|物).
 // One more seam the eye reads: a polite お or ご that starts a word after kana
 // (入力して|お申し込みください, 安心して|お楽しみいただけるよう).
+// Two limits keep a seam from cutting a compound the eye reads as one word:
+// a lone kanji after a katakana word is its suffix (シェフ|付き, チェックアウト|後,
+// スタジアム|間), and a seam leaves at least three characters on each side, so
+// a two-character word is not left on its own (訪問|エリア).
 //
 // A space inside Japanese text is different: the author put it there, so it
 // is the boundary. Each side of it is taken on its own, and a side short
@@ -59,6 +63,8 @@ const NO_START = /^[、。，．・：；？！）」』】〉》〕｝ー〜…
 const MARKS = /[、。，．・：；？！（）「」『』【】〈〉《》〔〕｛｝／〜…⇔]/g;
 /** A phrase longer than this may fold inside, between its words. */
 const LONG = 10;
+/** The fewest characters a seam inside a long phrase leaves on either side. */
+const MIN_SIDE = 3;
 
 /** What a reader counts as its characters: marks and spaces aside, and an
     emoji or a rare kanji as one, though it takes two units of the string. */
@@ -85,12 +91,14 @@ const scriptOf = (ch: string): Script =>
           ? 'latin'
           : 'other';
 
-/** Whether a long phrase may fold between these two characters. */
-function seam(before: string, after: string): boolean {
-  const [a, b] = [scriptOf(before), scriptOf(after)];
+/** Whether a long phrase may fold before the character at `w`. */
+function seam(text: string, w: number): boolean {
+  const [a, b] = [scriptOf(text[w - 1]), scriptOf(text[w])];
   if (a === 'other' || b === 'other') return false;
   if (a === b || b === 'hiragana') return false;
   if (a === 'hiragana' && b === 'kanji') return false;
+  // A lone kanji after another script is a suffix: 付き, 後, 間.
+  if (b === 'kanji' && !KANJI.test(text[w + 1] ?? '')) return false;
   return true;
 }
 
@@ -169,13 +177,19 @@ function cut(text: string): string[] {
 
   // Open up any phrase that is still too long to fit a card column.
   const edges = [0, ...[...cuts].filter(fair).sort((a, b) => a - b), text.length];
+  const starts = [...wordStarts].sort((a, b) => a - b);
   for (let i = 0; i < edges.length - 1; i++) {
     const [start, end] = [edges[i], edges[i + 1]];
     if (end - start <= LONG) continue;
-    for (const w of wordStarts) {
+    let last = start;
+    for (const w of starts) {
       if (w <= start || w >= end) continue;
+      if (w - last < MIN_SIDE || end - w < MIN_SIDE) continue;
       const polite = (text[w] === 'お' || text[w] === 'ご') && HIRAGANA.test(text[w - 1]);
-      if (polite || seam(text[w - 1], text[w])) cuts.add(w);
+      if (polite || seam(text, w)) {
+        cuts.add(w);
+        last = w;
+      }
     }
   }
 
@@ -187,4 +201,24 @@ function cut(text: string): string[] {
   }
   pieces.push(text.slice(from));
   return pieces;
+}
+
+const WJ = String.fromCharCode(0x2060);
+const LETTER = '[぀-ヿ一-鿿々]';
+
+/**
+ * Inside one phrase, the characters Chromium still folds at under keep-all:
+ * either side of ⇔, before ／, after 〜, and where Japanese meets a Latin
+ * letter or a $ (LAX⇔ホテル, ツアー／プリゲーム, 4〜6種, あたり$20). Each gets a word
+ * joiner, U+2060, which no browser folds at and no one sees. The ends of the
+ * phrase are left alone: the fold between phrases is the one that is wanted.
+ */
+export function glue(piece: string): string {
+  return piece
+    .replace(/(?<=.)⇔/g, `${WJ}⇔`)
+    .replace(/⇔(?=.)/g, `⇔${WJ}`)
+    .replace(/(?<=.)／/g, `${WJ}／`)
+    .replace(/〜(?=[0-9０-９A-Za-z぀-ヿ一-鿿])/g, `〜${WJ}`)
+    .replace(new RegExp(`(?<=${LETTER})(?=[A-Za-z$＄])`, 'g'), WJ)
+    .replace(new RegExp(`(?<=[A-Za-z])(?=${LETTER})`, 'g'), WJ);
 }

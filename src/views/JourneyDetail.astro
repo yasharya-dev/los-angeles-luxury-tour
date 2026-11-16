@@ -61,14 +61,15 @@ const labels = {
     <section class="section section--deep">
       <div class="measure--cards">
         <h2 class="h3 block__title">{labels.schedule}</h2>
-        <ol class="schedule">
+        {/* role="list": Safari drops the list from a list with no markers. */}
+        <ol class="schedule" role="list">
           {journey.schedule.map((row) => (
             <li class="row">
               <span class="row__time">{row.time}</span>
               <div class="row__text">
                 <p class="row__title"><Phrases text={row.title[locale]} /></p>
                 {row.note && (
-                  <p class="caption row__note">
+                  <p class="row__note">
                     <Phrases text={row.note[locale]} />
                   </p>
                 )}
@@ -77,7 +78,7 @@ const labels = {
           ))}
         </ol>
         {journey.scheduleNote && (
-          <p class="caption note">
+          <p class="note">
             <Phrases text={journey.scheduleNote[locale]} />
           </p>
         )}
@@ -113,7 +114,7 @@ const labels = {
 
   {
     !journey.schedule && journey.scheduleNote && (
-      <p class="caption note measure center">
+      <p class="note measure center">
         <Phrases text={journey.scheduleNote[locale]} />
       </p>
     )
@@ -125,7 +126,7 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions">
-    <a class="btn" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="btn btn--solid" href={p(bookPath(offering))}>{t('plan.request')}</a>
     <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
@@ -204,11 +205,13 @@ const labels = {
     border-bottom: 1px solid var(--hairline-soft);
   }
 
-  /* Times stay in Cormorant in both locales: they are Latin numerals and
-     Mincho figures here would read as an accident. */
+  /* Times in the label face in both locales, as the Experience page's step
+     numbers: Cormorant's 1 is drawn like a small capital I, so 11:15 read
+     II:I5, and Mincho figures here would read as an accident. */
   .row__time {
-    font-family: var(--font-display);
-    font-size: clamp(16px, 2vw, 18px);
+    font-family: var(--font-label);
+    font-size: 16px;
+    font-weight: 600;
     color: var(--gold-text);
     white-space: nowrap;
     min-width: 3.5em;
@@ -220,12 +223,18 @@ const labels = {
     color: var(--ink);
   }
 
+  /* Sentences, so the body size: her 14px is for labels. */
   .row__note {
-    margin-top: 6px;
+    margin: 6px 0 0;
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--ink-soft);
   }
 
   .note {
     margin-top: 22px;
+    font-size: 16px;
+    line-height: 1.8;
     color: var(--ink-soft);
   }
 
@@ -273,6 +282,10 @@ const labels = {
   .list__items--muted .list__item::before {
     content: '\203B'; /* her caveat mark */
     color: var(--ink-soft);
+  }
+  /* A Japanese mark: English lists take the middot the inclusions use. */
+  :global(html[lang='en']) .list__items--muted .list__item::before {
+    content: '\30FB';
   }
 
   /* ------------------------------------------------------------ actions */

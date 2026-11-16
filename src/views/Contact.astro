@@ -84,9 +84,12 @@ const copy = {
         ],
       },
       {
-        q: 'Do I need to speak English?',
+        // Her question is 「英語が話せなくても大丈夫ですか？」, and her answer
+        // starts 「はい、大丈夫です。」: the English question is asked her way
+        // round, so its yes means the same thing.
+        q: 'Is it alright if I do not speak English?',
         a: [
-          'Yes.',
+          'Yes, it is.',
           `The tour is guided in Japanese, and wherever English is needed along the way ${EM} shopping, restaurants ${EM} we handle it, so first-time travelers and anyone unsure of their English can relax.`,
         ],
       },
@@ -264,7 +267,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
         {
           channels.map((ch) => (
             <li>
-              <a class="direct__link" href={ch.href} rel="noopener" aria-label={ch.name} title={ch.name}>
+              <a class="direct__link" href={ch.href} rel="noopener" aria-label={ch.name}>
                 <Icon name={ch.icon} size={26} class="direct__icon" />
                 <span class="direct__label">{ch.label}</span>
               </a>

@@ -108,7 +108,7 @@ export const plans: Plan[] = [
     },
     // Her subtitle of 2026-10-23, which led the page before.
     description: {
-      en: 'Hotel to Dodger Stadium and back, with support in Japanese. One way or round trip.',
+      en: 'Between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
       ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     intro: {
@@ -151,7 +151,7 @@ export const plans: Plan[] = [
     },
     services: {
       en: [
-        'Between where you are staying and Dodger Stadium',
+        'Transfers between where you are staying and Dodger Stadium',
         'Pickup after the game (round trip, or the way back)',
         'Contact and support in Japanese, on the day',
       ],
@@ -164,7 +164,7 @@ export const plans: Plan[] = [
     usage: [
       {
         label: { en: 'Service area', ja: '送迎エリア' },
-        value: { en: 'Los Angeles and nearby', ja: 'ロサンゼルス市内・近郊' },
+        value: { en: 'Los Angeles and the surrounding area', ja: 'ロサンゼルス市内・近郊' },
       },
       {
         label: { en: 'Group size', ja: 'ご利用人数' },
@@ -223,7 +223,7 @@ export const plans: Plan[] = [
             heading: { en: 'Main service areas', ja: '【主な送迎エリア】' },
             paragraphs: {
               en: [
-                'Los Angeles and its surroundings.',
+                'Los Angeles and the surrounding area.',
                 'Downtown, Hollywood, West Hollywood, Beverly Hills, Santa Monica, the Torrance area and more.',
                 'Heading to Anaheim or Orange County? Please ask us.',
               ],

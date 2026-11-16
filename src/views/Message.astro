@@ -2,6 +2,7 @@
 import { type Locale } from '../i18n/ui';
 import { localizePath } from '../i18n/utils';
 import { CONTACT } from '../data/contact';
+import Phrases from '../components/Phrases.astro';
 
 interface Props {
   locale: Locale;
@@ -15,13 +16,13 @@ const copy = {
     notfound: {
       code: '404',
       title: 'That page is not here.',
-      body: 'It may have moved, or the link may have a typo in it. The journeys are all one page away.',
-      cta: 'See the journeys',
+      body: 'It may have moved, or the link may have a typo in it. The plans are all one page away.',
+      cta: 'See the plans',
       href: '/experience',
     },
     thanks: {
       code: '',
-      title: 'Thank you. Your message is on its way.',
+      title: ['Thank you.', 'Your message is on its way.'],
       body: 'You will usually hear back within 24 hours. If it is urgent, LINE is the fastest way to reach us.',
       cta: 'Back to the start',
       href: '/',
@@ -62,9 +63,10 @@ const c = copy[locale][kind];
             </>
           ))}
     </h1>
-    <p class="body message__body">{c.body}</p>
+    <p class="body message__body"><Phrases text={c.body} /></p>
+    {/* The way on is the page's main action: solid, as on every other page. */}
     <div class="message__actions">
-      <a class="btn" href={p(c.href)}>{c.cta}</a>
+      <a class="btn btn--solid" href={p(c.href)}>{c.cta}</a>
       <a class="line" href={CONTACT.lineUrl} rel="noopener">
         LINE <span class="line__id">{CONTACT.lineId}</span>
       </a>
@@ -103,10 +105,15 @@ const c = copy[locale][kind];
     flex-wrap: wrap;
   }
 
+  /* A way to reach her on its own, not a word in a sentence: a full target,
+     at the label size the rest of the site uses. */
   .line {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
     font-family: var(--font-label);
-    font-size: 11px;
-    letter-spacing: 0.22em;
+    font-size: 14px;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--ink-soft);
   }
@@ -122,7 +129,7 @@ const c = copy[locale][kind];
 
   :global(html[lang='ja']) .line {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 0.1em;
     text-transform: none;
   }

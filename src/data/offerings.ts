@@ -48,7 +48,7 @@ export const offerings: Offering[] = [
       ja: 'ドジャース観戦の旅',
     },
     blurb: {
-      en: '4 nights, 6 days · three games, guided throughout',
+      en: '4 nights, 6 days · three games · a guide and a private driver',
       ja: '4泊6日・観戦3試合・ガイドと専属ドライバー付き',
     },
     price: { en: 'from $2,650', ja: '約432,000円〜' },
@@ -103,7 +103,7 @@ export const offerings: Offering[] = [
       ja: 'テメキュラ ワイナリー1日旅',
     },
     blurb: {
-      en: 'wine country, 9:00 to 18:00, door to door',
+      en: '9 a.m. to 6 p.m. · from your hotel · three award-winning wineries',
       ja: '9:00〜18:00・ホテル発着・受賞ワイナリー3か所',
     },
     price: { en: 'from $360', ja: '約59,000円〜' },
@@ -124,7 +124,7 @@ export const offerings: Offering[] = [
     priceNote: { en: 'per group, 1 to 7', ja: '／1グループ（1〜7名様）' },
     detail: {
       en: {
-        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighbourhoods, whatever the day is for. LAX pickup can be built in.',
+        body: 'Six hours, one to seven guests, with a guide and a dedicated driver. Sightseeing, shopping, neighborhoods, whatever the day is for. LAX pickup can be built in.',
         excl: 'Meals, event tickets, and activity fees are not included.',
       },
       ja: {
@@ -141,7 +141,7 @@ export const offerings: Offering[] = [
       ja: 'ロサンゼルス1日観光',
     },
     blurb: {
-      en: '8 hours from the airport · restaurants, shopping, check-in help',
+      en: '8 hours chartered · LAX pickup · hotel transfer included',
       ja: '8時間貸切・LAXお迎え・ホテル送迎付き',
     },
     price: { en: 'from $785', ja: '128,000円〜' },
@@ -216,7 +216,7 @@ export const offerings: Offering[] = [
     },
     // Her subtitle, verbatim, doubles as the card line.
     blurb: {
-      en: 'Hotel to Dodger Stadium and back, with support in Japanese. One way or round trip.',
+      en: 'Between your hotel and Dodger Stadium, with support in Japanese. One way or round trip.',
       ja: 'ホテル⇔ドジャースタジアムの送迎を日本語でサポート。片道・往復どちらも対応しています。',
     },
     price: { en: 'from ¥49,800', ja: '49,800円〜' },
@@ -251,7 +251,7 @@ export const offerings: Offering[] = [
 // Capability only, no prices. Shopping is quoted per item; the a-la-carte
 // tier appeared on one slide in May 2025 and never again, so treat it stale.
 export const capabilities: Record<Locale, string> = {
-  en: 'Shopping and proxy purchasing, restaurant reservations, and in-restaurant accompaniment can also be arranged, quoted individually.',
+  en: 'We can also shop on your behalf, book restaurants and go with you to them, each quoted separately.',
   ja: 'ショッピング代行・レストラン予約・飲食店での同行サポートも承ります（個別お見積り）。',
 };
 

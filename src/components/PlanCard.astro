@@ -141,6 +141,8 @@ const Name = `h${level}` as const;
     min-width: 0;
   }
 
+  /* Two lines of a long name come out even, rather than one word alone, in
+     both languages: 'Dodgers game private / transfer' left the last word. */
   .plan__name {
     margin: 0;
     font-family: var(--font-display);
@@ -148,14 +150,13 @@ const Name = `h${level}` as const;
     font-weight: 600;
     line-height: 1.3;
     color: var(--ink);
+    text-wrap: balance;
   }
-  /* Two lines of a long name come out even, rather than one word alone. */
   :global(html[lang='ja']) .plan__name {
     font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.5;
     letter-spacing: 0.02em;
-    text-wrap: balance;
   }
 
   /* Balanced, like the name: two even lines, not one long and one word. */

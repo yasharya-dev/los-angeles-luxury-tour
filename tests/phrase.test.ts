@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isJapanese, phrases } from '../src/i18n/phrase';
+import { glue, isJapanese, phrases } from '../src/i18n/phrase';
 import { offerings } from '../src/data/offerings';
 import { plans } from '../src/data/plans';
 import type { Text } from '../src/i18n/text';
@@ -179,5 +179,48 @@ describe('phrases', () => {
     const parts = phrases('9:00〜18:00・ホテル発着・受賞ワイナリー3か所');
     expect(parts[0]).toBe('9:00〜18:00・');
     expect(parts.at(-1)).toBe('受賞ワイナリー3か所');
+  });
+
+  // The full site test of round 3 found these compounds cut in two, in both
+  // engines: a seam before a one-kanji suffix, and one leaving a two-kanji
+  // word on its own.
+  it('keeps a suffix with its word, and a two-kanji word with its compound', () => {
+    const joined = (text: string) => phrases(text).join('|');
+    expect(joined('一夜限りの出張シェフ付きディナー体験')).not.toContain('シェフ|付き');
+    expect(joined('一夜限りの出張シェフ付きディナー体験')).toContain('出張シェフ付き|ディナー体験');
+    expect(joined('空港到着日やホテルチェックアウト後も、お荷物を')).not.toContain('|後');
+    expect(joined('表示料金は、ご宿泊先⇔ドジャースタジアム間の送迎料金です。')).not.toContain('|間');
+    expect(joined('ご利用人数・お荷物の量・訪問エリアなどにより、')).not.toContain('訪問|エリア');
+    // A long compound still opens where both sides are words of their own.
+    expect(joined('ドジャース観戦チケット購入代行')).toBe('ドジャース|観戦チケット|購入代行');
+  });
+});
+
+// Chromium folds at a few characters inside a phrase even under keep-all.
+// The word joiner (U+2060) between them is invisible and never folds.
+describe('glue', () => {
+  const WJ = String.fromCharCode(0x2060);
+  const show = (s: string) => s.split(WJ).join('+');
+
+  it('joins the characters Chromium folds at inside a phrase', () => {
+    expect(show(glue('空港送迎（LAX⇔ホテル往復）'))).toBe('空港送迎（LAX+⇔+ホテル往復）');
+    expect(show(glue('スタジアムツアー／'))).toBe('スタジアムツアー+／');
+    expect(show(glue('1軒4〜6種ほどを'))).toBe('1軒4〜+6種ほどを');
+    expect(show(glue('（1軒あたり$20〜）'))).toBe('（1軒あたり+$20〜）');
+    expect(show(glue('LAXお迎え・'))).toBe('LAX+お迎え・');
+  });
+
+  it('leaves the ends of a phrase, where the fold between phrases is', () => {
+    expect(glue('ご宿泊先⇔')).toBe('ご宿泊先' + WJ + '⇔');
+    expect(glue('／1グループ')).toBe('／1グループ');
+    expect(glue('約432,000円〜')).toBe('約432,000円〜');
+    expect(glue('（$2,480〜）')).toBe('（$2,480〜）');
+  });
+
+  it('adds nothing but joiners, and nothing to English', () => {
+    for (const text of ['空港送迎（LAX⇔ホテル往復）', 'セクション・座席の指定可', 'Private tours']) {
+      expect(glue(text).split(WJ).join('')).toBe(text);
+    }
+    expect(glue('Private tours, by reservation only')).toBe('Private tours, by reservation only');
   });
 });

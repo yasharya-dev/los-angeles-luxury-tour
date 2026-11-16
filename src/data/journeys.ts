@@ -42,7 +42,8 @@ export const journeys: Journey[] = [
         'Three game tickets, with round-trip stadium transport',
         'Stadium tour and pre-game tour tickets',
         'Dodgers Clubhouse, for the merchandise',
-        'The murals, Hollywood, In-N-Out, and Pink’s',
+        // Word joiners after the hyphens: the name never folds as In- / N-Out.
+        'The murals, Hollywood, In-⁠N-⁠Out, and Pink’s',
         'A dedicated driver and Japanese-language guide throughout',
         'Fuel and parking',
       ],
@@ -51,7 +52,7 @@ export const journeys: Journey[] = [
         '観戦チケット3試合分（スタジアム往復送迎付き）',
         'スタジアムツアー・プレゲームツアーのチケット',
         'ドジャースクラブハウスでのグッズ巡り',
-        '話題の壁画巡り・ハリウッド観光・In-N-Out・ピンクス',
+        '話題の壁画巡り・ハリウッド観光・In-⁠N-⁠Out・ピンクス',
         '専属ドライバーと日本語ガイドによる終日サポート',
         'ガソリン代・駐車場代',
       ],
@@ -73,7 +74,7 @@ export const journeys: Journey[] = [
       ],
     },
     scheduleNote: {
-      en: 'Days are shaped around the fixture list, so the order moves with the schedule. Bobblehead giveaway dates are worth planning around.',
+      en: 'Days are shaped around the game schedule, so the order moves with it. Bobblehead giveaway dates are worth planning around.',
       ja: '日程は試合日程に合わせて組み立てます。ボブルヘッド配布日に合わせたプランもおすすめです。',
     },
   },
@@ -194,7 +195,8 @@ export const journeys: Journey[] = [
     },
     excludes: {
       en: ['Drinks, which you may bring or add as an option'],
-      ja: ['※飲み物代別（持参または別途オプション）'],
+      // The list draws her ※ itself.
+      ja: ['飲み物代別（持参または別途オプション）'],
     },
     scheduleNote: {
       en: 'Built for anniversaries and for evenings that need to be right.',
