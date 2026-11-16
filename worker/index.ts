@@ -323,26 +323,28 @@ async function readForm(request: Request): Promise<FormData | 'large' | 'bad'> {
   if (Number(request.headers.get('Content-Length') ?? 0) > MAX_BODY) return 'large';
   const chunks: Uint8Array[] = [];
   let size = 0;
-  const reader = request.body?.getReader();
-  if (reader) {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_BODY) {
-        await reader.cancel();
-        return 'large';
-      }
-      chunks.push(value);
-    }
-  }
-  const body = new Uint8Array(size);
-  let at = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, at);
-    at += chunk.byteLength;
-  }
+  // A connection that drops mid-upload, or a body shorter than its length,
+  // fails the read: a bad request, not an uncaught error.
   try {
+    const reader = request.body?.getReader();
+    if (reader) {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BODY) {
+          await reader.cancel().catch(() => {});
+          return 'large';
+        }
+        chunks.push(value);
+      }
+    }
+    const body = new Uint8Array(size);
+    let at = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, at);
+      at += chunk.byteLength;
+    }
     const type = request.headers.get('Content-Type') ?? '';
     return await new Response(body, { headers: { 'Content-Type': type } }).formData();
   } catch {
@@ -509,8 +511,24 @@ async function received(request: Request, env: Env, url: URL): Promise<Response>
     changes under its name: a browser may keep it for a year unasked. */
 const HASHED = /^\/_astro\//;
 
-/** What every response carries, whatever produced it. */
-function harden(res: Response, url: URL): Response {
+/** Her mark: served before the preview's gate, which would answer it with
+    its own page and leave the first screen without an icon. */
+const ICONS = new Set(['/favicon.ico', '/apple-touch-icon.png', '/icon-192.png']);
+
+/** The page of this site a request came from, or the home page. */
+function cameFrom(request: Request, url: URL): string {
+  try {
+    const from = new URL(request.headers.get('Referer') ?? '');
+    if (from.origin === url.origin) return from.pathname + from.search;
+  } catch {
+    /* no referrer, or not a URL */
+  }
+  return '/';
+}
+
+/** What every response carries, whatever produced it. `gated` while the
+    preview's password is on. */
+function harden(res: Response, url: URL, gated: boolean): Response {
   const out = new Response(res.body, res);
   const headers = out.headers;
   headers.set('X-Content-Type-Options', 'nosniff');
@@ -519,15 +537,17 @@ function harden(res: Response, url: URL): Response {
   // else's frame is how a guest is led to send what they did not mean to.
   headers.set('X-Frame-Options', 'DENY');
   headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  // Behind the gate, for the visitor's own browser only: a shared cache on
+  // the way would otherwise hand the preview's files to anyone for a year.
   if (HASHED.test(url.pathname) && (res.ok || res.status === 304)) {
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('Cache-Control', `${gated ? 'private' : 'public'}, max-age=31536000, immutable`);
   }
   return out;
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return harden(await route(request, env), new URL(request.url));
+    return harden(await route(request, env), new URL(request.url), !!env.BETA_PASSWORD);
   },
 };
 
@@ -537,9 +557,16 @@ async function route(request: Request, env: Env): Promise<Response> {
   const beta = env.BETA_PASSWORD;
 
   if (beta) {
+    // Her mark, in the tab and on a home screen, from the first screen on:
+    // public, and nothing of the preview.
+    if (ICONS.has(url.pathname)) return env.ASSETS.fetch(request);
+
     if (url.pathname === '/api/beta') {
       // Opened from the address bar, as after a wrong password: the gate.
       if (request.method !== 'POST') return Response.redirect(new URL('/', url).href, 303);
+      // Signed in from this site only, as the forms are sent from it only.
+      const origin = request.headers.get('Origin');
+      if (origin && origin !== url.origin) return forbidden();
       const form = await readForm(request);
       if (typeof form === 'string') return gatePage({ failed: true, next: '/' });
       const next = safeNext(clean(form.get('next'), 512) || '/');
@@ -550,7 +577,10 @@ async function route(request: Request, env: Env): Promise<Response> {
     }
 
     if (!(await hasAccess(request, beta))) {
-      return gatePage({ failed: false, next: url.pathname + url.search });
+      // After signing in, back to where the visitor was going. A form's post
+      // is not a place to go back to: its own page instead.
+      const page = (request.method === 'GET' || request.method === 'HEAD') && !url.pathname.startsWith('/api/');
+      return gatePage({ failed: false, next: page ? url.pathname + url.search : cameFrom(request, url) });
     }
   }
 

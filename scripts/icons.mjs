@@ -36,10 +36,35 @@ const mark = await sharp(SOURCE)
   })
   .toBuffer();
 
+// Her gold: the mean colour of the mark's solid pixels.
+const solid = await sharp(mark).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+const sum = [0, 0, 0, 0];
+for (let i = 0; i < solid.data.length; i += 4) {
+  if (solid.data[i + 3] > 200) {
+    for (let c = 0; c < 3; c++) sum[c] += solid.data[i + c];
+    sum[3]++;
+  }
+}
+const GOLD = { r: Math.round(sum[0] / sum[3]), g: Math.round(sum[1] / sum[3]), b: Math.round(sum[2] / sum[3]) };
+
+/**
+ * The mark with its strokes thickened, for the tab sizes: at 16px the 800px
+ * logo's 8px strokes average into the black. Its outline is blurred out and
+ * brought back up to solid, then her gold is laid through it.
+ */
+async function bold(sigma, gain) {
+  const alpha = await sharp(mark).ensureAlpha().extractChannel(3).blur(sigma).png().toBuffer();
+  const grown = await sharp(alpha).linear(gain, 0).png().toBuffer();
+  return sharp({ create: { width: side, height: side, channels: 3, background: GOLD } })
+    .joinChannel(grown)
+    .png()
+    .toBuffer();
+}
+
 /** The mark on black, `inset` of the square left as a margin each side. */
-async function icon(size, inset) {
+async function icon(size, inset, source = mark) {
   const inner = Math.round(size * (1 - 2 * inset));
-  const drawn = await sharp(mark).resize(inner, inner).toBuffer();
+  const drawn = await sharp(source).resize(inner, inner).toBuffer();
   return sharp({ create: { width: size, height: size, channels: 4, background: BLACK } })
     .composite([{ input: drawn, gravity: 'centre' }])
     .png()
@@ -48,7 +73,11 @@ async function icon(size, inset) {
 
 // A tab icon is tiny: the ring nearly fills it. A home-screen icon is masked
 // to a rounded square by the phone, so the ring keeps clear of the corners.
-const [ico16, ico32, ico48] = await Promise.all([icon(16, 0.04), icon(32, 0.04), icon(48, 0.04)]);
+const [ico16, ico32, ico48] = await Promise.all([
+  icon(16, 0.04, await bold(4, 2.5)),
+  icon(32, 0.04, await bold(2, 1.8)),
+  icon(48, 0.04),
+]);
 await writeFile('public/apple-touch-icon.png', await icon(180, 0.14));
 await writeFile('public/icon-192.png', await icon(192, 0.14));
 

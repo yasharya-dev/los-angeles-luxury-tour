@@ -189,6 +189,56 @@ describe('the Worker, end to end', () => {
     expect(await res.text()).toBe('asset');
   });
 
+  // Counted as it arrives: a stream that never ends must be refused at the
+  // cap, which reading it whole first would never reach. And a body of
+  // exactly 64 KB is still a form.
+  it('refuses an endless body at the cap, and takes one of exactly 64 KB', async () => {
+    const chunk = new TextEncoder().encode('x'.repeat(1024));
+    const endless = new ReadableStream({
+      pull(c) {
+        c.enqueue(chunk);
+      },
+    });
+    const send = (body: BodyInit) =>
+      worker.fetch(
+        new Request('https://x.test/api/booking', {
+          method: 'POST',
+          body,
+          duplex: 'half',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        } as RequestInit),
+        env({ RESEND_API_KEY: 're_test' }),
+      );
+    expect((await send(endless)).status).toBe(413);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    const base = new URLSearchParams(booking).toString() + '&notes=';
+    const exact = base + 'x'.repeat(64 * 1024 - base.length);
+    expect(exact.length).toBe(64 * 1024);
+    const ok = await send(exact);
+    expect(ok.status).toBe(200);
+    expect((await send(exact + 'x')).status).toBe(413);
+  });
+
+  // A connection that drops mid-upload: a bad request, not an uncaught error.
+  it('answers a body that breaks off with a bad request', async () => {
+    const broken = new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode('locale=ja&name='));
+        c.error(new Error('connection reset'));
+      },
+    });
+    const res = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: broken,
+        duplex: 'half',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      } as RequestInit),
+      env({ RESEND_API_KEY: 're_test' }),
+    );
+    expect(res.status).toBe(400);
+  });
+
   // The form's own cap, 64 KB, for a body sent in chunks with no length:
   // read as it arrives, not in full first.
   it('holds a body sent without a length to the same cap, and reads a small one', async () => {
@@ -637,8 +687,92 @@ describe('the preview gate, through the Worker', () => {
         }),
         env,
       );
-    expect((await login('/ja/contact')).headers.get('Location')).toBe('/ja/contact');
+    const granted = await login('/ja/contact');
+    expect(granted.headers.get('Location')).toBe('/ja/contact');
+    // Through every header the Worker adds, the cookie is still there.
+    expect(granted.headers.get('Set-Cookie')).toMatch(/^lalt_beta=/);
+    expect(granted.headers.get('X-Frame-Options')).toBe('DENY');
+    expect((await login('/..//evil.example')).headers.get('Location')).toBe('/');
     expect((await login('/\\evil.example/x')).headers.get('Location')).toBe('/');
     expect((await login('/\t/evil.example/x')).headers.get('Location')).toBe('/');
+  });
+});
+
+// What the review of the caching and gate work found.
+describe('the gate and the cache, after review', () => {
+  const gated = (over: Record<string, unknown> = {}) =>
+    ({
+      ASSETS: {
+        fetch: async (req: Request) =>
+          new URL(req.url).pathname === '/_astro/x.css' && req.headers.get('If-None-Match')
+            ? new Response(null, { status: 304 })
+            : new Response('asset', { headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } }),
+      },
+      BETA_PASSWORD: 'pw',
+      ...over,
+    }) as never;
+  const cookie = async () => ((await grantAccess('pw', '/')).headers.get('Set-Cookie') ?? '').split(';')[0];
+
+  // Her mark, from the first screen on: the gate answered it with its page.
+  it('serves the icons before the gate', async () => {
+    for (const path of ['/favicon.ico', '/apple-touch-icon.png', '/icon-192.png']) {
+      const res = await worker.fetch(new Request(`https://x.test${path}`), gated());
+      expect(res.status, path).toBe(200);
+      expect(await res.text(), path).toBe('asset');
+    }
+  });
+
+  // Behind the gate a hashed file is the visitor's to keep, not a shared
+  // cache's; without the cookie it is the gate, kept by no one.
+  it('keeps the preview\'s files private, and never the gate itself', async () => {
+    const withCookie = { headers: { Cookie: await cookie() } };
+    const kept = await worker.fetch(new Request('https://x.test/_astro/Base.css', withCookie), gated());
+    expect(kept.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+    const again = await worker.fetch(
+      new Request('https://x.test/_astro/x.css', { headers: { ...withCookie.headers, 'If-None-Match': '"a"' } }),
+      gated(),
+    );
+    expect(again.status).toBe(304);
+    expect(again.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable');
+    const gate = await worker.fetch(new Request('https://x.test/_astro/Base.css'), gated());
+    expect(gate.status).toBe(401);
+    expect(gate.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  // A sign-in from another site's page is refused, as the forms' posts are.
+  it('refuses a sign-in posted from another site', async () => {
+    const res = await worker.fetch(
+      new Request('https://x.test/api/beta', {
+        method: 'POST',
+        body: new URLSearchParams({ password: 'pw', next: '/' }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'https://evil.example' },
+      }),
+      gated(),
+    );
+    expect(res.status).toBe(403);
+    expect(res.headers.get('Set-Cookie')).toBeNull();
+  });
+
+  // A form sent once the cookie has run out meets the gate. After signing
+  // in, the visitor goes back to the form's page, not to a bare 405.
+  it('sends a caught form post back to its own page after signing in', async () => {
+    const res = await worker.fetch(
+      new Request('https://x.test/api/booking', {
+        method: 'POST',
+        body: new URLSearchParams({ locale: 'ja' }),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Referer: 'https://x.test/ja/book/dodgers-transfer',
+        },
+      }),
+      gated(),
+    );
+    expect(res.status).toBe(401);
+    expect(await res.text()).toContain('name="next" value="/ja/book/dodgers-transfer"');
+    const elsewhere = await worker.fetch(
+      new Request('https://x.test/api/inquiry', { method: 'POST', headers: { Referer: 'https://evil.example/x' } }),
+      gated(),
+    );
+    expect(await elsewhere.text()).toContain('name="next" value="/"');
   });
 });

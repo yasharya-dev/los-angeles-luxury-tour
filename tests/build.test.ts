@@ -3,7 +3,7 @@
 
 import { describe, expect, it, beforeAll } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
@@ -45,6 +45,14 @@ const distFile = (route: string) => {
 };
 
 const html = (route: string) => readFileSync(distFile(route), 'utf8');
+
+/** Every HTML file the build wrote, from the dist folder itself. */
+const allPages = (dir = DIST): string[] =>
+  readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return allPages(path);
+    return name.endsWith('.html') ? [path] : [];
+  });
 
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
@@ -122,15 +130,25 @@ describe('locale correctness', () => {
   const routes = [...PATHS, '/404'].map((p) => ({ en: p, ja: p === '/' ? '/ja' : `/ja${p}` }));
   const all = (tag: RegExp, doc: string) => doc.match(tag) ?? [];
 
+  // The list these checks read is every page the build writes: a page added
+  // without an entry in PATHS would otherwise get none of them.
+  it('reads every page the build writes', () => {
+    const built = allPages().map((file) => {
+      const route = file.slice(DIST.length).split(sep).join('/').replace(/\.html$/, '');
+      return route === '/index' ? '/' : route;
+    });
+    expect(new Set(built)).toEqual(new Set(routes.flatMap((pair) => [pair.en, pair.ja])));
+  });
+
   // Exactly one of each, by value: a second, conflicting canonical passed a
   // substring check.
   it('gives a page for search one canonical and og:url, its own, and the rest noindex', () => {
     for (const pair of routes) {
       for (const route of [pair.en, pair.ja]) {
         const doc = html(route);
-        const canonical = all(/<link rel="canonical"[^>]*>/g, doc);
-        const ogUrl = all(/<meta property="og:url"[^>]*>/g, doc);
-        const robots = all(/<meta name="robots"[^>]*>/g, doc);
+        const canonical = all(/<link\b[^>]*\brel="canonical"[^>]*>/g, doc);
+        const ogUrl = all(/<meta\b[^>]*\bproperty="og:url"[^>]*>/g, doc);
+        const robots = all(/<meta\b[^>]*\bname="robots"[^>]*>/g, doc);
         if (NOINDEX.includes(pair.en)) {
           expect(canonical, route).toEqual([]);
           expect(ogUrl, route).toEqual([]);
@@ -147,7 +165,7 @@ describe('locale correctness', () => {
   it('declares exactly three reciprocal alternates on a page for search, and none elsewhere', () => {
     for (const pair of routes) {
       for (const route of [pair.en, pair.ja]) {
-        const alternates = all(/<link rel="alternate"[^>]*>/g, html(route));
+        const alternates = all(/<link\b[^>]*\brel="alternate"[^>]*>/g, html(route));
         expect(alternates, route).toEqual(
           NOINDEX.includes(pair.en)
             ? []
@@ -176,7 +194,7 @@ describe('locale correctness', () => {
     for (const entry of entries) {
       const route = entry.loc.slice(SITE.length);
       const doc = html(route);
-      expect(all(/<link rel="canonical"[^>]*>/g, doc), route).toEqual([
+      expect(all(/<link\b[^>]*\brel="canonical"[^>]*>/g, doc), route).toEqual([
         `<link rel="canonical" href="${entry.loc}">`,
       ]);
       const declared = [...doc.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].map(
@@ -1144,15 +1162,9 @@ describe('text over a photograph', () => {
 // that quietly moved on the site. ' | ' is a fold, ' // ' a line break, and
 // ‿ a word joiner, which holds a phrase together and is otherwise invisible.
 describe('Japanese line folds', () => {
-  // Every page the build writes: the not-found pages, and the English pages,
-  // whose only Japanese is the offer to read the page in Japanese.
-  const allPages = (dir = DIST): string[] =>
-    readdirSync(dir).flatMap((name) => {
-      const path = join(dir, name);
-      if (statSync(path).isDirectory()) return allPages(path);
-      return name.endsWith('.html') ? [path] : [];
-    });
-
+  // Every page the build writes (allPages, above): the not-found pages too,
+  // and the English pages, whose only Japanese is the offer to read the page
+  // in Japanese.
   it('folds every line where it did when this was last reviewed', async () => {
     const lines = new Set<string>();
     for (const file of allPages()) {

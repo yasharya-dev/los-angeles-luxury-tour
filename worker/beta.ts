@@ -74,6 +74,13 @@ export async function grantAccess(
  * the site's own CSS is reachable.
  */
 export function gatePage(opts: { failed: boolean; next: string }): Response {
+  // A wrong password: the line sits above the field and the field points to
+  // it. The field has focus on arrival, and a line already on the page is
+  // not reliably announced by role=alert alone.
+  const error = opts.failed
+    ? '<p class="err" id="gate-err" role="alert">パスワードが違うようです。もう一度お試しください。<br><span lang="en">That password did not match.</span></p>'
+    : '';
+  const invalid = opts.failed ? ' aria-invalid="true" aria-describedby="gate-err"' : '';
   const html = `<!doctype html>
 <html lang="ja">
 <head>
@@ -81,6 +88,8 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Los Angeles Luxury Tour</title>
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -116,7 +125,7 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
   }
   button:hover { background: rgba(212,175,55,.1); color: #f5f5fa; }
   button:focus-visible { outline: 2px solid #d4af37; outline-offset: 2px; }
-  .err { margin: 18px 0 0; font-size: 14px; color: #e8996b; line-height: 1.7; }
+  .err { margin: 0 0 18px; font-size: 14px; color: #e8996b; line-height: 1.7; }
   .foot { margin-top: 40px; font-size: 14px; color: rgba(245,245,250,.68); line-height: 1.8; }
 </style>
 </head>
@@ -126,13 +135,13 @@ export function gatePage(opts: { failed: boolean; next: string }): Response {
     <div class="sub">Los Angeles Luxury Tour</div>
     <h1>こちらは公開前のプレビューです。</h1>
     <p class="en" lang="en">This site is not public yet. Please enter the password.</p>
+    ${error}
     <form method="POST" action="/api/beta">
       <input type="hidden" name="next" value="${escapeAttr(opts.next)}">
       <input type="password" name="password" placeholder="パスワード"
-             autocomplete="current-password" autofocus aria-label="パスワード">
+             autocomplete="current-password" autofocus aria-label="パスワード"${invalid}>
       <button type="submit">確認する</button>
     </form>
-    ${opts.failed ? '<p class="err" role="alert">パスワードが違うようです。もう一度お試しください。<br><span lang="en">That password did not match.</span></p>' : ''}
     <p class="foot">ご不明な点は Yash までご連絡ください。</p>
   </main>
 </body>
@@ -168,7 +177,11 @@ export function safeNext(raw: string): string {
   try {
     const base = 'https://gate.invalid';
     const url = new URL(raw, base);
-    return url.origin === base ? url.pathname + url.search + url.hash : '/';
+    // The browser resolves what is returned a second time, so that is what
+    // is checked: /..//evil.example parses to the path //evil.example on
+    // this origin, and as a Location is evil.example itself.
+    const out = url.pathname + url.search + url.hash;
+    return new URL(out, base).origin === base ? out : '/';
   } catch {
     return '/';
   }

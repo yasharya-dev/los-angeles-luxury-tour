@@ -46,7 +46,7 @@ Adding an offering is a data change in `src/data/offerings.ts`. It appears on th
 
 Those two sources can change under the site: a BudouX release, or a Node upgrade, since ICU's dictionary ships with Node. So every fold on the built site is pinned in `tests/__snapshots__/japanese-folds.txt` and a change shows up as a diff to read, `.nvmrc` holds one exact Node version for CI, and `npm run deploy` runs the suite before it uploads.
 
-**Path-based i18n.** English at `/about`, Japanese at `/ja/about`, with `hreflang` alternates and a hand-rolled sitemap so every page in every language is a real, indexable URL. Not a client-side string swap.
+**Path-based i18n.** English at `/about`, Japanese at `/ja/about`, with `hreflang` alternates and a hand-rolled sitemap so every page in every language is a real URL. Not a client-side string swap. The pages for search have a canonical and three alternates and are in the sitemap. The two not-found pages, the pages after each form and the per-plan booking forms say `noindex` instead (`Base.astro`'s `noindex`), with no canonical or alternates: the plan pages are what a search should find.
 
 **Cream by default, dark by choice.** The owner's palette is the default theme for every visitor, on `:root`: `#191919` ink on `#FAF9F6`, with `#F2F0E9` for alternating sections and `#B18A3A` as the accent. The dark theme is an opt-in from the toggle, never read from the device, so the site opens the way she designed it.
 
@@ -97,15 +97,15 @@ To test the forms for real locally, copy `.dev.vars.example` to `.dev.vars`, put
 
 | File | Guards |
 | --- | --- |
-| `tests/build.test.ts` | Every route in both locales; the canonical, alternates and language link of every page, by value; no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity; her homepage and Experience copy, character for character and in her order; no exchange rate on any page; the palette, with contrast computed for text, the CTA and control edges in both themes; cream as the default theme; the header, menu and footer; photo formats, priority and file sizes; the depth of the gradient behind text on a photo; every Japanese fold, pinned; one label for the booking request; both paths on every card, the booking notice, no phone number, sitemap and robots |
+| `tests/build.test.ts` | Every route in both locales; the canonical, alternates and language link of every page, by value; no English nav on Japanese pages, yen on Japanese pages only, offering and FAQ parity; her homepage and Experience copy, character for character and in her order; no exchange rate on any page; the palette, with contrast computed for text, the CTA and control edges in both themes; cream as the default theme; the header, menu and footer; photo formats, priority and file sizes; the depth of the gradient behind text on a photo; every Japanese fold, pinned; one label for the booking request; both paths on every card, the booking notice, no phone number, sitemap and robots; every built page read by the URL checks, `noindex` where it belongs, every link of the site's own resolving to a built file or a Worker route, and the icons |
 | `tests/data.test.ts` | Unique ids and slugs, full bilingual coverage, every price a floor, every plan has a page or a description for its card, every plan books and consults on the site |
 | `tests/i18n.test.ts` | Path helpers, including the build's `.html` paths, and dictionary key parity |
 | `tests/phrase.test.ts` | Where Japanese may fold: lossless, never inside a katakana word, a dictionary word or a compound verb, never a one-character phrase, kinsoku respected, an authored space as the only fold of a title |
 | `tests/config.test.ts` | Astro and Cloudflare agree about the URL shape |
 | `tests/booking.test.ts` | The booking rules: a plan's own choices only, the route only where it applies, real dates from today in Los Angeles, the guest list per plan, and how a request reads back. The clock is pinned |
 | `tests/enhance-form.test.ts` | The forms' script on a stand-in page: every error mark shown before the one scroll to the first field to fix, on an empty send and on a field the Worker refused, and the date picker's bounds moving with the clock |
-| `tests/worker.test.ts` | Input cleaning, one-line fields, a single email address, HTML escaping, plan labels, redirect paths, refused choices and origins, the guest receipt and what it may carry, the received page's summary, and both endpoints driven end to end with Resend stubbed |
-| `tests/beta.test.ts` | The gate: cookie signing, open-redirect guard, `noindex`, the page itself |
+| `tests/worker.test.ts` | Input cleaning, one-line fields, a single email address, HTML escaping, plan labels, redirect paths, refused choices and origins, the guest receipt and what it may carry, the received page's summary, and both endpoints driven end to end with Resend stubbed; the 64 KB cap counted as a body arrives, a broken upload, the mail service's deadline, the headers and cache rule on every response, and the gate through the Worker (its icons, its origin check, a caught form post); and that every export of the Worker is one the runtime can load |
+| `tests/beta.test.ts` | The gate: cookie signing, the open-redirect guard (dot segments, backslashes, control characters), `noindex`, the page itself, its error tied to the field, its English tagged, its text sizes and contrast |
 
 ## The beta gate
 
@@ -113,7 +113,9 @@ A `BETA_PASSWORD` secret on the Worker. **Absent means the site is public**, so 
 
 Going public is `wrangler secret delete BETA_PASSWORD`, not a deploy.
 
-`run_worker_first` on the assets binding is what makes this work. Without it Cloudflare serves matching static assets without calling the Worker, and the gate never sees them.
+`run_worker_first` on the assets binding is what makes this work. Without it Cloudflare serves matching static assets without calling the Worker, and the gate never sees them. Her icons are served before the gate, so its first screen has one. A form post the gate catches returns the visitor to the form's page after signing in.
+
+Every response, gated or not, goes through `harden()` in the Worker: `nosniff`, a referrer policy, and no framing by another site (`X-Frame-Options` and `frame-ancestors`). A file under `/_astro/` is named by a hash of its content and is kept for a year: `public`, or `private` while the gate is up.
 
 ## Configuration and secrets
 
