@@ -55,6 +55,11 @@ class El {
     this.children = [];
     this.text = value;
   }
+  /** Markup is not parsed here: setting it leaves only its text, as a
+      rewrite of the button's markup would leave no icon. */
+  set innerHTML(value: string) {
+    this.textContent = value.replace(/<[^>]*>/g, '');
+  }
   /** Every element under this one, in page order. */
   all(): El[] {
     return this.children.flatMap((kid) => [kid, ...kid.all()]);

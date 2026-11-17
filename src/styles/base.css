@@ -467,10 +467,12 @@ html[lang='ja'] .em {
     border-color 0.3s ease;
 }
 
-/* The outline deepens in its own gold, rather than turning black. */
+/* The outline deepens in its own gold, rather than turning black. The colour
+   is set here, or the links' own a:hover would win and turn the label ink. */
 .btn:hover {
   background-color: var(--btn-hover);
   border-color: var(--gold-text);
+  color: var(--gold-text);
 }
 
 /* Her labels are a size above our old 15px, tracked as she sets them (0.05
@@ -540,28 +542,19 @@ html[lang='ja'] .btn {
     linear-gradient(var(--champagne-angle), var(--champagne-sheen));
 }
 
-/* With no ring, a printer that drops backgrounds would leave the label
-   alone on the paper: the button prints as it looks, as a plate does. */
-@media print {
-  .btn--solid {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
 /* An icon held near the far end, with the label centred in the button: her
    pills (01, 08, 09) and her contact buttons (07). */
 .btn--end-icon {
   position: relative;
-  padding-inline: var(--end-start, 44px) var(--end-pad, 44px);
+  padding-inline: var(--end-pad-start, 44px) var(--end-pad-end, 44px);
 }
 
 .btn--end-icon > svg {
   position: absolute;
   top: 50%;
-  right: var(--end-icon-at, 16px);
-  width: var(--end-icon, 18px);
-  height: var(--end-icon, 18px);
+  inset-inline-end: var(--end-icon-inset, 16px);
+  width: var(--end-icon-size, 18px);
+  height: var(--end-icon-size, 18px);
   transform: translateY(-50%);
 }
 
@@ -580,10 +573,10 @@ html[lang='ja'] .btn {
 /* Her pill (01, 08, 09): round ends, more room at the sides, and a larger,
    thinner icon. */
 .btn--pill {
-  --end-start: 52px;
-  --end-pad: 52px;
-  --end-icon: 26px;
-  --end-icon-at: 20px;
+  --end-pad-start: 52px;
+  --end-pad-end: 52px;
+  --end-icon-size: 26px;
+  --end-icon-inset: 20px;
   border-radius: 999px;
 }
 
@@ -607,6 +600,19 @@ html[lang='ja'] .btn--slab {
 
 html[lang='en'] .btn--slab {
   font-size: 15px;
+}
+
+/* On paper a button is its outline and its words, in ink. A printer that
+   drops backgrounds, as most do by default, would otherwise leave a white
+   label on white paper; the old browsers that need a prefix to print a
+   fill would too. */
+@media print {
+  .btn--solid {
+    border-color: currentColor;
+    background: none;
+    box-shadow: none;
+    color: var(--ink);
+  }
 }
 
 /* ----------------------------------------------------- reservation panel */

@@ -21,15 +21,16 @@
 
   Her buttons come in the two finishes she drew:
 
-    --cta         her flat olive gold with a white label, on every page but
-                  the homepage (07 to 10B). Her own, #977f3f, carries white
-                  at 3.9:1; this is about 10% darker, 4.65:1.
+    --cta         her flat olive gold with a white label, on every solid
+                  button but her two homepage ones (07 to 10B). Her golds
+                  carry white at only 3.1 to 3.9:1; this keeps their hue and
+                  colour at a lightness where white is 4.6:1.
     --champagne   the champagne metal of her two homepage buttons (01, 06),
                   with her warm brown label.
 
   Neither has a ring, as she draws none: a text button's label names it,
-  which is all WCAG 1.4.11 asks. Tests compute every label's ratio against
-  every colour its fill paints, out of the built CSS.
+  which is all WCAG 1.4.11 asks. Tests compute each button label's ratio
+  against every colour its fill paints, out of the built CSS.
 */
 
 :root {
@@ -56,9 +57,9 @@
   /* The solid button: her flat olive gold with a white label (07, 08, 09,
      10A, 10B), the same on every surface and in both themes. Hover and
      pressed go darker, which raises the label's contrast. */
-  --cta: #887239;
-  --cta-hover: #7d6934;
-  --cta-press: #715e2e;
+  --cta: #90702f;
+  --cta-hover: #836729;
+  --cta-press: #7a5f27;
   --on-cta: #ffffff;
 
   /* Her champagne, on her two homepage buttons: a bright band a little left
