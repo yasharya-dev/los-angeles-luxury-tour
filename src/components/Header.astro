@@ -255,9 +255,10 @@ const links = [
   .menu__button:hover {
     color: var(--ink);
   }
-  /* Her bars are larger than ours: about 23px wide, 8px apart. The 24px
-     icon drawn at 34px gives that, in a button as tall as before. */
-  .menu__button :global(.menu__icon--open) {
+  /* Her bars are larger than ours: the 24px icons drawn at 34px give bars
+     about 23px wide and 7px apart, in a button as tall as before. The close
+     icon is drawn the same size, so the two states match. */
+  .menu__button :global(.menu__icon) {
     width: 34px;
     height: 34px;
   }

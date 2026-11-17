@@ -134,7 +134,10 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions">
-    <a class="btn btn--solid" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="btn btn--solid" href={p(bookPath(offering))}>
+      {t('plan.request')}
+      <Icon name="arrow-right" size={18} />
+    </a>
     <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
@@ -324,7 +327,7 @@ const labels = {
     min-height: var(--tap);
     font-size: 15px;
     font-weight: 600;
-    color: var(--chip-ink);
+    color: var(--quiet-ink);
     text-decoration: underline;
     text-decoration-color: currentColor;
     text-underline-offset: 0.3em;

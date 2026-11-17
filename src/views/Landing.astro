@@ -107,7 +107,7 @@ const c = copy[locale];
   </p>
   <span class="rule rule--center hero__rule"></span>
   <h1 class="display hero__title"><Phrases text={c.heroTitle} /></h1>
-  <a class="btn btn--solid btn--pill hero__cta" href={p('/contact')}>
+  <a class="btn btn--solid btn--champagne btn--pill btn--end-icon hero__cta" href={p('/contact')}>
     {c.cta}
     <Icon name="chevron-right" size={18} />
   </a>
@@ -164,7 +164,7 @@ const c = copy[locale];
     <h2 class="h2"><Phrases text={c.closingTitle} /></h2>
     <Divider />
     <p class="body"><Phrases text={c.closingBody} /></p>
-    <a class="btn btn--solid btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
+    <a class="btn btn--solid btn--champagne btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
   </div>
 </section>
 
@@ -232,10 +232,10 @@ const c = copy[locale];
   /* Her hero pill a size up (01: about 51px tall, a 19px label), her thin
      chevron near the end, the label a little left of centre as she set it. */
   .hero__cta {
-    --pill-start: 45px;
-    --pill-end: 54px;
-    --pill-icon: 28px;
-    --pill-icon-end: 16px;
+    --end-start: 45px;
+    --end-pad: 54px;
+    --end-icon: 28px;
+    --end-icon-at: 16px;
     min-height: 52px;
     margin-top: clamp(22px, 4vh, 34px);
   }
@@ -392,5 +392,12 @@ const c = copy[locale];
 
   .closing__cta {
     margin-top: clamp(20px, 3vw, 28px);
+  }
+
+  /* On paper the button stays with its heading and words. */
+  @media print {
+    .closing__text {
+      break-inside: avoid;
+    }
   }
 </style>

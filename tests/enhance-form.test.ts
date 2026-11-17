@@ -24,7 +24,8 @@ class El {
   max = '';
   noValidate = false;
   action = '/api/booking';
-  textContent = '';
+  /** Text of its own; the DOM's textContent below adds the children's. */
+  text = '';
   dataset: Record<string, string> = {};
   attrs = new Map<string, string>();
   classes = new Set<string>();
@@ -45,6 +46,14 @@ class El {
       this.children.push(kid);
     }
     return this;
+  }
+  /** As in the DOM: setting it replaces every child with the text. */
+  get textContent(): string {
+    return this.text + this.children.map((kid) => kid.textContent).join('');
+  }
+  set textContent(value: string) {
+    this.children = [];
+    this.text = value;
   }
   /** Every element under this one, in page order. */
   all(): El[] {
@@ -295,12 +304,11 @@ describe('a submit with an icon', () => {
       ),
     );
     const sending = send();
-    expect(words.textContent).toBe('Sending');
+    expect(button.textContent).toBe('Sending');
     expect(button.children).toEqual([words, arrow]);
     await vi.advanceTimersByTimeAsync(SEND_DEADLINE);
     await sending;
-    expect(words.textContent).toBe('Send');
-    expect(button.textContent).toBe('');
+    expect(button.textContent).toBe('Send');
     expect(button.children).toEqual([words, arrow]);
   });
 });

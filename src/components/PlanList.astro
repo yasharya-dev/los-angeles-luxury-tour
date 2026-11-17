@@ -18,6 +18,7 @@ import {
   consultPath,
   type Tier,
 } from '../data/offerings';
+import Icon from './Icon.astro';
 import Phrases from './Phrases.astro';
 import PlanCard from './PlanCard.astro';
 
@@ -71,6 +72,7 @@ const tierLabel: Record<Tier, string> = {
                     <p class="reveal__actions">
                       <a class="btn btn--solid" href={p(bookPath(o))}>
                         {t('plan.request')}
+                        <Icon name="arrow-right" size={18} />
                       </a>
                       <a class="reveal__ask" href={p(consultPath(o))}>
                         {t('plan.ask')}
@@ -154,7 +156,7 @@ const tierLabel: Record<Tier, string> = {
     min-height: var(--tap);
     font-size: 14px;
     font-weight: 600;
-    color: var(--chip-ink);
+    color: var(--quiet-ink);
     text-decoration: underline;
     text-decoration-color: currentColor;
     text-underline-offset: 0.3em;

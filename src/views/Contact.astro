@@ -248,7 +248,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
               <h3 class="h3 path__title"><Phrases text={path.title} /></h3>
               <p class="body path__body"><Phrases text={path.body} /></p>
             </div>
-            <a class:list={['btn', 'path__cta', { 'btn--solid': path.primary }]} href={p(path.href)}>
+            <a class:list={['btn', 'btn--end-icon', 'path__cta', { 'btn--solid': path.primary }]} href={p(path.href)}>
               {path.cta}
               <Icon name="chevron-right" size={18} />
             </a>
@@ -387,18 +387,10 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
      over half the card wide, the label in the middle and the chevron near
      the end (07). */
   .path__cta {
-    position: relative;
     grid-column: 2;
     grid-row: 3;
     justify-self: start;
     min-width: min(200px, 100%);
-    padding-inline: 44px;
-  }
-  .path__cta > :global(svg) {
-    position: absolute;
-    top: 50%;
-    right: 16px;
-    transform: translateY(-50%);
   }
 
   /* ------------------------------------------------------------- direct */
