@@ -146,14 +146,20 @@ const tierLabel: Record<Tier, string> = {
     margin: 16px 0 0;
   }
 
+  /* A second action in her warm grey, underlined, as under the plan page's
+     price (10A). */
   .reveal__ask {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
     font-size: 14px;
     font-weight: 600;
+    color: var(--chip-ink);
     text-decoration: underline;
-    text-decoration-color: var(--hairline);
+    text-decoration-color: currentColor;
     text-underline-offset: 0.3em;
+  }
+  .reveal__ask:hover {
+    color: var(--ink);
   }
 </style>

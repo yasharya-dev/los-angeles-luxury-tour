@@ -437,19 +437,21 @@ html[lang='ja'] .em {
 
 /* --------------------------------------------------------------- buttons */
 
-/* One box for both languages. Never under the 44px tap floor. The outline is
-   the text gold, not a tint of it, so the button's edge is as legible as its
-   label; on a plate both come out bright by themselves. */
+/* One box for both languages, never under 48px. The shared shape is her
+   plan-page rectangle (10A, 10B): 10px corners, about a fifth of the height.
+   Unfilled, it is her outline button (07): a cream fill, a thin gold edge, a
+   gold label. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   min-height: 48px;
+  max-width: 100%;
   padding: 12px 28px;
-  border: 1px solid var(--gold-text);
+  border: 1px solid var(--btn-edge);
   border-radius: var(--radius-ctl);
-  background: transparent;
+  background-color: var(--btn-fill);
   color: var(--gold-text);
   font-family: var(--font-label);
   font-size: 14px;
@@ -460,49 +462,121 @@ html[lang='ja'] .em {
   text-transform: uppercase;
   cursor: pointer;
   transition:
-    background 0.3s ease,
+    background-color 0.3s ease,
     color 0.3s ease,
     border-color 0.3s ease;
 }
 
 .btn:hover {
-  background: var(--btn-hover);
+  background-color: var(--btn-hover);
   color: var(--ink);
   border-color: var(--ink);
 }
 
+/* Her labels are a size above our old 15px, tracked as she sets them (0.05
+   to 0.06em) at every width. */
 html[lang='ja'] .btn {
   font-family: var(--font-body);
-  font-size: 15px;
-  letter-spacing: 0.1em;
+  font-size: 16px;
+  letter-spacing: 0.06em;
   text-transform: none;
 }
 
-/* A Japanese label has no spaces, so on a narrow phone the tracking is what
-   pushes it onto two lines mid-word. */
+/* An English label is tracked capitals, so on a narrow phone the tracking is
+   what pushes it onto two lines. */
 @media (max-width: 400px) {
   .btn {
     letter-spacing: 0.08em;
     padding-inline: 22px;
   }
-  html[lang='ja'] .btn {
-    letter-spacing: 0.06em;
-  }
 }
 
-/* The champagne-gold CTA. Ink on the gold, not white: white is 3.2:1. The
-   darker edge is what separates the fill from the cream at 3:1 or better;
-   hover lightens the fill, which only raises the label's contrast. */
+/* Her champagne button. No ring: its label names it, which is all WCAG
+   1.4.11 asks of a text button, and she draws none. The border stays, in
+   transparent, so a Windows contrast theme still draws the box. The finish
+   is painted from the border's outer edge, or its far end would wrap a
+   sliver into the border. */
 .btn--solid {
-  background: var(--cta);
-  border-color: var(--cta-edge);
+  border-color: transparent;
+  background-color: var(--cta);
+  background-image: var(--cta-deep), linear-gradient(var(--cta-angle), var(--cta-sheen));
+  background-origin: border-box;
   color: var(--on-cta);
 }
 
 .btn--solid:hover {
-  background: var(--cta-hover);
-  border-color: var(--cta-edge);
+  border-color: transparent;
+  background-color: var(--cta-hover);
+  background-image:
+    linear-gradient(var(--cta-lighter), var(--cta-lighter)),
+    var(--cta-deep),
+    linear-gradient(var(--cta-angle), var(--cta-sheen));
   color: var(--on-cta);
+}
+
+.btn--solid:active {
+  background-image:
+    linear-gradient(var(--cta-deeper), var(--cta-deeper)),
+    var(--cta-deep),
+    linear-gradient(var(--cta-angle), var(--cta-sheen));
+}
+
+/* With no ring, a printer that drops backgrounds would leave the label
+   alone on the paper: the button prints as it looks, as a plate does. */
+@media print {
+  .btn--solid {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Her pill (01 hero, 08 Experience, 09 About): the label in the middle and
+   a thin icon near the far end. */
+.btn--pill {
+  position: relative;
+  border-radius: 999px;
+  padding-inline: var(--pill-start, 52px) var(--pill-end, 52px);
+}
+
+.btn--pill > svg {
+  position: absolute;
+  top: 50%;
+  right: var(--pill-icon-end, 20px);
+  width: var(--pill-icon, 26px);
+  height: var(--pill-icon, 26px);
+  stroke-width: 1.3;
+  transform: translateY(-50%);
+}
+
+/* Under 360px an English label needs the room: the icon goes back beside
+   it, and the two are centred together. */
+@media (max-width: 359px) {
+  .btn--pill {
+    padding-inline: 20px;
+  }
+  .btn--pill > svg {
+    position: static;
+    transform: none;
+  }
+}
+
+/* Her closing slab (06): wide, nearly square corners, a larger label, and
+   her soft warm shadow under it. No icon. */
+.btn--slab {
+  width: min(100%, 300px);
+  min-height: 56px;
+  padding: 14px 20px;
+  border-radius: 5px;
+  box-shadow: var(--cta-lift);
+}
+
+html[lang='ja'] .btn--slab {
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+
+html[lang='en'] .btn--slab {
+  font-size: 15px;
 }
 
 /* ----------------------------------------------------- reservation panel */

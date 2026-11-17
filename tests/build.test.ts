@@ -608,25 +608,39 @@ describe('the palette and the gold rule', () => {
     }
   });
 
-  // The solid CTA sets its label on the gold fill, resting and hovered. White
-  // on that gold would be 3.2:1; an earlier hover colour was 4.3:1.
-  it('clears AA for the label on the gold CTA, resting and hovered, in both themes', () => {
+  // The solid CTA sets its label on her champagne: against every colour of
+  // the sheen, and against --cta, the deepest the finish paints (its bottom
+  // corners) and the fill wherever gradients are not drawn, resting and
+  // hovered. White on her gold would be 3.2:1; an earlier hover was 4.3:1.
+  it('clears AA for the label on every colour of the CTA, in both themes', () => {
+    // Both tints are defined once, on :root; each theme picks its own.
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      const label = solid(decls, 'on-cta');
       for (const fill of ['cta', 'cta-hover']) {
-        const r = ratio(solid(decls, 'on-cta'), solid(decls, fill));
+        const r = ratio(label, solid(decls, fill));
         expect(r, `${name}: label on --${fill} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+      const sheen = cream().match(new RegExp(`(?:^|;)--cta-sheen-${name}:([^;]+)`))?.[1] ?? '';
+      const stops = sheen.match(/#[0-9a-f]{3,8}\b/gi) ?? [];
+      expect(stops.length, `${name}: the sheen's colours`).toBeGreaterThanOrEqual(5);
+      for (const stop of stops) {
+        const r = ratio(label, parseHex(stop).rgb);
+        expect(r, `${name}: label on the sheen's ${stop} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
       }
     }
   });
 
-  // What separates a control from the page has to clear 3:1: the CTA's edge
-  // against both creams, and a form field's edge against every surface a form
-  // sits on.
-  it('gives the CTA and form fields an edge that clears 3:1', () => {
-    for (const surface of ['bg', 'bg-deep'] as const) {
-      const r = ratio(solid(cream(), 'cta-edge'), solid(cream(), surface));
-      expect(r, `--cta-edge on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
-    }
+  // She draws her buttons without a ring, and WCAG 1.4.11 asks nothing of a
+  // text button's edge beyond its label's contrast: the CTA's border is
+  // transparent, kept so a Windows contrast theme still draws the box.
+  it('keeps a transparent border on the CTA for forced colours', () => {
+    // The minifier writes transparent as #0000.
+    expect(css()).toMatch(/\.btn--solid\{[^}]*border-color:(?:transparent|#0000(?:0000)?)[;}]/);
+  });
+
+  // What separates a form field from the page has to clear 3:1, on every
+  // surface a form sits on.
+  it('gives form fields an edge that clears 3:1', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
       for (const surface of ['bg', 'bg-deep', 'surface'] as const) {
         const under = solid(decls, surface);
@@ -1978,18 +1992,20 @@ describe('the pages, after the full site test', () => {
       const start = tokens.indexOf(from);
       return tokens.slice(start, tokens.indexOf('}', start));
     };
+    // Whitespace folded, so a value broken over lines compares as one.
     const values = (text: string) =>
-      Object.fromEntries([...text.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+      Object.fromEntries(
+        [...text.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim().replace(/\s+/g, ' ')]),
+      );
     const cream = values(block(':root {'));
     const print = values(block("@media print {\n  html[data-theme='dark'] {"));
     const dark = values(block("html[data-theme='dark'],\n.plate {"));
-    // The theme's CTA tokens are in a block of their own: printed too.
-    const cta = values(block("html[data-theme='dark'] {\n  --cta"));
     expect(Object.keys(cream).length).toBeGreaterThan(30);
     expect(Object.keys(dark).length).toBeGreaterThan(15);
-    expect(Object.keys(cta).length).toBe(4);
     expect(Object.keys(print).length).toBeGreaterThan(15);
-    for (const name of [...Object.keys(dark), ...Object.keys(cta)]) {
+    // The CTA's tokens are part of the dark set: a printed button is cream.
+    expect(Object.keys(dark)).toEqual(expect.arrayContaining(['--cta', '--cta-sheen', '--on-cta']));
+    for (const name of Object.keys(dark)) {
       expect(print[name], name).toBe(cream[name]);
     }
     for (const [name, value] of Object.entries(print)) expect(value, name).toBe(cream[name]);

@@ -243,7 +243,8 @@ const links = [
     place-items: center;
     width: var(--tap);
     height: var(--tap);
-    color: var(--ink);
+    /* Gold bars, as on her homepage (01, 03). */
+    color: var(--gold-text);
     cursor: pointer;
     list-style: none;
     border-radius: var(--radius-ctl);
@@ -252,7 +253,13 @@ const links = [
     display: none;
   }
   .menu__button:hover {
-    color: var(--gold-text);
+    color: var(--ink);
+  }
+  /* Her bars are larger than ours: about 23px wide, 8px apart. The 24px
+     icon drawn at 34px gives that, in a button as tall as before. */
+  .menu__button :global(.menu__icon--open) {
+    width: 34px;
+    height: 34px;
   }
 
   .menu :global(.menu__icon--close),

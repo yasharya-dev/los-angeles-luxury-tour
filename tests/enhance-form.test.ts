@@ -267,6 +267,44 @@ describe('a send that never answers', () => {
   });
 });
 
+// Her booking submit carries an arrow (10B). The script changes the button's
+// words, not the whole button, or the arrow would go with them on the first
+// send and stay gone.
+describe('a submit with an icon', () => {
+  it('changes only its words while sending, and puts them back', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    build();
+    const words = new El('span', { data: { submitLabel: '' }, textContent: 'Send' });
+    const arrow = new El('svg', { cls: ['icon'] });
+    const button = new El('button', {
+      type: 'submit',
+      data: { submit: '', label: 'Send', sending: 'Sending' },
+    }).add(words, arrow);
+    const old = page.form.querySelector('[data-submit]') as El;
+    page.form.children.splice(page.form.children.indexOf(old), 1, button);
+    button.parent = page.form;
+    enhanceForm(page.form as never);
+    fill();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      ),
+    );
+    const sending = send();
+    expect(words.textContent).toBe('Sending');
+    expect(button.children).toEqual([words, arrow]);
+    await vi.advanceTimersByTimeAsync(SEND_DEADLINE);
+    await sending;
+    expect(words.textContent).toBe('Send');
+    expect(button.textContent).toBe('');
+    expect(button.children).toEqual([words, arrow]);
+  });
+});
+
 // The check on blur shows a line above the button, which moves it out from
 // under a press, and the click then lands on nothing.
 describe('a press on Send', () => {

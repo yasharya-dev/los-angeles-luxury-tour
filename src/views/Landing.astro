@@ -107,9 +107,9 @@ const c = copy[locale];
   </p>
   <span class="rule rule--center hero__rule"></span>
   <h1 class="display hero__title"><Phrases text={c.heroTitle} /></h1>
-  <a class="btn btn--solid hero__cta" href={p('/contact')}>
+  <a class="btn btn--solid btn--pill hero__cta" href={p('/contact')}>
     {c.cta}
-    <Icon name="arrow-right" size={18} />
+    <Icon name="chevron-right" size={18} />
   </a>
 </PhotoHero>
 
@@ -164,10 +164,7 @@ const c = copy[locale];
     <h2 class="h2"><Phrases text={c.closingTitle} /></h2>
     <Divider />
     <p class="body"><Phrases text={c.closingBody} /></p>
-    <a class="btn btn--solid closing__cta" href={p('/contact')}>
-      {c.cta}
-      <Icon name="arrow-right" size={18} />
-    </a>
+    <a class="btn btn--solid btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
   </div>
 </section>
 
@@ -232,8 +229,19 @@ const c = copy[locale];
     text-shadow: 0 1px 24px rgba(8, 8, 8, 0.55);
   }
 
+  /* Her hero pill a size up (01: about 51px tall, a 19px label), her thin
+     chevron near the end, the label a little left of centre as she set it. */
   .hero__cta {
+    --pill-start: 45px;
+    --pill-end: 54px;
+    --pill-icon: 28px;
+    --pill-icon-end: 16px;
+    min-height: 52px;
     margin-top: clamp(22px, 4vh, 34px);
+  }
+  :global(html[lang='ja']) .hero__cta {
+    font-size: 19px;
+    letter-spacing: 0.05em;
   }
 
   /* ------------------------------------------------------------- value */

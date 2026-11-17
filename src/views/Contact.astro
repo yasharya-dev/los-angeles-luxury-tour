@@ -356,8 +356,8 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     }
   }
 
-  /* Icon beside the words, the button under them, full width: the two
-     buttons line up however long the two bodies turn out. */
+  /* Icon beside the words and the button under them: the two buttons line
+     up however long the two bodies turn out. */
   .path {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -383,10 +383,22 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     text-wrap: balance;
   }
 
+  /* Her two path buttons sit in the text column, under the words, a little
+     over half the card wide, the label in the middle and the chevron near
+     the end (07). */
   .path__cta {
-    grid-column: 1 / -1;
+    position: relative;
+    grid-column: 2;
     grid-row: 3;
-    width: 100%;
+    justify-self: start;
+    min-width: min(200px, 100%);
+    padding-inline: 44px;
+  }
+  .path__cta > :global(svg) {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
   }
 
   /* ------------------------------------------------------------- direct */

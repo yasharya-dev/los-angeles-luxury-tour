@@ -407,9 +407,15 @@ const terms = cancellation[locale];
     margin-top: 4px;
     font-size: 15px;
     font-weight: 600;
+    color: var(--chip-ink);
     text-decoration: underline;
-    text-decoration-color: var(--hairline);
+    text-decoration-color: currentColor;
     text-underline-offset: 0.3em;
+  }
+  /* Her warm grey, underlined (10A): a second action, quieter than the
+     button above it. */
+  .pricing__ask:hover {
+    color: var(--ink);
   }
 
   /* --------------------------------------------------------- experience */
@@ -718,7 +724,7 @@ const terms = cancellation[locale];
      even lines. Her Japanese label never folds inside itself. */
   .plan-bar__cta {
     flex: 0 1 auto;
-    min-height: var(--tap);
+    min-height: 48px;
     padding: 8px 16px;
     letter-spacing: 0.06em;
     text-wrap: balance;

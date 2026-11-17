@@ -19,9 +19,12 @@
     --gold-text   anything that carries meaning at text or icon size.
                   #806419 is 4.9:1 on --bg-deep, the tighter of the two.
 
-  The solid CTA uses the accent as its fill with ink on top (5.5:1; white on
-  it would be 3.2:1) and a darker edge, so the button's boundary clears 3:1
-  on both cream surfaces. Tests compute these ratios out of the built CSS.
+  The solid CTA is the champagne she drew on her homepage (01, 06), not the
+  flat accent: a sheen a little left of centre, deeper bottom corners, and
+  her warm near-black brown label on top (white would be 3.2:1 on her gold).
+  It has no ring, as she draws none: its label names it, which is all WCAG
+  1.4.11 asks of a text button. Tests compute the label's ratio against
+  every colour of the finish out of the built CSS.
 */
 
 :root {
@@ -45,12 +48,45 @@
   --gold-text: #806419;
   --gold-deco: #b18a3a;
 
-  /* The solid CTA: her accent as the fill, ink on top. Hover goes lighter,
-     which raises the label's contrast rather than lowering it. */
-  --cta: #b18a3a;
-  --cta-hover: #c29b4d;
-  --cta-edge: #94712b;
-  --on-cta: #191919;
+  /* The solid CTA, her champagne finish: a bright band a little left of
+     centre, deeper ends, and --cta-deep darkening the bottom corners as hers
+     do. It comes in the two tints she drew, each fitted by least squares to
+     her picture as CSS paints it, and they are too far apart for one to
+     stand for both:
+       cream  her closing button on cream (06-contact-cta-after-a.jpg),
+              the sheen leaning at 72deg;
+       dark   her hero button on the photo (01-hero-after-b.jpg), at 137deg.
+     A button takes the tint of the surface it sits on (the dark block
+     below). --cta is the deepest colour the finish paints, measured from
+     renders, so the label is held against it; it is also the fill wherever
+     gradients are not drawn. Hover lifts the finish, which raises the
+     label's contrast; pressed deepens it a little. Her soft warm shadow is
+     for her closing button. */
+  --cta-sheen-cream: #e4c68c 0%, #ead09c 10%, #f2d8a5 20%, #f8dfae 30%, #f9e2b3 40%, #f5dca9 50%, #f2d6a0 60%, #f0d49d 70%, #edd29c 80%, #e0c793 90%, #dac08e 100%;
+  --cta-sheen-dark: #e1be79 0%, #e4c07a 10%, #ecc77e 20%, #f6d691 30%, #ffe6a2 40%, #fee7a4 50%, #f6d993 60%, #efcd88 70%, #ebc780 80%, #edc676 90%, #efc56f 100%;
+  --cta-sheen: var(--cta-sheen-cream);
+  --cta-angle: 72deg;
+  --cta-deep:
+    radial-gradient(50% 80% at 0% 100%, rgba(150, 105, 40, 0.3), rgba(150, 105, 40, 0)),
+    radial-gradient(50% 80% at 100% 100%, rgba(150, 105, 40, 0.45), rgba(150, 105, 40, 0));
+  --cta: #bf9e65;
+  --cta-hover: #c9ae7e;
+  --on-cta: #352000;
+  --cta-lighter: rgba(255, 255, 255, 0.16);
+  --cta-deeper: rgba(110, 75, 20, 0.12);
+  --cta-lift: 0 7px 9px rgba(110, 75, 20, 0.28);
+
+  /* The outline button, her 予約する on the contact page (07): a cream fill
+     and a thin gold edge around a gold label. */
+  --btn-fill: #fdf8ee;
+  --btn-edge: var(--gold-deco);
+
+  /* Her quiet pill on a plan card (04), and the warm grey of a second
+     action (10A). Her grey is 3.8:1 on its pill; this one is 5.0:1 there and
+     5.6:1 on white. */
+  --chip-fill: #f5f1e8;
+  --chip-edge: #d6d0c6;
+  --chip-ink: #6e665b;
 
   /* Lines */
   --hairline: rgba(177, 138, 58, 0.6);
@@ -137,17 +173,22 @@ html[data-theme='dark'],
   --err: #e8996b;
   --btn-hover: rgba(212, 175, 55, 0.1);
 
+  /* On a dark surface (a photo, a black panel, the phone bar, the whole
+     dark theme) the champagne takes the tint she drew on her dark hero. */
+  --cta-sheen: var(--cta-sheen-dark);
+  --cta-angle: 137deg;
+  --cta: #c99e53;
+  --cta-hover: #d2ae6e;
+  --on-cta: #352000;
+
+  --btn-fill: transparent;
+  --btn-edge: var(--gold-text);
+  --chip-fill: rgba(245, 245, 250, 0.06);
+  --chip-edge: rgba(245, 245, 250, 0.22);
+  --chip-ink: var(--ink-mid);
+
   --shadow-card: none;
   /* --bar and --bar-deep deliberately not overridden */
-}
-
-/* The CTA follows the theme, not the plate: on a black panel of the cream
-   site it is still her champagne gold. */
-html[data-theme='dark'] {
-  --cta: #d4af37;
-  --cta-hover: #e2c458;
-  --cta-edge: #d4af37;
-  --on-cta: #101010;
 }
 
 /* Paper is white. A page printed from the dark theme takes the cream ink
@@ -173,9 +214,15 @@ html[data-theme='dark'] {
     --err: #a14a1d;
     --btn-hover: rgba(177, 138, 58, 0.1);
     --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
-    --cta: #b18a3a;
-    --cta-hover: #c29b4d;
-    --cta-edge: #94712b;
-    --on-cta: #191919;
+    --cta-sheen: var(--cta-sheen-cream);
+    --cta-angle: 72deg;
+    --cta: #bf9e65;
+    --cta-hover: #c9ae7e;
+    --on-cta: #352000;
+    --btn-fill: #fdf8ee;
+    --btn-edge: var(--gold-deco);
+    --chip-fill: #f5f1e8;
+    --chip-edge: #d6d0c6;
+    --chip-ink: #6e665b;
   }
 }
