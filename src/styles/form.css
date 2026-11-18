@@ -192,6 +192,12 @@ input[type='date'].input:invalid::-webkit-datetime-edit {
   margin-top: 6px;
 }
 
+/* Wide enough for both its words in both languages, so the button does not
+   change size under the guest's finger while it sends. */
+.form__foot .btn {
+  min-width: 9.5em;
+}
+
 .form__reply {
   margin: 0;
   text-wrap: pretty;

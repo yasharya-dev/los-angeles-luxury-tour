@@ -6,7 +6,7 @@
 
 import type { ImageMetadata } from 'astro';
 import type { Locale } from '../i18n/ui';
-import dtla from '../assets/hero-dtla.jpg';
+import stadium from '../assets/stadium-twilight.webp';
 
 export interface PlanPhoto {
   src: ImageMetadata;
@@ -24,15 +24,15 @@ export interface PlanPhotos {
 
 export const planPhotos: Record<string, PlanPhotos | undefined> = {
   'dodgers-transfer': {
-    // A stand-in until hers arrives: the skyline seen from the hills beside
-    // the stadium. No stadium photo is held, so the second slot stays empty.
+    // A stand-in until hers arrives: a ballpark at twilight, made for this
+    // spot, with no team's name or mark on it. It opens the page; the slot
+    // under the experience stays empty rather than show it twice.
     hero: {
-      src: dtla,
+      src: stadium,
       alt: {
-        en: 'Palm-lined road above downtown Los Angeles at golden hour',
-        ja: '夕暮れのロサンゼルス。ヤシ並木とダウンタウンの眺め',
+        en: 'A full ballpark at twilight, its field lit, palm trees beyond the outfield',
+        ja: '夕暮れの野球場。満員のスタンドと、ライトに照らされたグラウンド',
       },
-      focus: '40% 50%',
     },
   },
 };

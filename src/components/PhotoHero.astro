@@ -26,6 +26,15 @@ interface Props {
   keep?: string;
   /** The page opens on this image: fetch it first, never lazily. */
   priority?: boolean;
+  /**
+   * Something in the photograph the words must not cover, like the sign on
+   * the homepage, as fractions of the photo: `top` and `foot`, how far down
+   * it starts and ends; `left` and `right`, where across. The photo is drawn
+   * so that the landmark ends just over the first line of text, however many
+   * lines the text runs to, with sky above it (see the styles). `focus` then
+   * says only where across the photo a screen wider than a phone looks.
+   */
+  landmark?: { top: number; foot: number; left: number; right: number };
 }
 
 const {
@@ -36,7 +45,10 @@ const {
   priority = false,
   aspect,
   keep,
+  landmark,
 } = Astro.props;
+
+const shape = aspect ?? src.width / src.height;
 
 // How wide the photo is drawn. It fills the box, so where the screen is
 // narrower than the photo scaled to the box's HEIGHT, the height wins: a hero
@@ -44,23 +56,68 @@ const {
 // a screen-height wide, far more than 100vw. Everywhere else the width wins
 // and it is 100vw. Both numbers come from the photo, so a portrait one (whose
 // width never reaches the screen's that way) simply gets 100vw.
+//
+// Set by a landmark, it is drawn a little over twice as tall as the text
+// under the landmark, so never more than about 700px tall: wider than the
+// screen up to that height times the photo's shape, and 100vw from there.
 const share = size === 'tall' ? 52 : 32;
-const drawn = Math.ceil(share * (aspect ?? src.width / src.height));
-const sizes = `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
+const drawn = Math.ceil(share * shape);
+const reach = Math.ceil(700 * shape);
+const sizes = landmark
+  ? `(max-width: ${reach}px) ${reach}px, 100vw`
+  : `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
+
+// The landmark, for the styles: its top and foot, its middle as a fraction of
+// the photo's width, its width over the photo's height, and the photo's shape.
+// The photo is set by the landmark's foot.
+const round = (n: number) => +n.toFixed(4);
+const mark = landmark
+  ? [
+      `--top: ${round(landmark.top)}`,
+      `--foot: ${round(landmark.foot)}`,
+      `--middle: ${round((landmark.left + landmark.right) / 2)}`,
+      `--span: ${round((landmark.right - landmark.left) * shape)}`,
+      `--shape: ${round(shape)}`,
+    ].join('; ')
+  : undefined;
+const place = landmark
+  ? `object-position: ${focus.split(' ')[0]} ${round(landmark.foot * 100)}%`
+  : `object-position: ${focus}`;
 ---
 
-<section class:list={['photo-hero', 'plate', `photo-hero--${size}`]}>
-  <Photo
-    class="photo-hero__img"
-    src={src}
-    alt={alt}
-    sizes={sizes}
-    priority={priority}
-    aspect={aspect}
-    keep={keep}
-    style={`object-position: ${focus}`}
-  />
+<section
+  class:list={['photo-hero', 'plate', `photo-hero--${size}`, { 'photo-hero--landmark': landmark }]}
+  style={mark}
+>
+  {
+    !landmark && (
+      <Photo
+        class="photo-hero__img"
+        src={src}
+        alt={alt}
+        sizes={sizes}
+        priority={priority}
+        aspect={aspect}
+        keep={keep}
+        style={place}
+      />
+    )
+  }
   <div class="photo-hero__inner">
+    {
+      landmark && (
+        <Photo
+          class="photo-hero__img photo-hero__img--landmark"
+          src={src}
+          alt={alt}
+          sizes={sizes}
+          priority={priority}
+          aspect={aspect}
+          keep={keep}
+          style={place}
+        />
+      )
+    }
     <div class="photo-hero__text">
       <slot />
     </div>
@@ -97,22 +154,90 @@ const sizes = `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
     object-fit: cover;
   }
 
+  /* A landmark the words must not cover. The photo is drawn inside the
+     text's box, which ends at the hero's foot and is the text's height plus
+     --rise, so its size and its place follow the text: it is drawn just
+     tall enough that the part under the landmark's foot covers the text,
+     the foot 2px over the first line, and set by that foot (the
+     object-position above), so the landmark ends there whether the photo is
+     cut at its sides or at its top and bottom. */
+  .photo-hero--landmark {
+    /* The gradient climbs only a short way, or it would dim the landmark. */
+    --rise: 24px;
+    /* The sky kept over the landmark where the hero has to grow for it:
+       less on a short screen, so the next section still starts in view. */
+    --sky: clamp(32px, 24svh - 96px, 80px);
+  }
+  .photo-hero__img--landmark {
+    --need: calc((100% - var(--rise) + 2px) / (1 - var(--foot)));
+    --draw: var(--need);
+    inset: auto 0 max(0px, calc(100% - var(--rise) + 2px - (1 - var(--foot)) * var(--draw)));
+    z-index: -2;
+    height: var(--draw);
+  }
+
+  /* Over the text, an empty first row that holds the landmark and some of
+     the sky above it, as her picture does (01). Where the hero is tall
+     enough already it changes nothing; on a short screen the hero grows by
+     what is missing. --drawn is about the tallest the photo is drawn: on a
+     phone 630px, or less where the landmark would not fit between the
+     gutters (below); on a wider screen, at least the screen's width over
+     the photo's shape. */
+  .photo-hero--landmark::before {
+    content: '';
+    --drawn: max(630px, 100vw / var(--shape));
+    height: calc((var(--foot) - var(--top)) * var(--drawn) - var(--rise) + 2px + var(--sky));
+  }
+
+  /* On a phone the photo is drawn whole at that height, about two and a
+     half screens wide, with the landmark's middle at the middle of the
+     screen, and never so large that the landmark is wider than the space
+     between the page's gutters. Where that holds it smaller (English on
+     most phones, both languages at 320px), it ends higher than the hero's
+     foot, and fades into the hero's black under the button. */
+  @media (max-width: 559px) {
+    .photo-hero--landmark {
+      --fit: calc((100vw - 2 * var(--gutter)) / var(--span));
+    }
+    .photo-hero--landmark::before {
+      --drawn: min(630px, var(--fit));
+    }
+    .photo-hero__img--landmark {
+      --draw: min(var(--need), var(--fit));
+      left: 50%;
+      right: auto;
+      width: auto;
+      max-width: none;
+      transform: translateX(calc(-100% * var(--middle)));
+      -webkit-mask-image: linear-gradient(0deg, transparent, #000 32px);
+      mask-image: linear-gradient(0deg, transparent, #000 32px);
+    }
+  }
+
   /* The gradient belongs to the text, not to the photograph: it starts clear
-     one --rise above the first line and is at 62% where that line begins, so
+     one --rise above the first line and is at 60% where that line begins, so
      the top of the picture stays as it was taken however tall the band is.
-     At 62% a pure white pixel comes out at 5.4:1 under the ivory text, so
-     every line clears 4.5:1 over any photograph, hers included. */
+     A warm brown, as her picture is (01), and no deeper than the text needs:
+     at 60% a pure white pixel comes out at 4.6:1 under the ivory text, so
+     every line clears 4.5:1 over any photograph, hers included. Drawn over
+     the photo and under the text. */
   .photo-hero__inner {
     position: relative;
+    isolation: isolate;
     width: 100%;
     padding-top: var(--rise);
+  }
+  .photo-hero__inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: linear-gradient(
       180deg,
-      rgba(8, 8, 8, 0) 0,
-      rgba(8, 8, 8, 0.1) calc(var(--rise) * 0.3),
-      rgba(8, 8, 8, 0.36) calc(var(--rise) * 0.68),
-      rgba(8, 8, 8, 0.62) var(--rise),
-      rgba(8, 8, 8, 0.78) 100%
+      rgba(24, 16, 10, 0) 0,
+      rgba(24, 16, 10, 0.1) calc(var(--rise) * 0.3),
+      rgba(24, 16, 10, 0.35) calc(var(--rise) * 0.68),
+      rgba(24, 16, 10, 0.6) var(--rise)
     );
   }
 
@@ -121,5 +246,9 @@ const sizes = `(max-aspect-ratio: ${drawn}/100) ${drawn}vh, 100vw`;
     margin-inline: auto;
     padding: 0 var(--gutter) clamp(26px, 5vh, 48px);
     text-align: center;
+  }
+
+  .photo-hero--tall .photo-hero__text {
+    padding-bottom: clamp(24px, 4.2vh, 40px);
   }
 </style>

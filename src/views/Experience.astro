@@ -8,7 +8,7 @@ import InstagramStrip from '../components/InstagramStrip.astro';
 import PhotoHero from '../components/PhotoHero.astro';
 import Phrases from '../components/Phrases.astro';
 import PlanList from '../components/PlanList.astro';
-import heroImg from '../assets/hero-dusk.jpg';
+import heroImg from '../assets/beach-palms-dusk.webp';
 
 interface Props {
   locale: Locale;
@@ -28,7 +28,7 @@ const stepIcons: IconName[] = ['chat', 'doc', 'check-circle', 'plane'];
 const copy = {
   en: {
     title: 'Not a set tour. A trip built around you.',
-    heroAlt: 'A palm tree and a plane crossing the evening sky above a beach town',
+    heroAlt: 'Palm trees along a beach at dusk, under a lavender and peach sky',
 
     howTitle: 'How your trip comes together',
     // Short enough for one line each in the four-across row, like hers.
@@ -43,7 +43,7 @@ const copy = {
 
   ja: {
     title: ['決まった旅ではなく、', BR, 'あなたに合わせて', 'つくる旅を。'],
-    heroAlt: '夕暮れの空を横切る飛行機と、海辺の街のヤシの木',
+    heroAlt: '夕暮れの海辺に並ぶヤシの木',
 
     howTitle: '旅ができるまで',
     steps: ['ご相談', 'プラン提案', 'ご確認・調整', 'ご予約・手配'],
@@ -64,8 +64,9 @@ const copy = {
 const c = copy[locale];
 ---
 
-{/* 01 Hero: her heading and nothing else, on a short photo band. The photo
-    is a tall one; the band takes its upper part, sky to horizon. */}
+{/* 01 Hero: her heading and nothing else, on a short photo band: palms
+    against the evening sky, down to the line of the sea, cut to 3:2 from its
+    top for the band. */}
 <PhotoHero
   src={heroImg}
   alt={c.heroAlt}

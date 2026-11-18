@@ -9,7 +9,7 @@ import PhotoHero from '../components/PhotoHero.astro';
 import Phrases from '../components/Phrases.astro';
 import PlanList from '../components/PlanList.astro';
 import Reservation from '../components/Reservation.astro';
-import heroImg from '../assets/hero-dtla.jpg';
+import heroImg from '../assets/hero-hollywood.webp';
 
 interface Props {
   locale: Locale;
@@ -33,7 +33,7 @@ const copy = {
     // Held together by no-break spaces, so no width leaves 'is yours alone.'
     // or a lone word.
     heroTitle: `A Los Angeles journey that${NBSP}is${NBSP}yours${NBSP}alone.`,
-    heroAlt: 'Palm-lined road above downtown Los Angeles at golden hour',
+    heroAlt: 'The Hollywood Sign lit by the setting sun, with downtown Los Angeles in the distance',
     cta: 'Ask about your trip',
 
     valueKicker: 'Peace of mind, enjoyment, satisfaction',
@@ -55,7 +55,7 @@ const copy = {
   ja: {
     heroEyebrow: ['完全予約制', '日本語対応プライベートツアー'],
     heroTitle: ['ロサンゼルスで叶える、', BR, 'あなただけの特別な旅。'],
-    heroAlt: '夕暮れのロサンゼルス。ヤシ並木とダウンタウンの眺め',
+    heroAlt: '夕日に照らされたハリウッドサイン。遠くにダウンタウンの街並み',
     cta: '旅のご相談はこちら',
 
     valueKicker: '安心も、楽しさも、満足も。',
@@ -87,8 +87,19 @@ const c = copy[locale];
 
 ---
 
-{/* 01 Hero. About half the screen, so the next section starts in view. */}
-<PhotoHero src={heroImg} alt={c.heroAlt} size="tall" focus="32% 50%" priority>
+{/* 01 Hero. About half the screen, so the next section starts in view. The
+    sign at sunset over the hillside, as in her picture (01): the sign stays
+    clear of the words on every screen. Its letters start 360px down the
+    941px photo and its legs end at 518px; they run from 845 to 1455px
+    across the 1672. */}
+<PhotoHero
+  src={heroImg}
+  alt={c.heroAlt}
+  size="tall"
+  focus="81% 50%"
+  landmark={{ top: 360 / 941, foot: 518 / 941, left: 845 / 1672, right: 1455 / 1672 }}
+  priority
+>
   {/* Her label, 「完全予約制｜日本語対応プライベートツアー」. Each half stays
       whole. The bar is a separator, so it is hidden from a screen reader, and
       where the two halves cannot share a line it is dropped and they stack. */}
@@ -118,7 +129,7 @@ const c = copy[locale];
   <div class="measure measure--wide center">
     <p class="kicker">{c.valueKicker}</p>
     <span class="rule"></span>
-    <h2 class="h2"><Phrases text={c.valueTitle} /></h2>
+    <h2 class="h2 h2--statement"><Phrases text={c.valueTitle} /></h2>
     <p class="body value__body"><Phrases text={c.valueBody} /></p>
   </div>
 </section>
@@ -161,7 +172,7 @@ const c = copy[locale];
 <section class="section closing">
   <Reservation locale={locale} />
   <div class="measure measure--wide center closing__text">
-    <h2 class="h2"><Phrases text={c.closingTitle} /></h2>
+    <h2 class="h2 h2--statement"><Phrases text={c.closingTitle} /></h2>
     <Divider />
     <p class="body"><Phrases text={c.closingBody} /></p>
     <a class="btn btn--solid btn--champagne btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
@@ -171,12 +182,13 @@ const c = copy[locale];
 <style>
   /* -------------------------------------------------------------- hero */
 
-  /* On the photograph's plate, so these tokens are the dark-surface ones. */
+  /* On the photograph's plate, so these tokens are the dark-surface ones.
+     Her label is set light (01), as a line rather than a button. */
   .hero__eyebrow {
     margin: 0;
     font-family: var(--font-label);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--ink);
@@ -220,22 +232,28 @@ const c = copy[locale];
     }
   }
 
+  /* Her short, fine rule between the label and the headline (01). */
   .hero__rule {
-    margin-block: 14px 18px;
+    width: 32px;
+    height: 1.5px;
+    margin-block: 12px 14px;
   }
 
   .hero__title {
     color: var(--ink);
-    text-shadow: 0 1px 24px rgba(8, 8, 8, 0.55);
+    text-shadow: 0 1px 24px rgba(20, 13, 8, 0.55);
+  }
+  :global(html[lang='ja']) .hero__title {
+    line-height: 1.42;
   }
 
   /* Her hero pill a size up (01: about 51px tall, a 19px label), her thin
      chevron near the end, the label a little left of centre as she set it. */
   .hero__cta {
-    --end-start: 45px;
-    --end-pad: 54px;
-    --end-icon: 28px;
-    --end-icon-at: 16px;
+    --end-pad-start: 45px;
+    --end-pad-end: 54px;
+    --end-icon-size: 28px;
+    --end-icon-inset: 16px;
     min-height: 52px;
     margin-top: clamp(22px, 4vh, 34px);
   }
@@ -246,12 +264,26 @@ const c = copy[locale];
 
   /* ------------------------------------------------------------- value */
 
+  /* The warm light her sunset leaves under the photograph (01, 02), fading
+     to the page's own cream. In the dark theme the glow is the page's black. */
+  .value {
+    background: linear-gradient(180deg, var(--glow) 0%, var(--bg) 85%);
+  }
+
+  /* Her phrase above the statement is set as a phrase, light and spaced,
+     not as a label (02). */
+  :global(html[lang='ja']) .value .kicker {
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+  }
+
   .value .rule {
     margin-block: 14px 18px;
   }
 
   .value__body {
-    margin-top: 16px;
+    margin-top: 28px;
   }
 
   /* ----------------------------------------------------------- reasons */
@@ -284,6 +316,8 @@ const c = copy[locale];
     }
   }
 
+  /* Her reason cards keep a gold edge (03): the one card on the site that
+     does. Decoration around an icon and a title, so no 3:1 is asked of it. */
   .reason {
     display: flex;
     flex-direction: column;
@@ -291,6 +325,7 @@ const c = copy[locale];
     justify-content: flex-start;
     gap: 12px;
     padding: clamp(16px, 3.2vw, 28px) 0;
+    border-color: var(--hairline);
     text-align: center;
     /* The title is sized from the card it has to fit, below. */
     container-type: inline-size;

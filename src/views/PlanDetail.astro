@@ -56,7 +56,7 @@ const terms = cancellation[locale];
           class="hero__photo"
           src={photos.hero.src}
           alt={photos.hero.alt[locale]}
-          aspect={16 / 10}
+          aspect={16 / 9}
           sizes="(min-width: 720px) 680px, 100vw"
           priority
           style={photos.hero.focus ? `object-position: ${photos.hero.focus}` : undefined}
@@ -73,7 +73,7 @@ const terms = cancellation[locale];
       {
         plan.tiles.map((tile) => (
           <li class="tile">
-            <Icon name={tile.icon} size={24} class="tile__icon" />
+            <Icon name={tile.icon} size={20} class="tile__icon" />
             <span class="tile__label">{tile.label[locale]}</span>
           </li>
         ))
@@ -81,22 +81,25 @@ const terms = cancellation[locale];
     </ul>
   </section>
 
-  {/* 02 One white card: the prices, her note, both ways in. */}
-  <section class="pricing panel">
-    <dl class="prices">
-      {
-        plan.prices.map((row) => (
-          <div class="price">
-            <dt class="price__label">{row.label[locale]}</dt>
-            <dd class="price__figure">
-              <span class="price__amount">{yenAmount(row.yen, locale)}</span>{' '}
-              <span class="price__unit">{unit}</span>
-            </dd>
-          </div>
-        ))
-      }
-    </dl>
-    <p class="caption pricing__note">{plan.priceNote[locale]}</p>
+  {/* 02 One white card with the prices and her note, then both ways in
+      under it, on the page (10A). */}
+  <section class="pricing">
+    <div class="pricing__card panel">
+      <dl class="prices">
+        {
+          plan.prices.map((row) => (
+            <div class="price">
+              <dt class="price__label">{row.label[locale]}</dt>
+              <dd class="price__figure">
+                <span class="price__amount">{yenAmount(row.yen, locale)}</span>{' '}
+                <span class="price__unit">{unit}</span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="caption pricing__note">{plan.priceNote[locale]}</p>
+    </div>
     <a class="btn btn--solid pricing__cta" href={book} data-plan-request>
       {t('plan.request')}
       <Icon name="arrow-right" size={18} />
@@ -151,10 +154,10 @@ const terms = cancellation[locale];
     </dl>
   </section>
 
-  {/* 04 Her two accordions, holding her existing terms. The cancellation
-      terms are the FAQ's own, from the same data, so they are on the page
-      before anyone reaches the form. */}
-  <div class="details panel">
+  {/* 04 Her two accordions, holding her existing terms, as plain rows on the
+      page (10A). The cancellation terms are the FAQ's own, from the same
+      data, so they are on the page before anyone reaches the form. */}
+  <div class="details">
     {
       plan.details.map((d) => (
         <details class="detail">
@@ -214,8 +217,9 @@ const terms = cancellation[locale];
     </a>
   </section>
 
-  {/* With the photo first, the way back moves to the end of the page. */}
-  <p class="back">
+  {/* With the photo first, the way back moves to the end of the page, on
+      the closing panel's black. */}
+  <p class="back plate">
     <a href={p('/experience')}>
       <Icon name="arrow-left" size={18} />
       {t('cta.back')}
@@ -246,11 +250,11 @@ const terms = cancellation[locale];
 
 <style>
   /* One column, the same on every screen: her layout, centred on a wide one.
-     The photo runs to the edges of the column; everything else keeps the
-     page's gutter. Sections follow on at one even spacing, without bands. */
+     The photo runs to the edges of the column, and so does her black ending;
+     everything between keeps the page's gutter, on the one cream. */
   .plan-page {
-    /* The one spacing between her four parts: price, experience, details,
-       closing. */
+    /* The space before her experience part, and before the black card on a
+       wide screen. */
     --part-gap: clamp(24px, 4vw, 32px);
     max-width: 680px;
     margin-inline: auto;
@@ -260,20 +264,19 @@ const terms = cancellation[locale];
   .overview,
   .pricing,
   .experience,
-  .details,
-  .closing,
-  .back {
+  .details {
     margin-inline: var(--gutter);
   }
 
   .hero :global(picture) {
     display: block;
   }
+  /* Her 16:9 (10A). */
   .hero__photo {
     display: block;
     width: 100%;
     height: auto;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
   }
 
@@ -311,28 +314,30 @@ const terms = cancellation[locale];
     margin-block: 10px 12px;
   }
 
-  /* Three equal tiles, side by side at every width, as she drew them. */
+  /* Three equal tiles, side by side at every width, as she drew them: a soft
+     sand, her small gold line icon over the label. The icon is an ornament
+     beside words that say the same, so it takes her accent. */
   .tiles {
     list-style: none;
-    margin: 18px 0 0;
+    margin: 16px 0 0;
     padding: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
   }
 
   .tile {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 12px 6px;
-    border-radius: var(--radius-ctl);
-    background: var(--bg-deep);
+    gap: 4px;
+    padding: 10px 6px 9px;
+    border-radius: 8px;
+    background: var(--feature-tile);
     text-align: center;
   }
   .tile :global(.tile__icon) {
-    color: var(--gold-text);
+    color: var(--gold-deco);
   }
   .tile__label {
     font-size: 14px;
@@ -344,8 +349,12 @@ const terms = cancellation[locale];
 
   /* ------------------------------------------------------------ pricing */
 
+  /* Close under the tiles, so the two read as one block (10A). */
   .pricing {
-    margin-top: var(--part-gap);
+    margin-top: 14px;
+  }
+
+  .pricing__card {
     padding: 4px clamp(16px, 4vw, 22px) 14px;
   }
 
@@ -353,15 +362,19 @@ const terms = cancellation[locale];
     margin: 0;
   }
 
-  /* Label on the left, price on the right; a long English label folds
-     before the price ever does. */
+  /* Label on the left, price on the right with its unit under it; a long
+     English label folds before the price ever does. One line between the
+     rows, none under the last. */
   .price {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 0;
+    padding: 16px 0 14px;
     border-bottom: 1px solid var(--hairline-soft);
+  }
+  .price:last-child {
+    border-bottom: 0;
   }
 
   .price__label {
@@ -371,7 +384,11 @@ const terms = cancellation[locale];
   }
 
   .price__figure {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     margin: 0;
+    line-height: 1.25;
     white-space: nowrap;
   }
   .price__amount {
@@ -385,26 +402,33 @@ const terms = cancellation[locale];
     font-size: 21px;
   }
   .price__unit {
+    margin-top: 2px;
     font-size: 14px;
     color: var(--ink-soft);
   }
 
   .pricing__note {
-    margin-top: 10px;
+    margin-top: 2px;
   }
 
+  /* Her button under the card, as wide as it, on the page. */
   .pricing__cta {
     display: flex;
     width: 100%;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
+  /* Her warm grey, underlined (10A): a second action, quieter than the
+     button above it. As wide as its words, so its focus ring hugs them and
+     clears the button. */
   .pricing__ask {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: fit-content;
     min-height: var(--tap);
-    margin-top: 4px;
+    margin-top: 6px;
+    margin-inline: auto;
     font-size: 15px;
     font-weight: 600;
     color: var(--quiet-ink);
@@ -412,8 +436,6 @@ const terms = cancellation[locale];
     text-decoration-color: currentColor;
     text-underline-offset: 0.3em;
   }
-  /* Her warm grey, underlined (10A): a second action, quieter than the
-     button above it. */
   .pricing__ask:hover {
     color: var(--ink);
   }
@@ -421,8 +443,7 @@ const terms = cancellation[locale];
   /* --------------------------------------------------------- experience */
 
   /* The gaps are even from ink to ink: the kicker's half-leading adds about
-     5px above this part, and the details panel's shadow takes about 3px from
-     the one below it. */
+     5px above this part. */
   .experience {
     margin-top: calc(var(--part-gap) - 5px);
   }
@@ -463,27 +484,30 @@ const terms = cancellation[locale];
     line-height: 1.7;
     color: var(--ink-mid);
   }
+  /* Her light check (10A): an ornament beside the words, so her accent. */
   .check :global(.check__icon) {
     flex: none;
     margin-top: 0.2em;
-    color: var(--gold-text);
+    color: var(--gold-deco);
   }
   /* Two even lines where a row folds, not a long line and a word. */
   .check > span {
     text-wrap: balance;
   }
 
+  /* Her plain rows (10A): no line between them, one above and one below. */
   .usage {
     margin: 0;
+    padding-block: 4px;
     border-top: 1px solid var(--hairline-soft);
+    border-bottom: 1px solid var(--hairline-soft);
   }
   .usage__row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 16px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--hairline-soft);
+    padding: 8px 0;
   }
   .usage__label {
     flex: none;
@@ -504,13 +528,14 @@ const terms = cancellation[locale];
 
   /* ------------------------------------------------------------ details */
 
+  /* Plain rows on the page, straight under the usage rows, whose last line
+     is the first one's top. */
   .details {
-    margin-top: var(--part-gap);
-    padding-inline: clamp(16px, 4vw, 22px);
+    margin-top: 0;
   }
 
-  .detail + .detail {
-    border-top: 1px solid var(--hairline-soft);
+  .detail {
+    border-bottom: 1px solid var(--hairline-soft);
   }
 
   .detail__label {
@@ -576,13 +601,12 @@ const terms = cancellation[locale];
 
   /* ------------------------------------------------------------ closing */
 
-  /* A hairline keeps the panel a panel in the dark theme, where its black
-     would otherwise be the page's own. */
+  /* Her black ending (10A): the closing panel, then the way back on the same
+     black, both plates. On a phone it runs edge to edge, straight on from
+     the last row and on into the footer; on a wider screen the two make one
+     black card the width of the photo. */
   .closing {
-    border: 1px solid var(--hairline);
-    margin-top: calc(var(--part-gap) + 3px);
     padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
-    border-radius: var(--radius-card);
     background: var(--bar);
     text-align: center;
   }
@@ -602,7 +626,7 @@ const terms = cancellation[locale];
   }
 
   .closing__title {
-    margin-block: 10px 20px;
+    margin-block: 4px 16px;
   }
 
   /* As wide as the price card's button on a phone, so the label holds one
@@ -615,9 +639,43 @@ const terms = cancellation[locale];
   }
 
   .back {
-    margin-top: 20px;
-    margin-bottom: 0;
+    margin: 0;
+    background: var(--bar);
   }
+
+  @media (max-width: 680px) {
+    .plan-page {
+      padding-bottom: 0;
+    }
+    .closing {
+      padding: 24px var(--gutter) 22px;
+    }
+    /* No line of its own at the foot: the footer's top hairline is it. */
+    .back {
+      padding: 4px var(--gutter) 12px;
+    }
+    /* In the dark theme the panel's black is the page's own: a gold line
+       marks where it starts. */
+    :global(html[data-theme='dark']) .closing {
+      border-top: 1px solid var(--hairline);
+    }
+  }
+
+  @media (min-width: 681px) {
+    .closing {
+      margin-top: var(--part-gap);
+      border: 1px solid var(--hairline);
+      border-bottom: 0;
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
+    }
+    .back {
+      padding: 0 clamp(16px, 4vw, 24px) 16px;
+      border: 1px solid var(--hairline);
+      border-top: 0;
+      border-radius: 0 0 var(--radius-card) var(--radius-card);
+    }
+  }
+
   .back a {
     display: inline-flex;
     align-items: center;

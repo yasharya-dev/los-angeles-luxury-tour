@@ -586,10 +586,11 @@ describe('the palette and the gold rule', () => {
   });
 
   // Every surface text gold can sit on, in both themes. The alternate cream
-  // is the binding one.
+  // is the binding one. The glow is where the section under the homepage
+  // photo starts, under her gold phrase.
   it('clears AA for text gold on every surface, in both themes', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
-      for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+      for (const surface of ['bg', 'bg-deep', 'card', 'glow'] as const) {
         const r = ratio(solid(decls, 'gold-text'), solid(decls, surface));
         expect(r, `${name}: --gold-text on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
       }
@@ -599,7 +600,7 @@ describe('the palette and the gold rule', () => {
   it('clears AA for the soft and mid ink on every surface, in both themes', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
       for (const ink of ['ink-mid', 'ink-soft'] as const) {
-        for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+        for (const surface of ['bg', 'bg-deep', 'card', 'glow'] as const) {
           const under = solid(decls, surface);
           const r = ratio(over(parseHex(token(decls, ink)), under), under);
           expect(r, `${name}: --${ink} on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
@@ -609,9 +610,9 @@ describe('the palette and the gold rule', () => {
   });
 
   // The solid button is her flat olive with a white label, resting, hovered
-  // and pressed. Her own olive, #977f3f, carries white at 3.9:1; this one is
-  // about 10% darker. It is the same in both themes: the dark block leaves
-  // it alone.
+  // and pressed. Her golds carry white at only 3.1 to 3.9:1; this one keeps
+  // their hue at a lightness where white clears AA. It is the same in both
+  // themes: the dark block leaves it alone.
   it('clears AA for the label on the solid button, in every state', () => {
     const label = solid(cream(), 'on-cta');
     for (const fill of ['cta', 'cta-hover', 'cta-press']) {
@@ -623,6 +624,58 @@ describe('the palette and the gold rule', () => {
     expect(rules).toMatch(/\.btn--solid\{[^}]*background-color:var\(--cta\)/);
     expect(rules).toMatch(/\.btn--solid:hover\{[^}]*background-color:var\(--cta-hover\)/);
     expect(rules).toMatch(/\.btn--solid:active\{[^}]*background-color:var\(--cta-press\)/);
+    expect(rules).toMatch(/\.btn--solid:hover\{(?:[^}]*;)?color:var\(--on-cta\)/);
+  });
+
+  // A button is a link, and the links' own a:hover turns text ink: every
+  // button's hover rule names its label's colour itself, or the outline's
+  // gold and the solid buttons' white would be lost to it.
+  it('keeps every button label its own colour on hover', () => {
+    const rules = css();
+    const hovers = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selector]) =>
+      /\.btn[\w-]*:hover\b/.test(selector),
+    );
+    expect(hovers.length).toBeGreaterThanOrEqual(3);
+    for (const [, selector, body] of hovers) {
+      expect(body, selector).toMatch(/(?:^|;)color:/);
+    }
+    expect(rules).toMatch(/\.btn:hover\{(?:[^}]*;)?color:var\(--gold-text\)/);
+    expect(rules).toMatch(/\.btn--champagne:hover\{(?:[^}]*;)?color:var\(--on-champagne\)/);
+  });
+
+  // The outline button's gold label on its cream fill, and on the gold tint
+  // it takes on hover; the quiet pill's grey on its fill; the grey of a
+  // second action on the cards and the page. In both themes.
+  it('clears AA for the outline, the quiet pill and the second actions', () => {
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      // A token painted over what is under it, read as the theme sets it:
+      // a colour, another token (the dark theme's grey is its mid ink), or
+      // transparent, which leaves what is under it.
+      const paint = (tokenName: string, under: RGB): RGB => {
+        const value = decls.match(new RegExp(`(?:^|;)--${tokenName}:([^;]+)`))?.[1].trim() ?? '';
+        const named = value.match(/^var\(--([\w-]+)\)$/);
+        if (named) return paint(named[1], under);
+        return /^#[0-9a-f]{3,8}$/i.test(value) ? over(parseHex(value), under) : under;
+      };
+      const card = solid(decls, 'card');
+      const label = solid(decls, 'gold-text');
+      const checks: [string, RGB, RGB][] = [
+        ['the outline label on its fill', label, paint('btn-fill', card)],
+        ['the outline label hovered', label, paint('btn-hover', card)],
+      ];
+      for (const surface of ['card', 'bg'] as const) {
+        const under = solid(decls, surface);
+        const chip = paint('chip-fill', under);
+        checks.push(
+          [`the quiet pill on --${surface}`, paint('quiet-ink', chip), chip],
+          [`a second action on --${surface}`, paint('quiet-ink', under), under],
+        );
+      }
+      for (const [what, fg, bg] of checks) {
+        const r = ratio(fg, bg);
+        expect(r, `${name}: ${what} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
   // Her champagne, on her two homepage buttons, in both tints: her brown
@@ -632,13 +685,18 @@ describe('the palette and the gold rule', () => {
   it('clears AA for the label on every colour of the champagne, in both tints', () => {
     const value = (decls: string, name: string) =>
       decls.match(new RegExp(`(?:^|;)--${name}:([^;]+)`))?.[1] ?? '';
-    const deep = (value(cream(), 'champagne-deep').match(/#[0-9a-f]{8}\b/gi) ?? []).map(parseHex);
-    expect(deep.length, 'the deep corners').toBeGreaterThanOrEqual(2);
-    const deepest = deep.reduce((a, b) => (b.a > a.a ? b : a));
-    const pressed = parseHex(token(cream(), 'champagne-deeper'));
-    expect(pressed.a, 'the pressed layer').toBeGreaterThan(0);
+    // Each theme maps the sheen to its own tint.
+    expect(value(cream(), 'champagne-sheen')).toBe('var(--champagne-sheen-cream)');
+    expect(value(dark(), 'champagne-sheen')).toBe('var(--champagne-sheen-dark)');
     // Both tints are defined once, on :root; each theme picks its own.
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      // A theme's own corners and pressed layer, where it sets them.
+      const layer = (token: string) => value(decls, token) || value(cream(), token);
+      const deep = (layer('champagne-deep').match(/#[0-9a-f]{8}\b/gi) ?? []).map(parseHex);
+      expect(deep.length, `${name}: the deep corners`).toBeGreaterThanOrEqual(2);
+      const deepest = deep.reduce((a, b) => (b.a > a.a ? b : a));
+      const pressed = parseHex(layer('champagne-deeper').trim());
+      expect(pressed.a, `${name}: the pressed layer`).toBeGreaterThan(0);
       const label = solid(decls, 'on-champagne');
       for (const fill of ['champagne', 'champagne-hover']) {
         const r = ratio(label, solid(decls, fill));
@@ -665,15 +723,30 @@ describe('the palette and the gold rule', () => {
   // She draws her buttons without a ring, and WCAG 1.4.11 asks nothing of a
   // text button's edge beyond its label's contrast. Every button keeps a 1px
   // border, transparent on the solid ones, so a Windows contrast theme still
-  // draws the box, and no rule takes it away.
+  // draws the box. No rule on any class a button carries takes it away: no
+  // style of none, no width of zero, no shorthand without a line style.
   it('keeps a border on every button for forced colours', () => {
     const rules = css();
     expect(rules).toMatch(/\.btn\{[^}]*border:1px solid/);
     // The minifier writes transparent as #0000.
     expect(rules).toMatch(/\.btn--solid\{[^}]*border-color:(?:transparent|#0000(?:0000)?)[;}]/);
+    const classes = new Set<string>();
+    for (const file of allPages()) {
+      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
+        for (const name of list.split(/\s+/)) if (name) classes.add(name);
+      }
+    }
+    expect(classes.size).toBeGreaterThan(5);
+    const names = [...classes].map((name) => name.replace(/[^\w-]/g, '\\$&'));
+    const touches = new RegExp(String.raw`\.(?:${names.join('|')})(?![\w-])`);
+    const style = /\b(?:solid|dashed|dotted|double|groove|ridge|inset|outset)\b/;
     for (const [, selector, body] of rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-      if (!/\.btn\b/.test(selector)) continue;
-      expect(body, selector).not.toMatch(/(?:^|;)border(?:-width)?:(?:none|0)(?=[\s;]|$)/);
+      if (!touches.test(selector)) continue;
+      expect(body, selector).not.toMatch(/(?:^|;)border(?:-width)?:(?:none|hidden|0)(?=[\s;]|$)/);
+      expect(body, selector).not.toMatch(/(?:^|;)border-style:(?:none|hidden)/);
+      for (const [, value] of body.matchAll(/(?:^|;)border:([^;]+)/g)) {
+        expect(value, `${selector} border:${value}`).toMatch(style);
+      }
     }
   });
 
@@ -713,8 +786,17 @@ describe('the palette and the gold rule', () => {
   it('defines every custom property the CSS reads without a fallback', () => {
     const sheet = css();
     const defined = new Set([...sheet.matchAll(/(--[a-z0-9-]+):/gi)].map((m) => m[1]));
-    // Set inline, on the element, by the component that reads it.
-    const inline = new Set(['--box']);
+    // Set inline, on the element, by the component that reads it: the
+    // monogram's size, where the sign is in the homepage photo. Read from the
+    // pages, so a name the component misspells is still missing.
+    const inline = new Set(
+      allPages().flatMap((file) =>
+        [...readFileSync(file, 'utf8').matchAll(/ style="([^"]*)"/g)].flatMap(([, style]) =>
+          [...style.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]),
+        ),
+      ),
+    );
+    expect([...inline]).toEqual(expect.arrayContaining(['--box', '--top', '--foot']));
     const missing = [...sheet.matchAll(/var\((--[a-z0-9-]+)\)/gi)]
       .map((m) => m[1])
       .filter((name) => !defined.has(name) && !inline.has(name));
@@ -922,12 +1004,23 @@ describe('photographs', () => {
   // A landscape photo in a tall phone hero is drawn wider than the screen. At
   // 100vw the browser fetched a 768px file and stretched it to over twice that.
   it('tells the browser the hero is drawn wider than a phone screen', () => {
-    // The hero is 52% of the screen tall and the photo is 1920 by 1255, so
-    // on an upright phone it is drawn 80% of a screen-height wide. The
-    // Experience band is cut to 3:2 and is 32% tall: 48%.
+    // The homepage photo is drawn by the sign on it, a little over twice as
+    // tall as the words under the sign: never more than about 700px tall,
+    // 1244px wide for its 1672 by 941, until the screen is wider than that.
+    // The Experience band is cut to 3:2 and is 32% tall: 48%.
     const sizes = (route: string) => picture(route).match(/sizes="([^"]+)"/)?.[1] ?? '';
-    expect(sizes('/')).toBe('(max-aspect-ratio: 80/100) 80vh, 100vw');
+    expect(sizes('/')).toBe('(max-width: 1244px) 1244px, 100vw');
     expect(sizes('/experience')).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
+  });
+
+  // The homepage photo is 1672px wide: the ladder ends on its own width, and
+  // asks for nothing wider, which would only be the same pixels enlarged.
+  it('never asks for more of the homepage photo than it holds', () => {
+    const sets = [...picture('/').matchAll(/srcset="([^"]+)"/g)].map((m) =>
+      m[1].split(',').map((part) => Number(part.trim().split(' ')[1].replace('w', ''))),
+    );
+    expect(sets.length).toBe(3);
+    for (const widths of sets) expect(Math.max(...widths)).toBe(1672);
   });
 
   // The About page opens on her portrait, in the first screen of a phone;
@@ -935,7 +1028,7 @@ describe('photographs', () => {
   it('leaves every photo that is not a page opener to load lazily', () => {
     const imgs = html('/about').match(/<img[^>]*>/g) ?? [];
     const portrait = imgs.find((i) => i.includes('portrait')) ?? '';
-    const band = imgs.find((i) => i.includes('hero-malibu')) ?? '';
+    const band = imgs.find((i) => i.includes('malibu-cliff-house')) ?? '';
     expect(portrait).toContain('loading="eager"');
     expect(band).toContain('loading="lazy"');
     expect(band).toContain('decoding="async"');
@@ -1198,6 +1291,25 @@ describe('text over a photograph', () => {
     expect(rules).toMatch(
       /\.photo-hero__inner\[data-astro-cid-[^\]]+\]\{[^}]*padding-top:var\(--rise\)/,
     );
+  });
+
+  // And no deeper than that: her picture shows the hillside through it (01).
+  // Nothing under the first line is darker than the stop at it, and it is a
+  // warm brown, as her picture is, not a grey.
+  it('darkens the photo no more than the text needs, in a warm brown', () => {
+    const rules = css();
+    const ink = rules.match(/\.photo-hero\[data-astro-cid-[^\]]+\]\{[^}]*--ink:(#[0-9a-f]{3,8})/)?.[1] ?? '';
+    const gradient =
+      rules.match(/\.photo-hero__inner\[data-astro-cid-[^\]]+\]:before\{[^}]*background:linear-gradient\(([^;}]*)\)/)?.[1] ??
+      '';
+    const depth = parseHex(gradient.match(/(#[0-9a-f]{8}) var\(--rise\)/)?.[1] ?? '#0000');
+    const r = ratio(parseHex(ink).rgb, over(depth, [255, 255, 255]));
+    expect(r, `the ink over white at the first line is ${r.toFixed(2)}:1`).toBeLessThan(4.8);
+    const stops = [...gradient.matchAll(/#[0-9a-f]{8}/gi)].map((m) => parseHex(m[0]));
+    expect(stops.length).toBeGreaterThan(2);
+    for (const stop of stops) expect(stop.a).toBeLessThanOrEqual(depth.a);
+    const [red, green, blue] = depth.rgb;
+    expect(red > green && green > blue, `rgb ${depth.rgb.join(', ')}`).toBe(true);
   });
 
   // On paper a browser drops backgrounds, and a plate's ink is light: the
@@ -2047,6 +2159,11 @@ describe('the pages, after the full site test', () => {
       expect(print[name], name).toBe(cream[name]);
     }
     for (const [name, value] of Object.entries(print)) expect(value, name).toBe(cream[name]);
+    // The luxe pass's own: the glow under the homepage photo, her paper
+    // card's edge and shadow, and her two tiles.
+    expect(Object.keys(print)).toEqual(
+      expect.arrayContaining(['--glow', '--card-edge', '--shadow-card', '--tile', '--tile-mark', '--feature-tile']),
+    );
   });
 });
 
@@ -2110,5 +2227,233 @@ describe('the pages, after their own review', () => {
       expect(html(route), route).toMatch(/California Seller of Travel<\/span> <span class="site-footer__whole"/);
     }
     expect(css()).not.toMatch(/\.site-footer__registration\[data-astro-cid-[^\]]+\]\{[^}]*display:flex/);
+  });
+});
+
+// The luxe pass (#100): what brings the pages closer to her pictures, held
+// where a regression would show first.
+describe('the look of her pictures', () => {
+  // Her headings are set heavier than the body (01 to 10). English Cormorant
+  // stays at 500.
+  it('sets the Japanese headings at 600 and leaves the English ones at 500', () => {
+    const rules = css();
+    expect(rules).toMatch(/html\[lang=ja\] \.h2\{[^}]*font-weight:600/);
+    expect(rules).toMatch(/html\[lang=ja\] \.h3\{[^}]*font-weight:600/);
+    expect(rules).toMatch(/\}\.h2\{[^}]*font-weight:500/);
+    expect(rules).toMatch(/\}\.h3\{[^}]*font-weight:500/);
+    expect(rules).toMatch(/html\[lang=ja\] \.body\{[^}]*line-height:1\.85/);
+  });
+
+  // Her statement lines (02, 06, 09) and page titles (07, 09, 10B) a step
+  // larger, on the pages her pictures show them. Each size comes after the
+  // phone rule for every Japanese .h2 in the same sheet, so it wins there.
+  it('gives her statement lines and page titles their larger sizes, where she has them', () => {
+    const sheet =
+      readdirSync(join(DIST, '_astro'))
+        .filter((f) => f.endsWith('.css'))
+        .map((f) => readFileSync(join(DIST, '_astro', f), 'utf8'))
+        .find((text) => text.includes('.h2--statement{')) ?? '';
+    const phone = sheet.indexOf('{html[lang=ja] .h2{letter-spacing:.02em;font-size:21px}');
+    expect(phone).toBeGreaterThan(-1);
+    for (const [name, least, most] of [
+      ['statement', 21, 32],
+      ['page', 24, 40],
+    ] as const) {
+      const rule = sheet.match(new RegExp(`html\\[lang=ja\\] \\.h2--${name}\\{([^}]*)\\}`));
+      expect(rule?.[1], name).toMatch(new RegExp(`font-size:clamp\\(${least}px,[^;]*,\\s?${most}px\\)`));
+      expect(rule?.index ?? -1, name).toBeGreaterThan(phone);
+    }
+    const uses = (route: string, tag: 'h1' | 'h2', name: string) =>
+      count(html(route), new RegExp(`<${tag} class="h2 h2--${name}[ "]`, 'g'));
+    expect(uses('/ja', 'h2', 'statement'), 'value and closing').toBe(2);
+    expect(uses('/ja/about', 'h2', 'statement'), 'experience and closing').toBe(2);
+    // The contact page's title is the homepage's closing question, which she
+    // draws on two lines (07): it takes the statement size, not the page one.
+    expect(uses('/ja/contact', 'h1', 'statement'), 'contact title').toBe(1);
+    for (const route of ['/ja/about', '/ja/book', '/ja/book/dodgers-transfer', '/ja/book/received']) {
+      expect(uses(route, 'h1', 'page'), route).toBe(1);
+    }
+    // Her break in the received title at every width: お申し込みを / 受け付けました。
+    expect(css()).toMatch(/html\[lang=ja\] \.received__title\[data-astro-cid-[^\]]+\]\{max-width:13em/);
+  });
+
+  // Her cards are white paper with a faint warm edge and a soft shadow (04,
+  // 07, 10A), with no gold around them: painted on the card, the edge is a
+  // near-neutral line, not a gold one. Her reason cards keep a gold edge (03).
+  it('edges the cards in a warm line, not gold, except her reason cards', () => {
+    const rules = css();
+    expect(rules).toMatch(/\.panel\{[^}]*border:1px solid var\(--card-edge\)/);
+    expect(rules).toMatch(/\.panel\{[^}]*box-shadow:var\(--shadow-card\)/);
+    const painted = over(parseHex(token(cream(), 'card-edge')), solid(cream(), 'card'));
+    const chroma = Math.max(...painted) - Math.min(...painted);
+    expect(chroma, `the edge paints rgb ${painted.map(Math.round).join(', ')}`).toBeLessThan(12);
+    expect(rules).toMatch(/\.reason\[data-astro-cid-[^\]]+\]\{[^}]*border-color:var\(--hairline\)/);
+    expect(html('/ja')).toMatch(/<li class="reason panel"/);
+    // Her taupe placeholder tile (04), with the monogram in white on it; on
+    // paper and in a contrast theme, where the taupe is not drawn, the
+    // monogram keeps its own gold rather than going white on white.
+    expect(rules).toMatch(/\.plan__thumb\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--tile\)/);
+    expect(rules).toMatch(
+      /@media print,\s?\(forced-colors:\s?active\)\{\.plan__thumb\[data-astro-cid-[^\]]+\] \.monogram img\{filter:none\}/,
+    );
+  });
+
+  // Gold is kept for fine lines and marks, not ten prices down a list.
+  it('sets the prices on the plan cards in ink', () => {
+    expect(css()).toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--ink\)/);
+    expect(css()).not.toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--gold/);
+  });
+
+  // The warm light under her hero (01, 02): the section under the photo
+  // starts on it and fades to the page's cream. In the dark theme it is the
+  // page's own black.
+  it('lights the section under the homepage photo with her warm glow', () => {
+    expect(css()).toMatch(
+      /\.value\[data-astro-cid-[^\]]+\]\{background:linear-gradient\(180deg,\s?var\(--glow\) 0%,\s?var\(--bg\) 85%\)/,
+    );
+    expect(token(cream(), 'glow')).not.toBe(token(cream(), 'bg'));
+    expect(token(dark(), 'glow')).toBe(token(dark(), 'bg'));
+  });
+
+  // The Hollywood photo and the ballpark are already at sunset and twilight:
+  // nothing is laid over either, and no rule colours a photo.
+  it('lays no wash over the homepage photo or the ballpark', () => {
+    const rules = css();
+    expect(rules).not.toMatch(/mix-blend-mode|--dusk/);
+    expect(rules).not.toMatch(/\.(?:photo-hero__img|hero__photo)[^{}]*\{[^}]*filter:/);
+    for (const route of ['/', '/ja']) {
+      const hero = html(route).match(/<section class="(photo-hero [^"]*)"/)?.[1] ?? '';
+      expect(hero.split(' ').sort(), route).toEqual(['photo-hero', 'photo-hero--landmark', 'photo-hero--tall', 'plate']);
+    }
+    for (const prefix of ['', '/ja']) {
+      expect(html(`${prefix}/experience/dodgers-transfer`), prefix).toMatch(/<div class="hero" data-astro-cid-/);
+    }
+  });
+
+  // Her 10A: the price card holds the prices and her note, and her request
+  // button and 「まずは相談する」 sit under it, on the page. Her phone bar still
+  // finds the button by its attribute.
+  it('puts the request button and the second action under the price card', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(`${prefix}/experience/dodgers-transfer`);
+      const pricing = doc.match(/<section class="pricing"[^>]*>[^]*?<\/section>/)?.[0] ?? '';
+      const first = pricing.indexOf('<a ');
+      expect(first, prefix).toBeGreaterThan(-1);
+      const card = pricing.slice(0, first);
+      expect(card, prefix).toContain('<div class="pricing__card panel"');
+      expect(card, prefix).toContain('class="caption pricing__note"');
+      // Every box the card opens is closed before the first link.
+      expect(count(card, /<div[ >]/g), prefix).toBe(count(card, /<\/div>/g));
+      const links = pricing.slice(first).match(/<a [^>]*>/g) ?? [];
+      expect(links.length, prefix).toBe(2);
+      expect(links[0], prefix).toMatch(/^<a class="btn btn--solid pricing__cta" href="[^"]+" data-plan-request/);
+      expect(links[1], prefix).toMatch(/^<a class="pricing__ask" href="[^"]*\/consult\?service=dodgers-transfer"/);
+    }
+    // 「まずは相談する」 as wide as its words, so its focus ring hugs them and
+    // clears the button.
+    const ask = css().match(/\.pricing__ask\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(ask).toMatch(/(?:^|;)width:fit-content/);
+    expect(ask).toMatch(/(?:^|;)margin-inline:auto/);
+  });
+
+  // Her plain rows, her soft tiles, and her black ending (10A): the closing
+  // panel, then the way back on the same black.
+  it('ends her plan page on the black panel, after plain rows', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(`${prefix}/experience/dodgers-transfer`);
+      expect(doc, prefix).toMatch(/<div class="details" data-astro-cid-/);
+      expect(doc, prefix).toMatch(/<\/section><p class="back plate"/);
+      expect(doc.indexOf('<p class="back plate"'), prefix).toBeGreaterThan(
+        doc.indexOf('<section class="closing plate"'),
+      );
+    }
+    const rules = css();
+    expect(rules).toMatch(/\.tile\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--feature-tile\)/);
+    expect(rules).toMatch(/\.back\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--bar\)/);
+  });
+});
+
+// The photos made for each spot (#101), in place of the stand-ins found
+// online, each with words that say what it shows. The Japanese ones are
+// drafts for Amelia's read.
+describe('the photographs made for each spot', () => {
+  const SPOTS = [
+    {
+      page: '',
+      file: 'hero-hollywood',
+      en: 'The Hollywood Sign lit by the setting sun, with downtown Los Angeles in the distance',
+      ja: '夕日に照らされたハリウッドサイン。遠くにダウンタウンの街並み',
+    },
+    {
+      page: '/experience/dodgers-transfer',
+      file: 'stadium-twilight',
+      en: 'A full ballpark at twilight, its field lit, palm trees beyond the outfield',
+      ja: '夕暮れの野球場。満員のスタンドと、ライトに照らされたグラウンド',
+    },
+    {
+      page: '/experience',
+      file: 'beach-palms-dusk',
+      en: 'Palm trees along a beach at dusk, under a lavender and peach sky',
+      ja: '夕暮れの海辺に並ぶヤシの木',
+    },
+    {
+      page: '/about',
+      file: 'malibu-cliff-house',
+      en: 'A house on the cliffs above the Malibu coast at sunset',
+      ja: '夕日のマリブ海岸。崖の上に建つ邸宅',
+    },
+  ];
+  const img = (route: string, file: string) =>
+    (html(route).match(/<img [^>]*>/g) ?? []).find((tag) => tag.includes(`/_astro/${file}.`)) ?? '';
+
+  it('shows each photo in its spot, with its words, in both languages', () => {
+    for (const spot of SPOTS) {
+      for (const [prefix, alt] of [
+        ['', spot.en],
+        ['/ja', spot.ja],
+      ] as const) {
+        const route = prefix + spot.page || '/';
+        expect(img(route, spot.file), `${route}: ${spot.file}`).toContain(`alt="${alt}"`);
+      }
+    }
+    // The ballpark is the plan's photo wherever the plan is shown: beside its
+    // name on the booking form, where words would only repeat the name.
+    for (const route of ['/book/dodgers-transfer', '/ja/book/dodgers-transfer']) {
+      // Astro writes an empty alt as the bare attribute.
+      expect(img(route, 'stadium-twilight'), route).toMatch(/ alt(?:="")? /);
+    }
+  });
+
+  // The link preview is built from the homepage's photo.
+  it('builds the link preview from the homepage photo', () => {
+    const script = readFileSync(join(process.cwd(), 'scripts/og.mjs'), 'utf8');
+    expect(script).toContain("sharp('src/assets/hero-hollywood.webp')");
+    expect(existsSync(join(process.cwd(), 'public/og/default.jpg'))).toBe(true);
+  });
+
+  // The stand-ins found online, with no record of where they came from, and
+  // two files nothing used: gone, and nothing anywhere points at them.
+  it('leaves no trace of the photos it took out', () => {
+    const gone =
+      /hero-dtla|hero-dusk|hero-malibu|divider-architecture|\bsteak\.(?:[\w-]+\.)?(?:jpe?g|webp|avif|png)\b|assets\/steak\b/;
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name);
+        if (name === 'node_modules' || name.startsWith('.')) return [];
+        return statSync(path).isDirectory() ? walk(path) : [path];
+      });
+    const root = process.cwd();
+    const files = [
+      ...['src', 'scripts', 'public', 'worker', 'dist'].flatMap((dir) => walk(join(root, dir))),
+      join(root, 'README.md'),
+    ];
+    expect(files.length).toBeGreaterThan(100);
+    for (const file of files) {
+      const name = file.slice(root.length);
+      expect(name, 'a file by that name').not.toMatch(gone);
+      if (/\.(?:astro|ts|mjs|js|css|md|json|html|xml|txt|svg|webmanifest)$/.test(file)) {
+        expect(readFileSync(file, 'utf8'), name).not.toMatch(gone);
+      }
+    }
   });
 });

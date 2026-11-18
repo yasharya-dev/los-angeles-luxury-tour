@@ -21,15 +21,20 @@
 
   Her buttons come in the two finishes she drew:
 
-    --cta         her flat olive gold with a white label, on every page but
-                  the homepage (07 to 10B). Her own, #977f3f, carries white
-                  at 3.9:1; this is about 10% darker, 4.65:1.
+    --cta         her flat olive gold with a white label, on every solid
+                  button but her two homepage ones (07 to 10B). Her golds
+                  carry white at only 3.1 to 3.9:1; this keeps their hue and
+                  colour at a lightness where white is 4.6:1.
     --champagne   the champagne metal of her two homepage buttons (01, 06),
                   with her warm brown label.
 
   Neither has a ring, as she draws none: a text button's label names it,
-  which is all WCAG 1.4.11 asks. Tests compute every label's ratio against
-  every colour its fill paints, out of the built CSS.
+  which is all WCAG 1.4.11 asks. Tests compute each button label's ratio
+  against every colour its fill paints, out of the built CSS.
+
+  Her cards are white paper with a faint warm edge and a soft warm shadow
+  (04, 07, 10A), never a gold outline; her reason cards (03) are the one
+  exception, and keep a gold edge of their own.
 */
 
 :root {
@@ -43,6 +48,9 @@
   --surface: #ffffff;
   --raised: #ffffff;
   --card: #ffffff;
+  /* The warm light under her hero (01, 02): the section below the photo
+     starts on it and fades to the base. --gold-text is 4.97:1 on it. */
+  --glow: #f9f0e9;
 
   /* Ink */
   --ink: #191919;
@@ -56,9 +64,9 @@
   /* The solid button: her flat olive gold with a white label (07, 08, 09,
      10A, 10B), the same on every surface and in both themes. Hover and
      pressed go darker, which raises the label's contrast. */
-  --cta: #887239;
-  --cta-hover: #7d6934;
-  --cta-press: #715e2e;
+  --cta: #90702f;
+  --cta-hover: #836729;
+  --cta-press: #7a5f27;
   --on-cta: #ffffff;
 
   /* Her champagne, on her two homepage buttons: a bright band a little left
@@ -99,10 +107,21 @@
   --chip-edge: #d6d0c6;
   --quiet-ink: #6e665b;
 
+  /* Her tiles. --tile is her taupe placeholder for a plan's photo (04), with
+     the monogram on it in white; --feature-tile the soft sand behind the
+     three icons on a plan page (10A). Neither carries text that relies on
+     it: the plan's name is beside the first, a 14px ink label on the
+     second (14.4:1). */
+  --tile: linear-gradient(150deg, #e3d7c5 0%, #d3c3ab 100%);
+  --tile-mark: brightness(0) invert(1) opacity(0.92);
+  --feature-tile: #ede8e0;
+
   /* Lines */
   --hairline: rgba(177, 138, 58, 0.6);
   --hairline-soft: rgba(177, 138, 58, 0.26);
-  --card-edge: rgba(177, 138, 58, 0.4);
+  /* A card is a container, not a control, so its edge needs no 3:1: a
+     whisper of warm brown, with the shadow drawing the card. */
+  --card-edge: rgba(60, 45, 20, 0.09);
   /* A form control's own edge has to clear 3:1, which a gold tint cannot.
      This is 3.7:1 on --bg-deep and 4.2:1 on white. */
   --field-edge: rgba(25, 25, 25, 0.55);
@@ -132,9 +151,9 @@
   --gutter: clamp(20px, 5vw, 24px);
 
   /* Shape */
-  --radius-card: 14px;
+  --radius-card: 12px;
   --radius-ctl: 10px;
-  --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
+  --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.05), 0 8px 24px rgba(60, 45, 20, 0.08);
 
   /* The smallest thing a finger should have to hit. */
   --tap: 44px;
@@ -168,6 +187,7 @@ html[data-theme='dark'],
   --surface: #181818;
   --raised: #282828;
   --card: #161616;
+  --glow: #101010;
 
   --ink: #f5f5fa;
   --ink-mid: rgba(245, 245, 250, 0.84);
@@ -199,6 +219,12 @@ html[data-theme='dark'],
   --chip-edge: rgba(245, 245, 250, 0.22);
   --quiet-ink: var(--ink-mid);
 
+  /* The monogram keeps its own gold on a dark tile. */
+  --tile: linear-gradient(150deg, #29231b 0%, #18150f 100%);
+  --tile-mark: none;
+  --feature-tile: #080808;
+
+  /* No shadow on black: the gold edge is a card's only boundary here. */
   --shadow-card: none;
   /* --bar and --bar-deep deliberately not overridden */
 }
@@ -214,6 +240,7 @@ html[data-theme='dark'],
     --surface: #ffffff;
     --raised: #ffffff;
     --card: #ffffff;
+    --glow: #f9f0e9;
     --ink: #191919;
     --ink-mid: rgba(25, 25, 25, 0.84);
     --ink-soft: rgba(25, 25, 25, 0.64);
@@ -221,11 +248,11 @@ html[data-theme='dark'],
     --gold-deco: #b18a3a;
     --hairline: rgba(177, 138, 58, 0.6);
     --hairline-soft: rgba(177, 138, 58, 0.26);
-    --card-edge: rgba(177, 138, 58, 0.4);
+    --card-edge: rgba(60, 45, 20, 0.09);
     --field-edge: rgba(25, 25, 25, 0.55);
     --err: #a14a1d;
     --btn-hover: rgba(177, 138, 58, 0.1);
-    --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
+    --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.05), 0 8px 24px rgba(60, 45, 20, 0.08);
     --champagne-sheen: var(--champagne-sheen-cream);
     --champagne-angle: 72deg;
     --champagne: #bf9e65;
@@ -236,5 +263,8 @@ html[data-theme='dark'],
     --chip-fill: #f5f1e8;
     --chip-edge: #d6d0c6;
     --quiet-ink: #6e665b;
+    --tile: linear-gradient(150deg, #e3d7c5 0%, #d3c3ab 100%);
+    --tile-mark: brightness(0) invert(1) opacity(0.92);
+    --feature-tile: #ede8e0;
   }
 }

@@ -14,7 +14,8 @@
   summary is a button, and a screen reader flattens what is inside a button,
   which would take the plan's name out of heading navigation.
 
-  The tile is the monogram until her photograph for the plan arrives.
+  The tile is the monogram on her taupe placeholder (04) until her
+  photograph for the plan arrives.
 */
 import type { Locale } from '../i18n/ui';
 import { useTranslations } from '../i18n/utils';
@@ -146,14 +147,25 @@ const Name = `h${level}` as const;
     padding: 12px;
   }
 
-  /* The photo slot. Square, so a column of cards lines up. */
+  /* The photo slot. Square, so a column of cards lines up. Her taupe, with
+     the monogram in white on it. On paper, where the taupe does not print,
+     and in a contrast theme, which paints the tile in its own colour, the
+     monogram keeps its own gold. */
   .plan__thumb {
     display: grid;
     place-items: center;
     width: 72px;
     aspect-ratio: 1;
     border-radius: var(--radius-ctl);
-    background: var(--bg-deep);
+    background: var(--tile);
+  }
+  .plan__thumb :global(.monogram img) {
+    filter: var(--tile-mark);
+  }
+  @media print, (forced-colors: active) {
+    .plan__thumb :global(.monogram img) {
+      filter: none;
+    }
   }
 
   .plan__body {
@@ -220,12 +232,13 @@ const Name = `h${level}` as const;
     gap: 0 8px;
   }
 
-  /* A figure never wraps mid-number; the row wraps around it. */
+  /* A figure never wraps mid-number; the row wraps around it. In ink: gold
+     is kept for fine lines and marks, not ten prices down a list. */
   .plan__amount {
     font-family: var(--font-display);
     font-size: 20px;
     font-weight: 600;
-    color: var(--gold-text);
+    color: var(--ink);
     white-space: nowrap;
   }
   :global(html[lang='ja']) .plan__amount {

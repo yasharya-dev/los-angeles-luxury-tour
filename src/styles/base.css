@@ -226,9 +226,13 @@ html[lang='ja'] .display {
   text-wrap: balance;
 }
 
+/* Her headings are set heavier than the body (01 to 10): 600, inside the
+   400 to 700 the face is already loaded at, so no new bytes. English
+   Cormorant stays at 500. */
 html[lang='ja'] .h2 {
   font-family: var(--font-body);
   font-size: clamp(22px, 3.6vw, 32px);
+  font-weight: 600;
   line-height: 1.55;
   letter-spacing: 0.05em;
   text-wrap: initial;
@@ -245,6 +249,22 @@ html[lang='ja'] .h2 {
   }
 }
 
+/* Her two larger sizes, after the rule above so they win on source order.
+   A statement line (02, 06, 09) is sized from the column, so her fifteen
+   characters still fit it: 21px at 360, 23 at 390, 32 from 540. A page
+   title (07, 09, 10B) is a step above that: 25.6px at 360, 28 at 390, 40 on
+   a computer. */
+html[lang='ja'] .h2--statement {
+  font-size: clamp(21px, calc((100vw - 2 * var(--gutter)) / 15.2), 32px);
+  letter-spacing: 0.03em;
+}
+
+html[lang='ja'] .h2--page {
+  font-size: clamp(24px, calc((100vw - 2 * var(--gutter)) / 12.5), 40px);
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+}
+
 .h3 {
   margin: 0;
   font-family: var(--font-display);
@@ -257,6 +277,7 @@ html[lang='ja'] .h2 {
 html[lang='ja'] .h3 {
   font-family: var(--font-body);
   font-size: clamp(17px, 2.1vw, 20px);
+  font-weight: 600;
   line-height: 1.6;
   /* h3s are plain strings with no authored breaks, so balance them rather
      than let a phone column strand one kana on the last line. */
@@ -277,7 +298,7 @@ html[lang='ja'] .h3 {
 }
 
 html[lang='ja'] .body {
-  line-height: 2;
+  line-height: 1.85;
   /* No text-wrap: balance - there are no spaces to rebalance. Alignment is
      left by default and inherited from .center where a section centres. */
   text-wrap: initial;
@@ -467,10 +488,12 @@ html[lang='ja'] .em {
     border-color 0.3s ease;
 }
 
-/* The outline deepens in its own gold, rather than turning black. */
+/* The outline deepens in its own gold, rather than turning black. The colour
+   is set here, or the links' own a:hover would win and turn the label ink. */
 .btn:hover {
   background-color: var(--btn-hover);
   border-color: var(--gold-text);
+  color: var(--gold-text);
 }
 
 /* Her labels are a size above our old 15px, tracked as she sets them (0.05
@@ -540,28 +563,19 @@ html[lang='ja'] .btn {
     linear-gradient(var(--champagne-angle), var(--champagne-sheen));
 }
 
-/* With no ring, a printer that drops backgrounds would leave the label
-   alone on the paper: the button prints as it looks, as a plate does. */
-@media print {
-  .btn--solid {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
 /* An icon held near the far end, with the label centred in the button: her
    pills (01, 08, 09) and her contact buttons (07). */
 .btn--end-icon {
   position: relative;
-  padding-inline: var(--end-start, 44px) var(--end-pad, 44px);
+  padding-inline: var(--end-pad-start, 44px) var(--end-pad-end, 44px);
 }
 
 .btn--end-icon > svg {
   position: absolute;
   top: 50%;
-  right: var(--end-icon-at, 16px);
-  width: var(--end-icon, 18px);
-  height: var(--end-icon, 18px);
+  inset-inline-end: var(--end-icon-inset, 16px);
+  width: var(--end-icon-size, 18px);
+  height: var(--end-icon-size, 18px);
   transform: translateY(-50%);
 }
 
@@ -580,10 +594,10 @@ html[lang='ja'] .btn {
 /* Her pill (01, 08, 09): round ends, more room at the sides, and a larger,
    thinner icon. */
 .btn--pill {
-  --end-start: 52px;
-  --end-pad: 52px;
-  --end-icon: 26px;
-  --end-icon-at: 20px;
+  --end-pad-start: 52px;
+  --end-pad-end: 52px;
+  --end-icon-size: 26px;
+  --end-icon-inset: 20px;
   border-radius: 999px;
 }
 
@@ -607,6 +621,19 @@ html[lang='ja'] .btn--slab {
 
 html[lang='en'] .btn--slab {
   font-size: 15px;
+}
+
+/* On paper a button is its outline and its words, in ink. A printer that
+   drops backgrounds, as most do by default, would otherwise leave a white
+   label on white paper; the old browsers that need a prefix to print a
+   fill would too. */
+@media print {
+  .btn--solid {
+    border-color: currentColor;
+    background: none;
+    box-shadow: none;
+    color: var(--ink);
+  }
 }
 
 /* ----------------------------------------------------- reservation panel */
