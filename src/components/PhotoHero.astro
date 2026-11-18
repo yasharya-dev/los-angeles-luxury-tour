@@ -30,9 +30,9 @@ interface Props {
    * Something in the photograph the words must not cover, like the sign on
    * the homepage, as fractions of the photo: `top` and `foot`, how far down
    * it starts and ends; `left` and `right`, where across. The photo is drawn
-   * so that the landmark ends just over the first line of text, however many
-   * lines the text runs to, with sky above it (see the styles). `focus` then
-   * says only where across the photo a screen wider than a phone looks.
+   * so that the landmark ends a little over the first line of text, however
+   * many lines the text runs to, with sky above it (see the styles). `focus`
+   * then says only where across the photo a screen wider than a phone looks.
    */
   landmark?: { top: number; foot: number; left: number; right: number };
 }
@@ -158,20 +158,23 @@ const place = landmark
      text's box, which ends at the hero's foot and is the text's height plus
      --rise, so its size and its place follow the text: it is drawn just
      tall enough that the part under the landmark's foot covers the text,
-     the foot 2px over the first line, and set by that foot (the
+     the foot --clear over the first line, and set by that foot (the
      object-position above), so the landmark ends there whether the photo is
      cut at its sides or at its top and bottom. */
   .photo-hero--landmark {
     /* The gradient climbs only a short way, or it would dim the landmark. */
     --rise: 24px;
+    /* The air between the landmark's foot and the first line, so the label
+       does not read as standing on the sign. */
+    --clear: 16px;
     /* The sky kept over the landmark where the hero has to grow for it:
        less on a short screen, so the next section still starts in view. */
     --sky: clamp(32px, 24svh - 96px, 80px);
   }
   .photo-hero__img--landmark {
-    --need: calc((100% - var(--rise) + 2px) / (1 - var(--foot)));
+    --need: calc((100% - var(--rise) + var(--clear)) / (1 - var(--foot)));
     --draw: var(--need);
-    inset: auto 0 max(0px, calc(100% - var(--rise) + 2px - (1 - var(--foot)) * var(--draw)));
+    inset: auto 0 max(0px, calc(100% - var(--rise) + var(--clear) - (1 - var(--foot)) * var(--draw)));
     z-index: -2;
     height: var(--draw);
   }
@@ -186,7 +189,34 @@ const place = landmark
   .photo-hero--landmark::before {
     content: '';
     --drawn: max(630px, 100vw / var(--shape));
-    height: calc((var(--foot) - var(--top)) * var(--drawn) - var(--rise) + 2px + var(--sky));
+    height: calc((var(--foot) - var(--top)) * var(--drawn) - var(--rise) + var(--clear) + var(--sky));
+  }
+
+  /* Safari before 15.4 reads no svh. It drops the floors above with the
+     clamp() that holds them, and the sky would make the first row's height
+     invalid, so the row would collapse and cut the landmark at the hero's
+     top. Plain values instead: the floors, and the sky of a mid-sized
+     phone. (A plain floor written before the clamp() would be folded away
+     by the minifier.) */
+  @supports not (height: 1svh) {
+    .photo-hero--tall {
+      min-height: 340px;
+    }
+    .photo-hero--short {
+      min-height: 210px;
+    }
+    .photo-hero--landmark {
+      --sky: 56px;
+    }
+  }
+
+  /* Wider than a phone, the landmark is drawn larger and the row with it,
+     so the sky over it is kept to its least: the hero stays nearer half of
+     a laptop's screen. */
+  @media (min-width: 560px) {
+    .photo-hero--landmark {
+      --sky: 32px;
+    }
   }
 
   /* On a phone the photo is drawn whole at that height, about two and a
@@ -211,6 +241,28 @@ const place = landmark
       transform: translateX(calc(-100% * var(--middle)));
       -webkit-mask-image: linear-gradient(0deg, transparent, #000 32px);
       mask-image: linear-gradient(0deg, transparent, #000 32px);
+    }
+  }
+
+  /* A phone on its side has no room for the landmark over the words and
+     the button under them. The first row goes, and the photo covers the
+     hero as a plain photo hero's does, with the plain gradient's rise: the
+     hero is the text's own height, and the button is in the first view. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .photo-hero--landmark {
+      --rise: clamp(56px, 10vh, 96px);
+      min-height: 0;
+    }
+    .photo-hero--landmark::before {
+      content: none;
+    }
+    .photo-hero__img--landmark {
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: none;
+      -webkit-mask-image: none;
+      mask-image: none;
     }
   }
 

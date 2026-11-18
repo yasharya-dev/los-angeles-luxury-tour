@@ -258,7 +258,6 @@ const terms = cancellation[locale];
     --part-gap: clamp(24px, 4vw, 32px);
     max-width: 680px;
     margin-inline: auto;
-    padding-bottom: clamp(36px, 6vw, 56px);
   }
 
   .overview,
@@ -419,15 +418,16 @@ const terms = cancellation[locale];
   }
 
   /* Her warm grey, underlined (10A): a second action, quieter than the
-     button above it. As wide as its words, so its focus ring hugs them and
-     clears the button. */
+     button above it. As wide as its words, so its focus ring hugs them, and
+     far enough under the button that the ring (2px, 3px out) stands 5px
+     clear of it. */
   .pricing__ask {
     display: flex;
     align-items: center;
     justify-content: center;
     width: fit-content;
     min-height: var(--tap);
-    margin-top: 6px;
+    margin-top: 10px;
     margin-inline: auto;
     font-size: 15px;
     font-weight: 600;
@@ -537,6 +537,11 @@ const terms = cancellation[locale];
   .detail {
     border-bottom: 1px solid var(--hairline-soft);
   }
+  /* On a phone her black ending follows the last row straight on (10A), and
+     its edge ends the list: the last row draws no line of its own. */
+  .detail:last-child {
+    border-bottom: 0;
+  }
 
   .detail__label {
     display: flex;
@@ -604,11 +609,21 @@ const terms = cancellation[locale];
   /* Her black ending (10A): the closing panel, then the way back on the same
      black, both plates. On a phone it runs edge to edge, straight on from
      the last row and on into the footer; on a wider screen the two make one
-     black card the width of the photo. */
+     black card the width of the photo. The phone's ending is the default
+     and the card overrides it, so no width, whole or fractional, falls
+     between the two. */
   .closing {
-    padding: clamp(28px, 6vw, 40px) clamp(16px, 4vw, 24px);
+    padding: 24px var(--gutter) 22px;
+    /* Unseen, as the panel's black runs under it, but a contrast theme
+       draws it, where the panel would otherwise have no edge at all. */
+    border-top: 1px solid transparent;
     background: var(--bar);
     text-align: center;
+  }
+  /* In the dark theme the panel's black is the page's own: a gold line
+     marks where it starts. */
+  :global(html[data-theme='dark']) .closing {
+    border-top-color: var(--hairline);
   }
 
   .closing__label {
@@ -638,38 +653,30 @@ const terms = cancellation[locale];
     margin-inline: auto;
   }
 
+  /* No line of its own at the foot: the footer's top hairline is it. */
   .back {
     margin: 0;
+    padding: 4px var(--gutter) 12px;
     background: var(--bar);
   }
 
-  @media (max-width: 680px) {
-    .plan-page {
-      padding-bottom: 0;
-    }
-    .closing {
-      padding: 24px var(--gutter) 22px;
-    }
-    /* No line of its own at the foot: the footer's top hairline is it. */
-    .back {
-      padding: 4px var(--gutter) 12px;
-    }
-    /* In the dark theme the panel's black is the page's own: a gold line
-       marks where it starts. */
-    :global(html[data-theme='dark']) .closing {
-      border-top: 1px solid var(--hairline);
-    }
-  }
-
   @media (min-width: 681px) {
+    .plan-page {
+      padding-bottom: clamp(36px, 6vw, 56px);
+    }
+    /* Over the cream before the card, the last row keeps its line. */
+    .detail:last-child {
+      border-bottom: 1px solid var(--hairline-soft);
+    }
     .closing {
       margin-top: var(--part-gap);
+      padding: 40px 24px;
       border: 1px solid var(--hairline);
       border-bottom: 0;
       border-radius: var(--radius-card) var(--radius-card) 0 0;
     }
     .back {
-      padding: 0 clamp(16px, 4vw, 24px) 16px;
+      padding: 0 24px 16px;
       border: 1px solid var(--hairline);
       border-top: 0;
       border-radius: 0 0 var(--radius-card) var(--radius-card);

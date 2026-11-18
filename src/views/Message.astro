@@ -52,14 +52,16 @@ const c = copy[locale][kind];
 <section class="section message">
   <div class="measure center">
     {c.code && <p class="code" aria-hidden="true">{c.code}</p>}
-    {/* Japanese titles carry authored breaks, as every Japanese heading does. */}
-    <h1 class="h2 message__title">
+    {/* Japanese titles carry authored breaks, as every Japanese heading does.
+        At the page-title size a long line (メッセージをお送りしました。, on a
+        phone) folds once more, between its phrases and never inside one. */}
+    <h1 class="h2 h2--page message__title">
       {typeof c.title === 'string'
         ? c.title
         : c.title.map((line, i) => (
             <>
               {i > 0 && <br />}
-              {line}
+              <Phrases text={line} />
             </>
           ))}
     </h1>

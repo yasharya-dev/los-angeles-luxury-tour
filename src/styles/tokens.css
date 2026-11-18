@@ -32,7 +32,7 @@
   which is all WCAG 1.4.11 asks. Tests compute each button label's ratio
   against every colour its fill paints, out of the built CSS.
 
-  Her cards are white paper with a faint warm edge and a soft warm shadow
+  Her cards are white paper with a warm grey edge and a soft warm shadow
   (04, 07, 10A), never a gold outline; her reason cards (03) are the one
   exception, and keep a gold edge of their own.
 */
@@ -107,21 +107,21 @@
   --chip-edge: #d6d0c6;
   --quiet-ink: #6e665b;
 
-  /* Her tiles. --tile is her taupe placeholder for a plan's photo (04), with
-     the monogram on it in white; --feature-tile the soft sand behind the
-     three icons on a plan page (10A). Neither carries text that relies on
-     it: the plan's name is beside the first, a 14px ink label on the
+  /* Her tiles. --tile is her flat taupe placeholder for a plan's photo (04),
+     with the monogram on it in white; --feature-tile the soft sand behind
+     the three icons on a plan page (10A). Neither carries text that relies
+     on it: the plan's name is beside the first, a 14px ink label on the
      second (14.4:1). */
-  --tile: linear-gradient(150deg, #e3d7c5 0%, #d3c3ab 100%);
+  --tile: #d6c9b8;
   --tile-mark: brightness(0) invert(1) opacity(0.92);
   --feature-tile: #ede8e0;
 
   /* Lines */
   --hairline: rgba(177, 138, 58, 0.6);
   --hairline-soft: rgba(177, 138, 58, 0.26);
-  /* A card is a container, not a control, so its edge needs no 3:1: a
-     whisper of warm brown, with the shadow drawing the card. */
-  --card-edge: rgba(60, 45, 20, 0.09);
+  /* A card is a container, not a control, so its edge needs no 3:1: her
+     warm grey (04), about #dedbd7 on the white card. */
+  --card-edge: rgba(60, 45, 20, 0.17);
   /* A form control's own edge has to clear 3:1, which a gold tint cannot.
      This is 3.7:1 on --bg-deep and 4.2:1 on white. */
   --field-edge: rgba(25, 25, 25, 0.55);
@@ -251,7 +251,7 @@ html[data-theme='dark'],
     --gold-deco: #b18a3a;
     --hairline: rgba(177, 138, 58, 0.6);
     --hairline-soft: rgba(177, 138, 58, 0.26);
-    --card-edge: rgba(60, 45, 20, 0.09);
+    --card-edge: rgba(60, 45, 20, 0.17);
     --field-edge: rgba(25, 25, 25, 0.55);
     --err: #a14a1d;
     --btn-hover: #f5eddc;
@@ -266,7 +266,7 @@ html[data-theme='dark'],
     --chip-fill: #f5f1e8;
     --chip-edge: #d6d0c6;
     --quiet-ink: #6e665b;
-    --tile: linear-gradient(150deg, #e3d7c5 0%, #d3c3ab 100%);
+    --tile: #d6c9b8;
     --tile-mark: brightness(0) invert(1) opacity(0.92);
     --feature-tile: #ede8e0;
   }

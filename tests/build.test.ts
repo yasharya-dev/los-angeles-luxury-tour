@@ -2,8 +2,11 @@
 // `npm test` chains them.
 
 import { describe, expect, it, beforeAll } from 'vitest';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
+import sharp from 'sharp';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
@@ -589,6 +592,26 @@ const namesAButtonClass = (selector: string) => {
 // The rules of the built CSS, as [selector, body] pairs, for the innermost
 // block of each (a rule inside @media keeps its own selector).
 const cssRules = () => [...css().matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
+
+// The rules inside every @media or @supports block whose condition matches,
+// run together. The minifier may write a width query either way round, so
+// the condition is a pattern: /^\((?:min-width:\s?681px|width>=681px)\)$/.
+const within = (condition: RegExp) => {
+  const text = css();
+  const found: string[] = [];
+  for (const m of text.matchAll(/@(?:media|supports)([^{]*)\{/g)) {
+    if (!condition.test(m[1].trim())) continue;
+    const start = (m.index ?? 0) + m[0].length;
+    let depth = 1;
+    let i = start;
+    for (; i < text.length && depth > 0; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') depth--;
+    }
+    found.push(text.slice(start, i - 1));
+  }
+  return found.join('');
+};
 
 describe('the palette and the gold rule', () => {
   // Cream is the default theme, on :root, with the four colours from Amelia's
@@ -2371,8 +2394,11 @@ describe('the look of her pictures', () => {
   });
 
   // Her statement lines (02, 06, 09) and page titles (07, 09, 10B) a step
-  // larger, on the pages her pictures show them. Each size comes after the
-  // phone rule for every Japanese .h2 in the same sheet, so it wins there.
+  // larger, on the pages her pictures show them, and on the pages beside
+  // them: the consultation form, its thank-you and the not-found page take
+  // the size her booking form and its received page have. Each size comes
+  // after the phone rule for every Japanese .h2 in the same sheet, so it
+  // wins there.
   it('gives her statement lines and page titles their larger sizes, where she has them', () => {
     const sheet =
       readdirSync(join(DIST, '_astro'))
@@ -2396,16 +2422,26 @@ describe('the look of her pictures', () => {
     // The contact page's title is the homepage's closing question, which she
     // draws on two lines (07): it takes the statement size, not the page one.
     expect(uses('/ja/contact', 'h1', 'statement'), 'contact title').toBe(1);
-    for (const route of ['/ja/about', '/ja/book', '/ja/book/dodgers-transfer', '/ja/book/received']) {
+    for (const route of [
+      '/ja/about',
+      '/ja/book',
+      '/ja/book/dodgers-transfer',
+      '/ja/book/received',
+      '/ja/consult',
+      '/ja/thank-you',
+      '/ja/404',
+    ]) {
       expect(uses(route, 'h1', 'page'), route).toBe(1);
     }
     // Her break in the received title at every width: お申し込みを / 受け付けました。
     expect(css()).toMatch(/html\[lang=ja\] \.received__title\[data-astro-cid-[^\]]+\]\{max-width:13em/);
   });
 
-  // Her cards are white paper with a faint warm edge and a soft shadow (04,
+  // Her cards are white paper with a warm grey edge and a soft shadow (04,
   // 07, 10A), with no gold around them: painted on the card, the edge is a
-  // near-neutral line, not a gold one. Her reason cards keep a gold edge (03).
+  // near-neutral line, not a gold one, and as clear against the page as
+  // hers, about 1.26:1 against her cream. Her reason cards keep a gold edge
+  // (03).
   it('edges the cards in a warm line, not gold, except her reason cards', () => {
     const rules = css();
     expect(rules).toMatch(/\.panel\{[^}]*border:1px solid var\(--card-edge\)/);
@@ -2413,12 +2449,16 @@ describe('the look of her pictures', () => {
     const painted = over(parseHex(token(cream(), 'card-edge')), solid(cream(), 'card'));
     const chroma = Math.max(...painted) - Math.min(...painted);
     expect(chroma, `the edge paints rgb ${painted.map(Math.round).join(', ')}`).toBeLessThan(12);
+    const edge = ratio(painted, solid(cream(), 'bg'));
+    expect(edge, `the edge is ${edge.toFixed(2)}:1 against the page`).toBeGreaterThanOrEqual(1.25);
+    expect(edge, `the edge is ${edge.toFixed(2)}:1 against the page`).toBeLessThan(1.4);
     expect(rules).toMatch(/\.reason\[data-astro-cid-[^\]]+\]\{[^}]*border-color:var\(--hairline\)/);
     expect(html('/ja')).toMatch(/<li class="reason panel"/);
-    // Her taupe placeholder tile (04), with the monogram in white on it; on
-    // paper and in a contrast theme, where the taupe is not drawn, the
-    // monogram keeps its own gold rather than going white on white.
+    // Her flat taupe placeholder tile (04), with the monogram in white on
+    // it; on paper and in a contrast theme, where the taupe is not drawn,
+    // the monogram keeps its own gold rather than going white on white.
     expect(rules).toMatch(/\.plan__thumb\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--tile\)/);
+    expect(token(cream(), 'tile'), 'one flat colour, as hers').toMatch(/^#[0-9a-f]{6}$/);
     expect(rules).toMatch(
       /@media print,\s?\(forced-colors:\s?active\)\{\.plan__thumb\[data-astro-cid-[^\]]+\] \.monogram img\{filter:none\}/,
     );
@@ -2428,6 +2468,18 @@ describe('the look of her pictures', () => {
   it('sets the prices on the plan cards in ink', () => {
     expect(css()).toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--ink\)/);
     expect(css()).not.toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--gold/);
+  });
+
+  // Her cards stand well apart in one column (04). In two columns the gap
+  // stays as narrow as it was until 960px: 4px more from 720px folded two
+  // Japanese plan titles onto a second line at 768.
+  it('spaces the plan cards as hers, without folding a title in two columns', () => {
+    const gap = (rules: string) =>
+      Number(rules.match(/\.tier__list\[data-astro-cid-[^\]]+\]\{(?:[^}]*;)?gap:(\d+)px/)?.[1] ?? NaN);
+    const top = cssRules().find(([selector, body]) => /^\.tier__list\[/.test(selector) && /(?:^|;)display:grid/.test(body));
+    expect(Number(top?.[1].match(/(?:^|;)gap:(\d+)px/)?.[1]), 'one column').toBe(28);
+    expect(gap(within(/^\((?:min-width:\s?720px|width>=720px)\)$/)), 'two columns').toBe(16);
+    expect(gap(within(/^\((?:min-width:\s?960px|width>=960px)\)$/)), 'two wide columns').toBe(24);
   });
 
   // The warm light under her hero (01, 02): the section under the photo
@@ -2456,6 +2508,43 @@ describe('the look of her pictures', () => {
     }
   });
 
+  // The homepage's first screen, until a portrait photo for phones arrives.
+  // The label has air under the sign's legs, as her hillside gives it (01),
+  // one token wherever the photo is sized or placed by it. Wider than a
+  // phone the sky over the sign is kept to its least, so the hero stays
+  // nearer half a laptop's screen. A phone on its side drops the sign's row
+  // and the floor, so the photo covers a hero the text's own height and the
+  // button is in the first view. Safari before 15.4 has no svh: plain
+  // values, in a block the minifier cannot fold away.
+  it('gives the label air under the sign, and keeps the button in the first view', () => {
+    const rules = css();
+    const own = (selector: string, from = rules) =>
+      [...from.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim().replace(/\[data-astro-cid-[^\]]+\]/g, '') === selector)
+        .map(([, , body]) => body)
+        .join(';');
+    const clear = Number(own('.photo-hero--landmark').match(/(?:^|;)--clear:(\d+)px/)?.[1]);
+    expect(clear, 'the air under the sign').toBeGreaterThanOrEqual(12);
+    expect(own('.photo-hero__img--landmark').match(/var\(--clear\)/g)?.length, 'the photo').toBe(2);
+    expect(own('.photo-hero--landmark:before'), 'the row above the words').toMatch(/height:calc\([^;]*var\(--clear\)/);
+    expect(rules, 'a gap written in by hand').not.toMatch(/var\(--rise\) \+ \d+px/);
+
+    const wider = within(/^\((?:min-width:\s?560px|width>=560px)\)$/);
+    expect(own('.photo-hero--landmark', wider)).toMatch(/(?:^|;)--sky:32px(?:;|$)/);
+
+    const sideways = within(/^\(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)$/);
+    expect(own('.photo-hero--landmark', sideways)).toMatch(/(?:^|;)min-height:0(?:;|$)/);
+    expect(own('.photo-hero--landmark:before', sideways)).toMatch(/(?:^|;)content:none(?:;|$)/);
+    const photo = own('.photo-hero__img--landmark', sideways);
+    expect(photo).toMatch(/(?:^|;)inset:0(?:;|$)/);
+    expect(photo).toMatch(/(?:^|;)height:100%(?:;|$)/);
+    expect(photo).toMatch(/(?:^|;)transform:none(?:;|$)/);
+
+    const old = within(/^not \(height:\s?1svh\)$/);
+    expect(own('.photo-hero--tall', old)).toMatch(/(?:^|;)min-height:340px(?:;|$)/);
+    expect(own('.photo-hero--landmark', old)).toMatch(/(?:^|;)--sky:\d+px(?:;|$)/);
+  });
+
   // Her 10A: the price card holds the prices and her note, and her request
   // button and 「まずは相談する」 sit under it, on the page. Her phone bar still
   // finds the button by its attribute.
@@ -2475,11 +2564,16 @@ describe('the look of her pictures', () => {
       expect(links[0], prefix).toMatch(/^<a class="btn btn--solid pricing__cta" href="[^"]+" data-plan-request/);
       expect(links[1], prefix).toMatch(/^<a class="pricing__ask" href="[^"]*\/consult\?service=dodgers-transfer"/);
     }
-    // 「まずは相談する」 as wide as its words, so its focus ring hugs them and
-    // clears the button.
+    // 「まずは相談する」 as wide as its words, so its focus ring hugs them,
+    // and far enough under the button that the ring stands clear of it: at
+    // 1px a gold ring against the olive read as touching.
     const ask = css().match(/\.pricing__ask\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
     expect(ask).toMatch(/(?:^|;)width:fit-content/);
     expect(ask).toMatch(/(?:^|;)margin-inline:auto/);
+    const ring = css().match(/\}:focus-visible\{outline:(\d+)px solid [^;}]+;outline-offset:(\d+)px\}/);
+    expect(ring, 'the focus ring').not.toBeNull();
+    const clear = Number(ask.match(/(?:^|;)margin-top:(\d+)px/)?.[1]) - Number(ring?.[1]) - Number(ring?.[2]);
+    expect(clear, 'between the ring and the button').toBeGreaterThanOrEqual(4);
   });
 
   // Her plain rows, her soft tiles, and her black ending (10A): the closing
@@ -2496,6 +2590,23 @@ describe('the look of her pictures', () => {
     const rules = css();
     expect(rules).toMatch(/\.tile\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--feature-tile\)/);
     expect(rules).toMatch(/\.back\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--bar\)/);
+    // On a phone the black follows the last row straight on, with one line
+    // between them at most: the last row draws none, the panel's edge ends
+    // the list. That edge is transparent in the cream theme, unseen on the
+    // black, but a contrast theme draws it. From 681px the card stands
+    // apart and the last row keeps its line.
+    expect(rules).toMatch(/\.detail\[data-astro-cid-[^\]]+\]:last-child\{border-bottom:0\}/);
+    expect(rules).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{(?:[^}]*;)?border-top:1px solid (?:#0000|transparent)(?:;|\})/);
+    const wide = within(/^\((?:min-width:\s?681px|width>=681px)\)$/);
+    expect(wide).toMatch(
+      /\.detail\[data-astro-cid-[^\]]+\]:last-child\{border-bottom:1px solid var\(--hairline-soft\)\}/,
+    );
+    expect(wide).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{[^}]*border-radius:/);
+    // The phone's ending is the default and the wide card overrides it, so
+    // no width falls between a max-width: 680px and a min-width: 681px,
+    // as one at 680.8px under browser zoom did.
+    const phone = within(/^\((?:max-width:\s?680px|width<=680px)\)$/);
+    expect(phone).not.toMatch(/\.(?:plan-page|detail|closing|back)\[/);
   });
 });
 
@@ -2550,36 +2661,85 @@ describe('the photographs made for each spot', () => {
     }
   });
 
-  // The link preview is built from the homepage's photo.
-  it('builds the link preview from the homepage photo', () => {
-    const script = readFileSync(join(process.cwd(), 'scripts/og.mjs'), 'utf8');
-    expect(script).toContain("sharp('src/assets/hero-hollywood.webp')");
-    expect(existsSync(join(process.cwd(), 'public/og/default.jpg'))).toBe(true);
+  // The link preview is built from the homepage's photo by scripts/og.mjs,
+  // and the committed image is the one the script makes now: a new photo,
+  // logo or layout without a rerun fails here. Compared as decoded pixels,
+  // since another machine's encoder may write other bytes for the same
+  // picture.
+  it('builds the link preview from the homepage photo, as the script makes it now', async () => {
+    const root = process.cwd();
+    const script = readFileSync(join(root, 'scripts/og.mjs'), 'utf8');
+    const photo = readFileSync(join(root, 'src/views/Landing.astro'), 'utf8').match(
+      /import heroImg from '\.\.\/assets\/([^']+)'/,
+    )?.[1];
+    expect(photo, "the homepage's photo").toBeTruthy();
+    expect(script).toContain(`sharp('src/assets/${photo}')`);
+    const dir = mkdtempSync(join(tmpdir(), 'llt-og-'));
+    try {
+      const fresh = join(dir, 'default.jpg');
+      execFileSync(process.execPath, ['scripts/og.mjs', fresh], { cwd: root, stdio: 'pipe' });
+      const pixels = (file: string) => sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      const [kept, made] = await Promise.all([pixels(join(root, 'public/og/default.jpg')), pixels(fresh)]);
+      expect([kept.info.width, kept.info.height]).toEqual([1200, 630]);
+      expect([made.info.width, made.info.height]).toEqual([1200, 630]);
+      let sum = 0;
+      for (let i = 0; i < kept.data.length; i++) sum += Math.abs(kept.data[i] - made.data[i]);
+      const mean = sum / kept.data.length;
+      expect(mean, `mean difference per channel ${mean.toFixed(2)} of 255`).toBeLessThanOrEqual(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  // Its words say what it shows: the sign, and no longer the palm road of
+  // the stand-in it replaced. One preview for every page, so every page in
+  // each language.
+  it('describes the link preview as the Hollywood photo, in both languages', () => {
+    const alt = (doc: string) => doc.match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1] ?? '';
+    expect(alt(html('/'))).toBe(
+      'The Hollywood Sign at sunset above Los Angeles, with the Los Angeles Luxury Tour logo',
+    );
+    expect(alt(html('/ja'))).toBe('夕日に照らされたハリウッドサインと、Los Angeles Luxury Tourのロゴ');
+    for (const file of allPages()) {
+      const doc = readFileSync(file, 'utf8');
+      const ja = /<html lang="ja"/.test(doc);
+      expect(alt(doc), file).toMatch(ja ? /ハリウッドサイン/ : /Hollywood Sign/);
+      expect(alt(doc), file).not.toMatch(/palm|downtown|パームツリー|並木道|ダウンタウン/i);
+    }
   });
 
   // The stand-ins found online, with no record of where they came from, and
-  // two files nothing used: gone, and nothing anywhere points at them.
+  // two files nothing used: gone, and nothing anywhere points at them. Every
+  // file git has or would take, the root's config and .github's included,
+  // and every file the build wrote; all but this one, which has to name
+  // them. A file with a NUL byte in it is an image or a font, with no words
+  // to check.
   it('leaves no trace of the photos it took out', () => {
     const gone =
       /hero-dtla|hero-dusk|hero-malibu|divider-architecture|\bsteak\.(?:[\w-]+\.)?(?:jpe?g|webp|avif|png)\b|assets\/steak\b/;
-    const walk = (dir: string): string[] =>
+    const root = process.cwd();
+    const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
+      .split('\0')
+      .filter((name) => name && name !== 'tests/build.test.ts')
+      .map((name) => join(root, name))
+      // Deleted in the working tree but not yet in the index.
+      .filter((path) => existsSync(path));
+    expect(listed.length).toBeGreaterThan(100);
+    expect(listed).toContain(join(root, 'astro.config.mjs'));
+    expect(listed).toContain(join(root, '.github', 'workflows', 'ci.yml'));
+    const built = (dir: string): string[] =>
       readdirSync(dir).flatMap((name) => {
         const path = join(dir, name);
-        if (name === 'node_modules' || name.startsWith('.')) return [];
-        return statSync(path).isDirectory() ? walk(path) : [path];
+        return statSync(path).isDirectory() ? built(path) : [path];
       });
-    const root = process.cwd();
-    const files = [
-      ...['src', 'scripts', 'public', 'worker', 'dist'].flatMap((dir) => walk(join(root, dir))),
-      join(root, 'README.md'),
-    ];
-    expect(files.length).toBeGreaterThan(100);
-    for (const file of files) {
+    for (const file of [...listed, ...built(DIST)]) {
       const name = file.slice(root.length);
       expect(name, 'a file by that name').not.toMatch(gone);
-      if (/\.(?:astro|ts|mjs|js|css|md|json|html|xml|txt|svg|webmanifest)$/.test(file)) {
-        expect(readFileSync(file, 'utf8'), name).not.toMatch(gone);
-      }
+      const bytes = readFileSync(file);
+      if (!bytes.includes(0)) expect(new TextDecoder().decode(bytes), name).not.toMatch(gone);
     }
   });
 });
