@@ -2552,6 +2552,12 @@ describe('the look of her pictures', () => {
       expect(img, route).toMatch(/ style="--place: \d+% [\d.]+%"/);
       expect(img, route).not.toMatch(/object-position/);
     }
+    // The Experience band hands its crop over the same way.
+    for (const route of ['/experience', '/ja/experience']) {
+      const img = html(route).match(/<img [^>]*class="photo-hero__img[ "][^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/ style="--place: 50% 40%"/);
+      expect(img, route).not.toMatch(/object-position/);
+    }
 
     const sideways = within(/^\(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)$/);
     expect(own('.photo-hero--landmark', sideways).split(';')).toEqual(
@@ -2585,6 +2591,18 @@ describe('the look of her pictures', () => {
       /\.photo-hero--tall\[[^\]]+\] \.photo-hero__text\[[^\]]+\]\{padding-bottom:clamp\(/,
     ]) {
       expect(at(rule), String(rule)).toBeLessThan(turned);
+    }
+    // The phone and wide blocks come after the base rules they override, or
+    // a laptop's sky row would fall back to the phone's.
+    const base = Math.max(
+      at(/\.photo-hero--landmark\[[^\]]+\]\{--rise:24px/),
+      at(/\.photo-hero--landmark\[[^\]]+\]:before\{content:""/),
+    );
+    for (const block of [
+      /@media \((?:min-width:\s?560px|width>=560px)\)\{\.photo-hero/,
+      /@media \((?:max-width:\s?559px|width<=559px)\)\{\.photo-hero/,
+    ]) {
+      expect(at(block), String(block)).toBeGreaterThan(base);
     }
 
     const old = within(/^not \(height:\s?1svh\)$/);
