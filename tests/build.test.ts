@@ -654,31 +654,48 @@ describe('the palette and the gold rule', () => {
   });
 
   // A button is a link, and the links' own a:hover turns text ink: every
-  // button's variant names its label's colour on hover itself, or the
-  // outline's gold and the solid buttons' white would be lost to it. Any
-  // other hover rule on a class a button carries may only set one of those
-  // label colours.
+  // button's variant names its label's colour on hover itself, and only that
+  // one, or the outline's gold and the solid buttons' white would be lost.
+  // Any other hover rule on a class a button carries may set a label colour
+  // only where every button carrying that class shares it.
   it('keeps every button label its own colour on hover', () => {
-    const labels = ['var(--gold-text)', 'var(--on-cta)', 'var(--on-champagne)'];
+    const variants: Record<string, string> = {
+      '.btn:hover': 'var(--gold-text)',
+      '.btn--solid:hover': 'var(--on-cta)',
+      '.btn--champagne:hover': 'var(--on-champagne)',
+    };
+    const labelsSet = (body: string) =>
+      [...body.matchAll(/(?:^|;)(?:-webkit-text-fill-color|color):([^;]+)/g)].map(([, value]) => value.trim());
     const rules = cssRules();
-    for (const [variant, label] of [
-      ['.btn:hover', 'var(--gold-text)'],
-      ['.btn--solid:hover', 'var(--on-cta)'],
-      ['.btn--champagne:hover', 'var(--on-champagne)'],
-    ]) {
-      const bodies = rules.filter(([selector]) => selector === variant).map(([, body]) => body);
-      expect(bodies.length, variant).toBeGreaterThan(0);
-      expect(bodies.join(';'), variant).toMatch(new RegExp(String.raw`(?:^|;)color:${label.replace(/[()]/g, '\\$&')}`));
+    for (const [variant, label] of Object.entries(variants)) {
+      const set = rules.filter(([selector]) => selector === variant).flatMap(([, body]) => labelsSet(body));
+      expect(set, variant).toContain(label);
+      for (const value of set) expect(value, variant).toBe(label);
     }
-    let hovers = 0;
-    for (const [selector, body] of rules) {
-      if (!/:hover\b/.test(selector) || !namesAButtonClass(selector)) continue;
-      hovers += 1;
-      for (const [, value] of body.matchAll(/(?:^|;)color:([^;]+)/g)) {
-        expect(labels, `${selector} sets color:${value}`).toContain(value.trim());
+    // The label each button's finish gives it: champagne, else solid, else
+    // the outline's gold; and the finishes each class is carried with.
+    const finishes = new Map<string, Set<string>>();
+    for (const file of allPages()) {
+      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
+        const names = list.split(/\s+/).filter(Boolean);
+        const label = names.includes('btn--champagne')
+          ? 'var(--on-champagne)'
+          : names.includes('btn--solid')
+            ? 'var(--on-cta)'
+            : 'var(--gold-text)';
+        for (const name of names) finishes.set(name, (finishes.get(name) ?? new Set<string>()).add(label));
       }
     }
-    expect(hovers).toBeGreaterThanOrEqual(3);
+    for (const [selector, body] of rules) {
+      if (selector in variants || !/:hover\b/.test(selector) || !namesAButtonClass(selector)) continue;
+      const named = [...finishes.keys()].filter((name) =>
+        new RegExp(String.raw`\.${name.replace(/[^\w-]/g, '\\$&')}(?![\w-])`).test(selector),
+      );
+      for (const value of labelsSet(body)) {
+        const allowed = named.every((name) => finishes.get(name)!.size === 1 && finishes.get(name)!.has(value));
+        expect(allowed, `${selector} sets a label colour of ${value}`).toBe(true);
+      }
+    }
   });
 
   // The outline button's gold label on its cream fill, and on the gold tint
@@ -695,6 +712,13 @@ describe('the palette and the gold rule', () => {
     expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)background-color:var\(--btn-fill\)/);
     expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)color:var\(--gold-text\)/);
     expect(bodyOf(/^\.btn:hover$/)).toMatch(/(?:^|;)background-color:var\(--btn-hover\)/);
+    // Off the solid finishes, a rule on a button class paints only those two.
+    for (const [selector, body] of rules) {
+      if (!namesAButtonClass(selector) || /\.btn--(?:solid|champagne)(?![\w-])/.test(selector)) continue;
+      for (const [, value] of body.matchAll(/(?:^|;)background(?:-color)?:([^;]+)/g)) {
+        expect(['var(--btn-fill)', 'var(--btn-hover)'], `${selector} paints ${value}`).toContain(value.trim());
+      }
+    }
     const pill = bodyOf(/^\.plan__more\[data-astro-cid-[\w-]+\]$/);
     expect(pill).toMatch(/(?:^|;)background:var\(--chip-fill\)/);
     expect(pill).toMatch(/(?:^|;)color:var\(--quiet-ink\)/);
@@ -797,10 +821,18 @@ describe('the palette and the gold rule', () => {
       namesAButtonClass(selector) ||
       selector
         .split(',')
-        .some((part) => /[.[#]/.test(part) && /(?:^|[\s>+~])(?:a|button|\*)(?::[\w-]+)*$/.test(part.trim()));
+        .some(
+          (part) =>
+            /[.[#]/.test(part) &&
+            /(?:^|[\s>+~])(?:(?:a|button|\*)(?:\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?)*|(?:\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?)+)$/.test(
+              part.trim(),
+            ),
+        );
     const side = String.raw`(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?`;
     const removed = new RegExp(String.raw`(?:^|;)border${side}(?:-width)?:(?:none|hidden|0)(?=[\s;]|$)`);
-    const noStyle = new RegExp(String.raw`(?:^|;)border${side}-style:[^;]*\b(?:none|hidden)\b`);
+    const noStyle = new RegExp(
+      String.raw`(?:^|;)border${side}-style:[^;]*\b(?:none|hidden|initial|unset|revert(?:-layer)?)\b`,
+    );
     const style = /\b(?:solid|dashed|dotted|double|groove|ridge|inset|outset)\b/;
     for (const [selector, body] of cssRules()) {
       if (!reaches(selector)) continue;
@@ -822,6 +854,7 @@ describe('the palette and the gold rule', () => {
     expect(body).toMatch(/(?:^|;)color:var\(--ink\)/);
     expect(body).toMatch(/(?:^|;)border-color:currentColor/i);
     expect(body).toMatch(/(?:^|;)background:(?:none|0 0)(?=;|$)/);
+    expect(body).toMatch(/(?:^|;)box-shadow:none(?=;|$)/);
     expect(css()).toMatch(/@media print\{[^@]*\.btn--solid:not\(\.plate \*\)\{/);
   });
 
@@ -834,8 +867,13 @@ describe('the palette and the gold rule', () => {
       .map(([, body]) => body)
       .join(';');
     expect(icon).toMatch(/(?:^|;)inset-inline-end:/);
-    expect(icon).not.toMatch(/(?:^|;)(?:left|right):/);
-    expect(css()).toMatch(/\.form__foot \.btn\{[^}]*min-width:10\.5em/);
+    expect(icon).not.toMatch(/(?:^|;)(?:left|right|inset):/);
+    // Every rule on the consultation submit that sets a floor sets this one.
+    const floors = cssRules().filter(([selector]) => /\.form__foot \.btn$/.test(selector));
+    expect(floors.some(([, body]) => /(?:^|;)min-width:10\.5em(?=;|$)/.test(body))).toBe(true);
+    for (const [selector, body] of floors) {
+      for (const [, value] of body.matchAll(/(?:^|;)min-width:([^;]+)/g)) expect(value, selector).toBe('10.5em');
+    }
   });
 
   // What separates a form field from the page has to clear 3:1, on every
