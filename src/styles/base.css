@@ -623,12 +623,13 @@ html[lang='en'] .btn--slab {
   font-size: 15px;
 }
 
-/* On paper a button is its outline and its words, in ink. A printer that
-   drops backgrounds, as most do by default, would otherwise leave a white
-   label on white paper; the old browsers that need a prefix to print a
-   fill would too. */
+/* On paper a button on the page is its outline and its words, in ink: a
+   printer that drops backgrounds, as most do by default, would otherwise
+   leave a white label on white paper. A button on a plate prints as the
+   plate does, as it looks on screen; in the old browsers that need a prefix
+   the build leaves out (#97), a plate's own text prints faint as well. */
 @media print {
-  .btn--solid {
+  .btn--solid:not(.plate *) {
     border-color: currentColor;
     background: none;
     box-shadow: none;
