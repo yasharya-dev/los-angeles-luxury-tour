@@ -564,6 +564,32 @@ const cream = () => block(':root');
 const dark = () => block('html[data-theme=dark]');
 const solid = (decls: string, name: string): RGB => parseHex(token(decls, name)).rgb;
 
+// Every class a button carries anywhere on the site (.btn, its modifiers and
+// each component's own class for it), and a test for whether a selector
+// names one of them. A scoped rule names the class with Astro's attribute
+// after it, so a class counts only where no name character follows.
+const buttonClasses = (() => {
+  let found: Set<string> | undefined;
+  return () => {
+    if (found) return found;
+    found = new Set<string>();
+    for (const file of allPages()) {
+      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
+        for (const name of list.split(/\s+/)) if (name) found.add(name);
+      }
+    }
+    return found;
+  };
+})();
+const namesAButtonClass = (selector: string) => {
+  const names = [...buttonClasses()].map((name) => name.replace(/[^\w-]/g, '\\$&'));
+  return new RegExp(String.raw`\.(?:${names.join('|')})(?![\w-])`).test(selector);
+};
+
+// The rules of the built CSS, as [selector, body] pairs, for the innermost
+// block of each (a rule inside @media keeps its own selector).
+const cssRules = () => [...css().matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
+
 describe('the palette and the gold rule', () => {
   // Cream is the default theme, on :root, with the four colours from Amelia's
   // brief. Her accent gold is about 3:1 on the cream: fine for a decorative
@@ -627,34 +653,67 @@ describe('the palette and the gold rule', () => {
   });
 
   // A button is a link, and the links' own a:hover turns text ink: every
-  // button's hover rule names its label's colour itself, or the outline's
-  // gold and the solid buttons' white would be lost to it.
+  // button's variant names its label's colour on hover itself, or the
+  // outline's gold and the solid buttons' white would be lost to it. Any
+  // other hover rule on a class a button carries may only set one of those
+  // label colours.
   it('keeps every button label its own colour on hover', () => {
-    const rules = css();
-    const hovers = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selector]) =>
-      /\.btn[\w-]*:hover\b/.test(selector),
-    );
-    expect(hovers.length).toBeGreaterThanOrEqual(3);
-    for (const [, selector, body] of hovers) {
-      expect(body, selector).toMatch(/(?:^|;)color:/);
+    const labels = ['var(--gold-text)', 'var(--on-cta)', 'var(--on-champagne)'];
+    const rules = cssRules();
+    for (const [variant, label] of [
+      ['.btn:hover', 'var(--gold-text)'],
+      ['.btn--solid:hover', 'var(--on-cta)'],
+      ['.btn--champagne:hover', 'var(--on-champagne)'],
+    ]) {
+      const bodies = rules.filter(([selector]) => selector === variant).map(([, body]) => body);
+      expect(bodies.length, variant).toBeGreaterThan(0);
+      expect(bodies.join(';'), variant).toMatch(new RegExp(String.raw`(?:^|;)color:${label.replace(/[()]/g, '\\$&')}`));
     }
-    expect(rules).toMatch(/\.btn:hover\{(?:[^}]*;)?color:var\(--gold-text\)/);
-    expect(rules).toMatch(/\.btn--champagne:hover\{(?:[^}]*;)?color:var\(--on-champagne\)/);
+    let hovers = 0;
+    for (const [selector, body] of rules) {
+      if (!/:hover\b/.test(selector) || !namesAButtonClass(selector)) continue;
+      hovers += 1;
+      for (const [, value] of body.matchAll(/(?:^|;)color:([^;]+)/g)) {
+        expect(labels, `${selector} sets color:${value}`).toContain(value.trim());
+      }
+    }
+    expect(hovers).toBeGreaterThanOrEqual(3);
   });
 
   // The outline button's gold label on its cream fill, and on the gold tint
   // it takes on hover; the quiet pill's grey on its fill; the grey of a
   // second action on the cards and the page. In both themes.
   it('clears AA for the outline, the quiet pill and the second actions', () => {
+    // The rules paint the tokens measured below.
+    const rules = cssRules();
+    const bodyOf = (pattern: RegExp) =>
+      rules
+        .filter(([selector]) => pattern.test(selector))
+        .map(([, body]) => body)
+        .join(';');
+    expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)background-color:var\(--btn-fill\)/);
+    expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)color:var\(--gold-text\)/);
+    expect(bodyOf(/^\.btn:hover$/)).toMatch(/(?:^|;)background-color:var\(--btn-hover\)/);
+    const pill = bodyOf(/^\.plan__more\[data-astro-cid-[\w-]+\]$/);
+    expect(pill).toMatch(/(?:^|;)background:var\(--chip-fill\)/);
+    expect(pill).toMatch(/(?:^|;)color:var\(--quiet-ink\)/);
+    for (const name of ['pricing__ask', 'reveal__ask', 'ask']) {
+      expect(bodyOf(new RegExp(String.raw`^\.${name}\[data-astro-cid-[\w-]+\]$`)), name).toMatch(
+        /(?:^|;)color:var\(--quiet-ink\)/,
+      );
+    }
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
-      // A token painted over what is under it, read as the theme sets it:
-      // a colour, another token (the dark theme's grey is its mid ink), or
-      // transparent, which leaves what is under it.
+      // A token painted over what is under it, read as the theme sets it: a
+      // colour, another token (the dark theme's grey is its mid ink), or
+      // transparent, which leaves what is under it. Anything else is a value
+      // this test cannot judge, and fails it.
       const paint = (tokenName: string, under: RGB): RGB => {
         const value = decls.match(new RegExp(`(?:^|;)--${tokenName}:([^;]+)`))?.[1].trim() ?? '';
         const named = value.match(/^var\(--([\w-]+)\)$/);
         if (named) return paint(named[1], under);
-        return /^#[0-9a-f]{3,8}$/i.test(value) ? over(parseHex(value), under) : under;
+        if (value === 'transparent') return under;
+        if (!/^#[0-9a-f]{3,8}$/i.test(value)) throw new Error(`${name}: --${tokenName} is ${value || 'missing'}`);
+        return over(parseHex(value), under);
       };
       const card = solid(decls, 'card');
       const label = solid(decls, 'gold-text');
@@ -725,28 +784,57 @@ describe('the palette and the gold rule', () => {
   // draws the box. No rule on any class a button carries takes it away: no
   // style of none, no width of zero, no shorthand without a line style.
   it('keeps a border on every button for forced colours', () => {
-    const rules = css();
-    expect(rules).toMatch(/\.btn\{[^}]*border:1px solid/);
+    const all = css();
+    expect(all).toMatch(/\.btn\{[^}]*border:1px solid/);
     // The minifier writes transparent as #0000.
-    expect(rules).toMatch(/\.btn--solid\{[^}]*border-color:(?:transparent|#0000(?:0000)?)[;}]/);
-    const classes = new Set<string>();
-    for (const file of allPages()) {
-      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
-        for (const name of list.split(/\s+/)) if (name) classes.add(name);
-      }
-    }
-    expect(classes.size).toBeGreaterThan(5);
-    const names = [...classes].map((name) => name.replace(/[^\w-]/g, '\\$&'));
-    const touches = new RegExp(String.raw`\.(?:${names.join('|')})(?![\w-])`);
+    expect(all).toMatch(/\.btn--solid\{[^}]*border-color:(?:transparent|#0000(?:0000)?)[;}]/);
+    expect(buttonClasses().size).toBeGreaterThan(5);
+    // A rule can reach a button by one of its classes, or as the subject of a
+    // selector that ends in a bare a, button or * under a class, which ranks
+    // with .btn or above it.
+    const reaches = (selector: string) =>
+      namesAButtonClass(selector) ||
+      selector
+        .split(',')
+        .some((part) => /[.[#]/.test(part) && /(?:^|[\s>+~])(?:a|button|\*)(?::[\w-]+)*$/.test(part.trim()));
+    const side = String.raw`(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?`;
+    const removed = new RegExp(String.raw`(?:^|;)border${side}(?:-width)?:(?:none|hidden|0)(?=[\s;]|$)`);
+    const noStyle = new RegExp(String.raw`(?:^|;)border${side}-style:[^;]*\b(?:none|hidden)\b`);
     const style = /\b(?:solid|dashed|dotted|double|groove|ridge|inset|outset)\b/;
-    for (const [, selector, body] of rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-      if (!touches.test(selector)) continue;
-      expect(body, selector).not.toMatch(/(?:^|;)border(?:-width)?:(?:none|hidden|0)(?=[\s;]|$)/);
-      expect(body, selector).not.toMatch(/(?:^|;)border-style:(?:none|hidden)/);
-      for (const [, value] of body.matchAll(/(?:^|;)border:([^;]+)/g)) {
+    for (const [selector, body] of cssRules()) {
+      if (!reaches(selector)) continue;
+      expect(body, selector).not.toMatch(removed);
+      expect(body, selector).not.toMatch(noStyle);
+      expect(body, selector).not.toMatch(/(?:^|;)all:/);
+      for (const [, value] of body.matchAll(new RegExp(String.raw`(?:^|;)border${side}:([^;]+)`, 'g'))) {
         expect(value, `${selector} border:${value}`).toMatch(style);
       }
     }
+  });
+
+  // On paper a button on the page is its outline and its words in ink, as
+  // most printers drop backgrounds; one on a plate prints as the plate does.
+  it('prints a button on the page as an ink outline, and leaves the plates alone', () => {
+    const printed = cssRules().filter(([selector]) => selector === '.btn--solid:not(.plate *)');
+    expect(printed.length).toBe(1);
+    const [[, body]] = printed;
+    expect(body).toMatch(/(?:^|;)color:var\(--ink\)/);
+    expect(body).toMatch(/(?:^|;)border-color:currentColor/i);
+    expect(body).toMatch(/(?:^|;)background:(?:none|0 0)(?=;|$)/);
+    expect(css()).toMatch(/@media print\{[^@]*\.btn--solid:not\(\.plate \*\)\{/);
+  });
+
+  // The end icon sits at the inline end, so the button reads right in either
+  // direction; the consultation submit is wide enough for both its words, so
+  // it keeps its size while it sends.
+  it('places the end icon logically, and holds the consultation submit width', () => {
+    const icon = cssRules()
+      .filter(([selector]) => selector === '.btn--end-icon>svg')
+      .map(([, body]) => body)
+      .join(';');
+    expect(icon).toMatch(/(?:^|;)inset-inline-end:/);
+    expect(icon).not.toMatch(/(?:^|;)(?:left|right):/);
+    expect(css()).toMatch(/\.form__foot \.btn\{[^}]*min-width:10\.5em/);
   });
 
   // What separates a form field from the page has to clear 3:1, on every

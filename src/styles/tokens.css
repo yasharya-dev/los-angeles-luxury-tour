@@ -110,7 +110,10 @@
 
   /* State */
   --err: #a14a1d;
-  --btn-hover: rgba(177, 138, 58, 0.1);
+  /* The outline button's hover: her cream deepened by a tenth of her gold,
+     opaque, so it warms the button's own fill rather than greying the
+     card under it. */
+  --btn-hover: #f5eddc;
 
   /* The two blacks of a plate (see .plate below). Fixed across themes. */
   --bar: #101010;
@@ -225,7 +228,7 @@ html[data-theme='dark'],
     --card-edge: rgba(177, 138, 58, 0.4);
     --field-edge: rgba(25, 25, 25, 0.55);
     --err: #a14a1d;
-    --btn-hover: rgba(177, 138, 58, 0.1);
+    --btn-hover: #f5eddc;
     --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
     --champagne-sheen: var(--champagne-sheen-cream);
     --champagne-angle: 72deg;
