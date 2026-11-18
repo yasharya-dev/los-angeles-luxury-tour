@@ -69,7 +69,9 @@ const sizes = landmark
 
 // The landmark, for the styles: its top and foot, its middle as a fraction of
 // the photo's width, its width over the photo's height, and the photo's shape.
-// The photo is set by the landmark's foot.
+// The photo is set by the landmark's foot. Its position goes to the styles as
+// a property, not as an inline object-position, so a layout that frames the
+// photo another way (a phone on its side) can still set its own.
 const round = (n: number) => +n.toFixed(4);
 const mark = landmark
   ? [
@@ -81,8 +83,8 @@ const mark = landmark
     ].join('; ')
   : undefined;
 const place = landmark
-  ? `object-position: ${focus.split(' ')[0]} ${round(landmark.foot * 100)}%`
-  : `object-position: ${focus}`;
+  ? `--place: ${focus.split(' ')[0]} ${round(landmark.foot * 100)}%`
+  : `--place: ${focus}`;
 ---
 
 <section
@@ -152,15 +154,16 @@ const place = landmark
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: var(--place);
   }
 
   /* A landmark the words must not cover. The photo is drawn inside the
      text's box, which ends at the hero's foot and is the text's height plus
      --rise, so its size and its place follow the text: it is drawn just
      tall enough that the part under the landmark's foot covers the text,
-     the foot --clear over the first line, and set by that foot (the
-     object-position above), so the landmark ends there whether the photo is
-     cut at its sides or at its top and bottom. */
+     the foot --clear over the first line, and set by that foot (its
+     --place), so the landmark ends there whether the photo is cut at its
+     sides or at its top and bottom. */
   .photo-hero--landmark {
     /* The gradient climbs only a short way, or it would dim the landmark. */
     --rise: 24px;
@@ -184,8 +187,8 @@ const place = landmark
      enough already it changes nothing; on a short screen the hero grows by
      what is missing. --drawn is about the tallest the photo is drawn: on a
      phone 630px, or less where the landmark would not fit between the
-     gutters (below); on a wider screen, at least the screen's width over
-     the photo's shape. */
+     gutters; wider than a phone 720px, or the screen's width over the
+     photo's shape where that is more (both below). */
   .photo-hero--landmark::before {
     content: '';
     --drawn: max(630px, 100vw / var(--shape));
@@ -212,10 +215,15 @@ const place = landmark
 
   /* Wider than a phone, the landmark is drawn larger and the row with it,
      so the sky over it is kept to its least: the hero stays nearer half of
-     a laptop's screen. */
+     a laptop's screen. The text runs to about 330px here, so the photo is
+     drawn about 720px tall; a row sized for less would take the shortfall
+     out of that sky, and leave the sign against the header. */
   @media (min-width: 560px) {
     .photo-hero--landmark {
       --sky: 32px;
+    }
+    .photo-hero--landmark::before {
+      --drawn: max(720px, 100vw / var(--shape));
     }
   }
 
@@ -241,28 +249,6 @@ const place = landmark
       transform: translateX(calc(-100% * var(--middle)));
       -webkit-mask-image: linear-gradient(0deg, transparent, #000 32px);
       mask-image: linear-gradient(0deg, transparent, #000 32px);
-    }
-  }
-
-  /* A phone on its side has no room for the landmark over the words and
-     the button under them. The first row goes, and the photo covers the
-     hero as a plain photo hero's does, with the plain gradient's rise: the
-     hero is the text's own height, and the button is in the first view. */
-  @media (orientation: landscape) and (max-height: 500px) {
-    .photo-hero--landmark {
-      --rise: clamp(56px, 10vh, 96px);
-      min-height: 0;
-    }
-    .photo-hero--landmark::before {
-      content: none;
-    }
-    .photo-hero__img--landmark {
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      transform: none;
-      -webkit-mask-image: none;
-      mask-image: none;
     }
   }
 
@@ -302,5 +288,38 @@ const place = landmark
 
   .photo-hero--tall .photo-hero__text {
     padding-bottom: clamp(24px, 4.2vh, 40px);
+  }
+
+  /* A phone on its side has no room for the landmark over the words and
+     the button under them, and no place in the photo where the words would
+     not cover it. So the first row goes, and the photo covers a hero the
+     text's own height, framed on the sunset and the skyline instead: drawn
+     twice the screen's width from its left edge and centred top to bottom,
+     it shows the left half of the picture, and the sign, which starts just
+     past the middle, stays out of the frame. The gradient climbs 32px and
+     the words stand 16px off the foot, so the button is in the first view
+     from 360px tall (at 320, the English ends 14px under it). Last, so its
+     padding wins over the text's own, above. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .photo-hero--landmark {
+      --rise: 32px;
+      min-height: 0;
+    }
+    .photo-hero--landmark::before {
+      content: none;
+    }
+    .photo-hero__img--landmark {
+      inset: 0 auto 0 0;
+      width: 200%;
+      max-width: none;
+      height: 100%;
+      object-position: 0 50%;
+      transform: none;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .photo-hero--tall .photo-hero__text {
+      padding-bottom: 16px;
+    }
   }
 </style>

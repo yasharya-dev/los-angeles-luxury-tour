@@ -2393,7 +2393,7 @@ describe('the look of her pictures', () => {
     expect(rules).toMatch(/html\[lang=ja\] \.body\{[^}]*line-height:1\.85/);
   });
 
-  // Her statement lines (02, 06, 09) and page titles (07, 09, 10B) a step
+  // Her statement lines (02, 06, 09) and page titles (09, 10B) a step
   // larger, on the pages her pictures show them, and on the pages beside
   // them: the consultation form, its thank-you and the not-found page take
   // the size her booking form and its received page have. Each size comes
@@ -2420,7 +2420,7 @@ describe('the look of her pictures', () => {
     expect(uses('/ja', 'h2', 'statement'), 'value and closing').toBe(2);
     expect(uses('/ja/about', 'h2', 'statement'), 'experience and closing').toBe(2);
     // The contact page's title is the homepage's closing question, which she
-    // draws on two lines (07): it takes the statement size, not the page one.
+    // draws on two lines (06): it takes the statement size, not the page one.
     expect(uses('/ja/contact', 'h1', 'statement'), 'contact title').toBe(1);
     for (const route of [
       '/ja/about',
@@ -2439,9 +2439,13 @@ describe('the look of her pictures', () => {
 
   // Her cards are white paper with a warm grey edge and a soft shadow (04,
   // 07, 10A), with no gold around them: painted on the card, the edge is a
-  // near-neutral line, not a gold one, and as clear against the page as
-  // hers, about 1.26:1 against her cream. Her reason cards keep a gold edge
-  // (03).
+  // near-neutral line, not a gold one. Hers paints #dedbd6 to #dbd8d3 on her
+  // #f4f1ec, about 1.23 to 1.26:1. The plan cards stand on the deeper cream
+  // of their section and the price card on the page's own, so the edge is
+  // held at both: at least 1.2:1 on the deeper one, where it is faintest,
+  // and under 1.4:1 on the lighter one, where it is clearest and must still
+  // read as her soft line, not a drawn one. Her reason cards keep a gold
+  // edge (03).
   it('edges the cards in a warm line, not gold, except her reason cards', () => {
     const rules = css();
     expect(rules).toMatch(/\.panel\{[^}]*border:1px solid var\(--card-edge\)/);
@@ -2449,9 +2453,10 @@ describe('the look of her pictures', () => {
     const painted = over(parseHex(token(cream(), 'card-edge')), solid(cream(), 'card'));
     const chroma = Math.max(...painted) - Math.min(...painted);
     expect(chroma, `the edge paints rgb ${painted.map(Math.round).join(', ')}`).toBeLessThan(12);
-    const edge = ratio(painted, solid(cream(), 'bg'));
-    expect(edge, `the edge is ${edge.toFixed(2)}:1 against the page`).toBeGreaterThanOrEqual(1.25);
-    expect(edge, `the edge is ${edge.toFixed(2)}:1 against the page`).toBeLessThan(1.4);
+    const onDeep = ratio(painted, solid(cream(), 'bg-deep'));
+    expect(onDeep, `the edge is ${onDeep.toFixed(2)}:1 on the deeper cream`).toBeGreaterThanOrEqual(1.2);
+    const onPage = ratio(painted, solid(cream(), 'bg'));
+    expect(onPage, `the edge is ${onPage.toFixed(2)}:1 on the page's cream`).toBeLessThan(1.4);
     expect(rules).toMatch(/\.reason\[data-astro-cid-[^\]]+\]\{[^}]*border-color:var\(--hairline\)/);
     expect(html('/ja')).toMatch(/<li class="reason panel"/);
     // Her flat taupe placeholder tile (04), with the monogram in white on
@@ -2510,12 +2515,15 @@ describe('the look of her pictures', () => {
 
   // The homepage's first screen, until a portrait photo for phones arrives.
   // The label has air under the sign's legs, as her hillside gives it (01),
-  // one token wherever the photo is sized or placed by it. Wider than a
-  // phone the sky over the sign is kept to its least, so the hero stays
-  // nearer half a laptop's screen. A phone on its side drops the sign's row
-  // and the floor, so the photo covers a hero the text's own height and the
-  // button is in the first view. Safari before 15.4 has no svh: plain
-  // values, in a block the minifier cannot fold away.
+  // one token, set once, wherever the photo is sized or placed by it. Wider
+  // than a phone the sky over the sign is kept to its least, so the hero
+  // stays nearer half a laptop's screen, and the sign's row is sized for the
+  // photo as it is drawn there, so that sky is really there. A phone on its
+  // side drops the sign's row and the floor, frames the sunset and the
+  // skyline in place of the sign the words would cover, and trims the
+  // gradient's rise and the space under the button, so the button is in the
+  // first view. Safari before 15.4 has no svh: plain values, in a block the
+  // minifier cannot fold away.
   it('gives the label air under the sign, and keeps the button in the first view', () => {
     const rules = css();
     const own = (selector: string, from = rules) =>
@@ -2525,23 +2533,63 @@ describe('the look of her pictures', () => {
         .join(';');
     const clear = Number(own('.photo-hero--landmark').match(/(?:^|;)--clear:(\d+)px/)?.[1]);
     expect(clear, 'the air under the sign').toBeGreaterThanOrEqual(12);
+    expect(count(rules, /[{;]--clear:/g), 'one --clear for every screen').toBe(1);
     expect(own('.photo-hero__img--landmark').match(/var\(--clear\)/g)?.length, 'the photo').toBe(2);
     expect(own('.photo-hero--landmark:before'), 'the row above the words').toMatch(/height:calc\([^;]*var\(--clear\)/);
     expect(rules, 'a gap written in by hand').not.toMatch(/var\(--rise\) \+ \d+px/);
 
     const wider = within(/^\((?:min-width:\s?560px|width>=560px)\)$/);
     expect(own('.photo-hero--landmark', wider)).toMatch(/(?:^|;)--sky:32px(?:;|$)/);
+    expect(own('.photo-hero--landmark:before', wider)).toMatch(
+      /(?:^|;)--drawn:max\(720px,\s?100vw \/ var\(--shape\)\)(?:;|$)/,
+    );
+
+    // The photo's place reaches the styles as a property: an object-position
+    // written on the element would win over the sideways frame below.
+    expect(own('.photo-hero__img').split(';')).toContain('object-position:var(--place)');
+    for (const route of ['/', '/ja']) {
+      const img = html(route).match(/<img [^>]*photo-hero__img--landmark[^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/ style="--place: \d+% [\d.]+%"/);
+      expect(img, route).not.toMatch(/object-position/);
+    }
 
     const sideways = within(/^\(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)$/);
-    expect(own('.photo-hero--landmark', sideways)).toMatch(/(?:^|;)min-height:0(?:;|$)/);
+    expect(own('.photo-hero--landmark', sideways).split(';')).toEqual(
+      expect.arrayContaining(['--rise:32px', 'min-height:0']),
+    );
     expect(own('.photo-hero--landmark:before', sideways)).toMatch(/(?:^|;)content:none(?:;|$)/);
-    const photo = own('.photo-hero__img--landmark', sideways);
-    expect(photo).toMatch(/(?:^|;)inset:0(?:;|$)/);
-    expect(photo).toMatch(/(?:^|;)height:100%(?:;|$)/);
-    expect(photo).toMatch(/(?:^|;)transform:none(?:;|$)/);
+    expect(own('.photo-hero__img--landmark', sideways).split(';')).toEqual(
+      expect.arrayContaining([
+        'inset:0 auto 0 0',
+        'width:200%',
+        'max-width:none',
+        'height:100%',
+        'object-position:0 50%',
+        'transform:none',
+        'mask-image:none',
+      ]),
+    );
+    expect(own('.photo-hero--tall .photo-hero__text', sideways)).toMatch(/(?:^|;)padding-bottom:16px(?:;|$)/);
+    // Last, as it overrides rules of the same weight: the text's padding,
+    // the phone's frame, the landmark's own.
+    const at = (rule: RegExp) => {
+      const index = rules.search(rule);
+      expect(index, String(rule)).toBeGreaterThan(-1);
+      return index;
+    };
+    const turned = at(/@media \(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)\{\.photo-hero/);
+    for (const rule of [
+      /\.photo-hero--landmark\[[^\]]+\]\{--rise:24px/,
+      /\.photo-hero__img--landmark\[[^\]]+\]\{--need:/,
+      /@media \((?:max-width:\s?559px|width<=559px)\)\{\.photo-hero/,
+      /\.photo-hero--tall\[[^\]]+\] \.photo-hero__text\[[^\]]+\]\{padding-bottom:clamp\(/,
+    ]) {
+      expect(at(rule), String(rule)).toBeLessThan(turned);
+    }
 
     const old = within(/^not \(height:\s?1svh\)$/);
     expect(own('.photo-hero--tall', old)).toMatch(/(?:^|;)min-height:340px(?:;|$)/);
+    expect(own('.photo-hero--short', old)).toMatch(/(?:^|;)min-height:210px(?:;|$)/);
     expect(own('.photo-hero--landmark', old)).toMatch(/(?:^|;)--sky:\d+px(?:;|$)/);
   });
 
@@ -2590,23 +2638,50 @@ describe('the look of her pictures', () => {
     const rules = css();
     expect(rules).toMatch(/\.tile\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--feature-tile\)/);
     expect(rules).toMatch(/\.back\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--bar\)/);
+    const cid = html('/experience/dodgers-transfer').match(/<section class="closing plate"[^>]* data-astro-cid-(\w+)/)?.[1];
+    expect(cid, "the plan page's scope").toBeTruthy();
+    const scoped = (name: string) => String.raw`\.${name}\[data-astro-cid-${cid}\]`;
     // On a phone the black follows the last row straight on, with one line
     // between them at most: the last row draws none, the panel's edge ends
     // the list. That edge is transparent in the cream theme, unseen on the
-    // black, but a contrast theme draws it. From 681px the card stands
-    // apart and the last row keeps its line.
-    expect(rules).toMatch(/\.detail\[data-astro-cid-[^\]]+\]:last-child\{border-bottom:0\}/);
+    // black, but a contrast theme draws it; in the dark theme, where the
+    // panel's black is the page's own, a gold line marks where it starts.
+    // The panel and the way back keep the page's gutters. From 681px the
+    // card stands apart, the last row keeps its line, and the page's padding
+    // keeps the card off the footer.
+    const ending = [
+      new RegExp(String.raw`${scoped('detail')}:last-child\{border-bottom:0\}`),
+      new RegExp(String.raw`${scoped('closing')}\{(?:[^}]*;)?padding:24px var\(--gutter\) 22px(?:;|\})`),
+      new RegExp(String.raw`${scoped('back')}\{(?:[^}]*;)?padding:4px var\(--gutter\) 12px(?:;|\})`),
+    ];
     expect(rules).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{(?:[^}]*;)?border-top:1px solid (?:#0000|transparent)(?:;|\})/);
+    expect(rules).toMatch(
+      new RegExp(String.raw`html\[data-theme=dark\] ${scoped('closing')}\{border-top-color:var\(--hairline\)\}`),
+    );
     const wide = within(/^\((?:min-width:\s?681px|width>=681px)\)$/);
     expect(wide).toMatch(
       /\.detail\[data-astro-cid-[^\]]+\]:last-child\{border-bottom:1px solid var\(--hairline-soft\)\}/,
     );
     expect(wide).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{[^}]*border-radius:/);
+    expect(wide).toMatch(
+      new RegExp(String.raw`${scoped('plan-page')}\{(?:[^}]*;)?padding-bottom:clamp\(36px,\s?6vw,\s?56px\)(?:;|\})`),
+    );
     // The phone's ending is the default and the wide card overrides it, so
     // no width falls between a max-width: 680px and a min-width: 681px,
-    // as one at 680.8px under browser zoom did.
+    // as one at 680.8px under browser zoom did. Defaults, in no block, and
+    // before the card that overrides them with the same weight.
     const phone = within(/^\((?:max-width:\s?680px|width<=680px)\)$/);
     expect(phone).not.toMatch(/\.(?:plan-page|detail|closing|back)\[/);
+    const card = rules.search(
+      new RegExp(String.raw`@media \((?:min-width:\s?681px|width>=681px)\)\{[^@]*${scoped('closing')}`),
+    );
+    expect(card, 'the wide card').toBeGreaterThan(-1);
+    const blocks = within(/./);
+    for (const rule of ending) {
+      expect(rules.search(rule), String(rule)).toBeGreaterThan(-1);
+      expect(rules.search(rule), String(rule)).toBeLessThan(card);
+      expect(blocks.search(rule), `${rule} inside a block`).toBe(-1);
+    }
   });
 });
 
@@ -2665,7 +2740,10 @@ describe('the photographs made for each spot', () => {
   // and the committed image is the one the script makes now: a new photo,
   // logo or layout without a rerun fails here. Compared as decoded pixels,
   // since another machine's encoder may write other bytes for the same
-  // picture.
+  // picture: within a level per channel on average, and no more than one
+  // pixel in a thousand off by more than 16 in any channel. The logo draws
+  // under a hundredth of the frame, too little to move the average: a
+  // preview without it, or with it faded, fails on the pixel count.
   it('builds the link preview from the homepage photo, as the script makes it now', async () => {
     const root = process.cwd();
     const script = readFileSync(join(root, 'scripts/og.mjs'), 'utf8');
@@ -2680,12 +2758,27 @@ describe('the photographs made for each spot', () => {
       execFileSync(process.execPath, ['scripts/og.mjs', fresh], { cwd: root, stdio: 'pipe' });
       const pixels = (file: string) => sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const [kept, made] = await Promise.all([pixels(join(root, 'public/og/default.jpg')), pixels(fresh)]);
-      expect([kept.info.width, kept.info.height]).toEqual([1200, 630]);
-      expect([made.info.width, made.info.height]).toEqual([1200, 630]);
+      expect([kept.info.width, kept.info.height, kept.info.channels]).toEqual([1200, 630, 3]);
+      expect([made.info.width, made.info.height, made.info.channels]).toEqual([1200, 630, 3]);
       let sum = 0;
-      for (let i = 0; i < kept.data.length; i++) sum += Math.abs(kept.data[i] - made.data[i]);
+      let off = 0;
+      for (let i = 0; i < kept.data.length; i += 3) {
+        let most = 0;
+        for (let c = i; c < i + 3; c++) {
+          const d = Math.abs(kept.data[c] - made.data[c]);
+          sum += d;
+          most = Math.max(most, d);
+        }
+        if (most > 16) off++;
+      }
       const mean = sum / kept.data.length;
+      const share = off / (kept.data.length / 3);
+      console.info(
+        `link preview against a fresh render: mean difference ${mean.toFixed(3)} per channel, ` +
+          `${off} pixels (${(share * 100).toFixed(3)}%) off by more than 16`,
+      );
       expect(mean, `mean difference per channel ${mean.toFixed(2)} of 255`).toBeLessThanOrEqual(1);
+      expect(share, `${off} pixels off by more than 16`).toBeLessThanOrEqual(0.001);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -2710,36 +2803,36 @@ describe('the photographs made for each spot', () => {
 
   // The stand-ins found online, with no record of where they came from, and
   // two files nothing used: gone, and nothing anywhere points at them. Every
-  // file git has or would take, the root's config and .github's included,
-  // and every file the build wrote; all but this one, which has to name
-  // them. A file with a NUL byte in it is an image or a font, with no words
-  // to check.
+  // file in the project, the root's config and .github's included, read from
+  // the disk, so the check needs no git and runs as well in a source export;
+  // and every file the build wrote. Left out: this file, which has to name
+  // them, and what is not the project's own at the root: the dependencies,
+  // git, Astro's and Wrangler's local state and the working notes. A file
+  // with a NUL byte in it is an image or a font, with no words to check.
   it('leaves no trace of the photos it took out', () => {
     const gone =
       /hero-dtla|hero-dusk|hero-malibu|divider-architecture|\bsteak\.(?:[\w-]+\.)?(?:jpe?g|webp|avif|png)\b|assets\/steak\b/;
     const root = process.cwd();
-    const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
-      cwd: root,
-      encoding: 'utf8',
-    })
-      .split('\0')
-      .filter((name) => name && name !== 'tests/build.test.ts')
-      .map((name) => join(root, name))
-      // Deleted in the working tree but not yet in the index.
-      .filter((path) => existsSync(path));
-    expect(listed.length).toBeGreaterThan(100);
-    expect(listed).toContain(join(root, 'astro.config.mjs'));
-    expect(listed).toContain(join(root, '.github', 'workflows', 'ci.yml'));
-    const built = (dir: string): string[] =>
-      readdirSync(dir).flatMap((name) => {
-        const path = join(dir, name);
-        return statSync(path).isDirectory() ? built(path) : [path];
+    const walk = (dir: string, skip: string[] = []): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        if (skip.includes(entry.name)) return [];
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) return walk(path);
+        return entry.isFile() ? [path] : [];
       });
-    for (const file of [...listed, ...built(DIST)]) {
+    // dist is read on its own, below.
+    const own = walk(root, ['node_modules', '.git', '.astro', '.wrangler', '.arya', 'dist']).filter(
+      (path) => path !== join(root, 'tests', 'build.test.ts'),
+    );
+    expect(own.length).toBeGreaterThan(100);
+    expect(own).toContain(join(root, 'astro.config.mjs'));
+    expect(own).toContain(join(root, '.github', 'workflows', 'ci.yml'));
+    for (const file of [...own, ...walk(DIST)]) {
       const name = file.slice(root.length);
       expect(name, 'a file by that name').not.toMatch(gone);
       const bytes = readFileSync(file);
-      if (!bytes.includes(0)) expect(new TextDecoder().decode(bytes), name).not.toMatch(gone);
+      // The match, not the file: some of these are large, or private.
+      if (!bytes.includes(0)) expect(new TextDecoder().decode(bytes).match(gone)?.[0], name).toBeUndefined();
     }
   });
 });

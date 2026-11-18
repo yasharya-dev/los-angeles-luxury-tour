@@ -252,7 +252,7 @@ html[lang='ja'] .h2 {
 /* Her two larger sizes, after the rule above so they win on source order.
    A statement line (02, 06, 09) is sized from the column, so her fifteen
    characters still fit it: 21px at 360, 23 at 390, 32 from 540. A page
-   title (07, 09, 10B) is a step above that: 25.6px at 360, 28 at 390, 40 on
+   title (09, 10B) is a step above that: 25.6px at 360, 28 at 390, 40 on
    a computer. */
 html[lang='ja'] .h2--statement {
   font-size: clamp(21px, calc((100vw - 2 * var(--gutter)) / 15.2), 32px);
