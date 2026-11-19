@@ -1887,6 +1887,68 @@ describe('the contact page chooses', () => {
       expect(values, route).toEqual(['@153cqwqp', 'losangelesluxurytour@gmail.com']);
     }
   });
+
+  // Her opening (07): the words over a pale, hazy downtown framed by palms,
+  // fading into the cream where the two ways start. The photo sets the scene
+  // and says nothing, so its alt is empty; it opens the page, so it is
+  // fetched first. A light wash of the page's cream (the black in the dark
+  // theme) keeps it pale as hers is, fading out over its last eighth so the
+  // palms along its foot stay, and her label takes a deeper gold on that
+  // pale sky.
+  it('opens on her hazy downtown photo, washed and fading into the page', () => {
+    for (const route of ['/contact', '/ja/contact']) {
+      const doc = html(route);
+      const head = doc.match(/<section class="section head"[^]*?<\/section>/)?.[0] ?? '';
+      expect(head.indexOf('<h1'), route).toBeGreaterThan(-1);
+      expect(head.indexOf('<picture'), 'the photo after the words').toBeGreaterThan(head.indexOf('<h1'));
+      const img = head.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/\/_astro\/downtown-palms-haze\./);
+      expect(img, route).toContain('class="head__photo"');
+      expect(img, route).toMatch(/ alt(?:="")? /);
+      expect(img, route).toContain('loading="eager"');
+      // Drawn by the section's height on a phone, wider than the screen.
+      expect(img, route).toContain('sizes="(max-width: 479px) 620px, 100vw"');
+      // The fade ends on the colour of the section that follows it.
+      expect(doc.slice(doc.indexOf(head) + head.length), route).toMatch(/^\s*<section class="section section--deep"/);
+    }
+
+    // Every rule below is the Contact page's own, by its scope: the About
+    // page has a .head with rules of the same shape.
+    const cid = html('/contact').match(/<section class="section head"[^>]* data-astro-cid-(\w+)/)?.[1];
+    expect(cid, "the Contact page's scope").toBeTruthy();
+    const rule = (selector: string, from = css()) =>
+      [...from.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim() === selector.replace(/@/g, `[data-astro-cid-${cid}]`))
+        .flatMap(([, , body]) => body.split(';'));
+
+    // The section, the photo, and the wash over it: without any of these
+    // the photo or its wash is gone. Sized, not set by inset, which Safari
+    // before 14.1 cannot read.
+    expect(rule('.head@')).toEqual(expect.arrayContaining(['--wash:#faf9f633', 'position:relative', 'isolation:isolate']));
+    const wash = rule('.head@:after');
+    expect(wash).toEqual(expect.arrayContaining(['content:""', 'position:absolute', 'z-index:-1', 'width:100%', 'height:100%']));
+    expect(wash.join(';')).toMatch(
+      /background:linear-gradient\((?:180deg,\s?)?var\(--wash\) 0%,\s?var\(--wash\) 88%,\s?var\(--bg-deep\) 100%\)/,
+    );
+    const photo = rule('.head__photo@');
+    expect(photo).toEqual(
+      expect.arrayContaining(['position:absolute', 'z-index:-2', 'object-fit:cover', 'object-position:50% 70%']),
+    );
+    for (const decls of [wash, photo]) expect(decls.join(';'), 'set by inset').not.toMatch(/(?:^|;)inset:/);
+    expect(rule('html[data-theme=dark] .head@')).toContain('--wash:#101010c7');
+    expect(rule('html:not([data-theme=dark]) .head@')).toContain('--gold-text:#6e5613');
+    // A printed page is cream from either theme: the cream wash and label.
+    expect(rule('html[data-theme=dark] .head@', within(/^print$/))).toEqual(
+      expect.arrayContaining(['--wash:#faf9f633', '--gold-text:#6e5613']),
+    );
+
+    // In the dark theme the wash is what keeps the light words legible:
+    // worked out over the worst a photo can do, a pure-white pixel, the ink
+    // and the gold label still clear 4.5:1.
+    const grey = over(parseHex('#101010c7'), [255, 255, 255]);
+    expect(ratio(solid(dark(), 'ink'), grey), 'ink on the dark wash').toBeGreaterThanOrEqual(4.5);
+    expect(ratio(solid(dark(), 'gold-text'), grey), 'label on the dark wash').toBeGreaterThanOrEqual(4.5);
+  });
 });
 
 // Amelia's plan page, from section 10A of her brief of 2026-11-05, drawn for
