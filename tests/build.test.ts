@@ -1857,9 +1857,10 @@ describe('the contact page chooses', () => {
   // Her opening (07): the words over a pale, hazy downtown framed by palms,
   // fading into the cream where the two ways start. The photo sets the scene
   // and says nothing, so its alt is empty; it opens the page, so it is
-  // fetched first. A wash of the page's cream (the black in the dark theme)
-  // keeps every line legible over the palm fronds, and her label takes a
-  // deeper gold on that pale sky.
+  // fetched first. A light wash of the page's cream (the black in the dark
+  // theme) keeps it pale as hers is, fading out over its last eighth so the
+  // palms along its foot stay, and her label takes a deeper gold on that
+  // pale sky.
   it('opens on her hazy downtown photo, washed and fading into the page', () => {
     for (const route of ['/contact', '/ja/contact']) {
       const head = html(route).match(/<section class="section head"[^]*?<\/section>/)?.[0] ?? '';
@@ -1869,17 +1870,25 @@ describe('the contact page chooses', () => {
       expect(img, route).toContain('class="head__photo"');
       expect(img, route).toMatch(/ alt(?:="")? /);
       expect(img, route).toContain('loading="eager"');
+      // Drawn by the section's height on a phone, wider than the screen.
+      expect(img, route).toContain('sizes="(max-width: 479px) 620px, 100vw"');
     }
     const rules = css();
-    expect(rules).toMatch(/\.head\[data-astro-cid-[^\]]+\]\{[^}]*--wash:#faf9f66b/);
+    expect(rules).toMatch(/\.head\[data-astro-cid-[^\]]+\]\{[^}]*--wash:#faf9f633/);
+    // The wash is sized, not set by inset, which Safari before 14.1 cannot
+    // read and without which the dark theme's words would be unreadable.
     expect(rules).toMatch(
-      /\.head\[data-astro-cid-[^\]]+\]:after\{[^}]*background:linear-gradient\((?:180deg,\s?)?var\(--wash\) 0%,\s?var\(--wash\) 72%,\s?var\(--bg-deep\) 100%\)/,
+      /\.head\[data-astro-cid-[^\]]+\]:after\{(?=[^}]*background:linear-gradient\((?:180deg,\s?)?var\(--wash\) 0%,\s?var\(--wash\) 88%,\s?var\(--bg-deep\) 100%\))(?=[^}]*width:100%)(?=[^}]*height:100%)(?![^}]*inset)[^}]*\}/,
     );
     expect(rules).toMatch(
-      /\.head__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*object-fit:cover)[^}]*\}/,
+      /\.head__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*object-fit:cover)(?=[^}]*object-position:50% 70%)(?![^}]*inset)[^}]*\}/,
     );
     expect(rules).toMatch(/html\[data-theme=dark\] \.head\[data-astro-cid-[^\]]+\]\{--wash:#101010c7\}/);
     expect(rules).toMatch(/html:not\(\[data-theme=dark\]\) \.head\[data-astro-cid-[^\]]+\]\{--gold-text:#6e5613\}/);
+    // A printed page is cream from either theme: the cream wash and label.
+    expect(within(/^print$/)).toMatch(
+      /html\[data-theme=dark\] \.head\[data-astro-cid-[^\]]+\]\{(?=[^}]*--wash:#faf9f633)(?=[^}]*--gold-text:#6e5613)[^}]*\}/,
+    );
   });
 });
 

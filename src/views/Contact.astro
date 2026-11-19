@@ -234,7 +234,9 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     <h1 class="h2 h2--statement"><Phrases text={c.title} /></h1>
     <p class="body head__lead"><Phrases text={c.lead} /></p>
   </div>
-  <Photo class="head__photo" src={haze} alt="" sizes="100vw" priority />
+  {/* On a phone the photo is drawn by the section's height, about 620px
+      wide at most, wider than the screen. */}
+  <Photo class="head__photo" src={haze} alt="" sizes="(max-width: 479px) 620px, 100vw" priority />
 </section>
 
 {/* Two paths, visually separate, as she asked: her copy, unchanged. Then the
@@ -341,29 +343,37 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     color: var(--ink);
   }
 
-  /* The photo fills the section from behind, under a wash of the page's
-     cream, as her picture is pale (07), and fades into the cream of the
-     section below. The wash is what keeps every line legible where the
-     words cross the palm fronds at the photo's top left; elsewhere its sky
-     is light (no pixel under a luma of 205 right of the fronds and above
-     the towers). In the dark theme the wash is the page's black. */
+  /* The photo fills the section from behind, under a light wash of the
+     page's cream, pale as her picture is (07), and fades into the cream of
+     the section below over its last eighth, short enough to keep the palms
+     along its foot. No line crosses the fronds at its top left, and its
+     sky is light (no pixel under a luma of 205 right of the fronds and
+     above the towers), so the words read without a heavier wash. In the
+     dark theme the wash is the page's black. */
   .head {
-    --wash: rgba(250, 249, 246, 0.42);
+    --wash: rgba(250, 249, 246, 0.2);
     position: relative;
     isolation: isolate;
     overflow: hidden;
   }
+  /* Sized, not inset (top, right, bottom and left fold into inset, which
+     Safari before 14.1 cannot read). */
   .head::after {
     content: '';
     position: absolute;
     top: 0;
-    right: 0;
-    bottom: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
     z-index: -1;
-    background: linear-gradient(180deg, var(--wash) 0%, var(--wash) 72%, var(--bg-deep) 100%);
+    background: linear-gradient(180deg, var(--wash) 0%, var(--wash) 88%, var(--bg-deep) 100%);
   }
-  /* top and left, not inset, which Safari before 14.1 cannot read. */
+  /* top and left, not inset, which Safari before 14.1 cannot read. On a
+     phone the photo is cut at its sides; once the section is wider than
+     the photo's 3:2, at its top and foot instead, where it is held 70% of
+     the way down, so the fronds keep the top left and the towers rise
+     behind the words on the right, their tops between the title and the
+     lead, as hers are. */
   .head__photo {
     position: absolute;
     top: 0;
@@ -372,17 +382,18 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 50% 45%;
-  }
-  /* Wider, the photo is cut at its top and foot instead of its sides: held
-     low, so the towers stand behind the words on the right, as on a phone. */
-  @media (min-width: 768px) {
-    .head__photo {
-      object-position: 50% 80%;
-    }
+    object-position: 50% 70%;
   }
   :global(html[data-theme='dark']) .head {
     --wash: rgba(16, 16, 16, 0.78);
+  }
+  /* A printed page is cream, from either theme: the cream wash and label,
+     or the dark wash would sit under the cream page's dark ink. */
+  @media print {
+    :global(html[data-theme='dark']) .head {
+      --wash: rgba(250, 249, 246, 0.2);
+      --gold-text: #6e5613;
+    }
   }
   /* Her label, a shade deeper than the page's gold text, which is under
      4.5:1 on this pale sky. */
