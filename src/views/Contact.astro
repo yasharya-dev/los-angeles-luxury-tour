@@ -349,12 +349,13 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
      along its foot. No line crosses the fronds at its top left, and its
      sky is light (no pixel under a luma of 205 right of the fronds and
      above the towers), so the words read without a heavier wash. In the
-     dark theme the wash is the page's black. */
+     dark theme the wash is the page's black, and it is what keeps the light
+     words legible: over even a pure-white pixel it leaves a grey of about
+     68, under which the ink is 8.9:1 and the gold label 4.6:1. */
   .head {
     --wash: rgba(250, 249, 246, 0.2);
     position: relative;
     isolation: isolate;
-    overflow: hidden;
   }
   /* Sized, not inset (top, right, bottom and left fold into inset, which
      Safari before 14.1 cannot read). */
@@ -395,8 +396,8 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
       --gold-text: #6e5613;
     }
   }
-  /* Her label, a shade deeper than the page's gold text, which is under
-     4.5:1 on this pale sky. */
+  /* Her label, a shade deeper than the page's gold text, which falls under
+     4.5:1 on this sky under the light wash. */
   :global(html:not([data-theme='dark'])) .head {
     --gold-text: #6e5613;
   }
