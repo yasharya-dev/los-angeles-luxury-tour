@@ -1139,11 +1139,17 @@ describe('photographs', () => {
     html(route).match(/<picture[\s\S]*?<\/picture>/)?.[0] ?? '';
   const files = (srcset: string) =>
     srcset.split(',').map((part) => join(DIST, part.trim().split(' ')[0]));
+  // A picture's own photo, and the one a media query swaps in for some
+  // screens (the homepage's upright photo, for an upright phone).
+  const opening = (pic: string) => pic.replace(/<source media="[^"]*"[^>]*>/g, '');
+  const swapped = (pic: string) => (pic.match(/<source media="[^"]*"[^>]*>/g) ?? []).join('');
 
   it('offers the opening photo as AVIF, then WebP, then JPEG, and fetches it first', () => {
     const pic = picture('/');
-    const types = [...pic.matchAll(/<source type="(image\/[a-z]+)"/g)].map((m) => m[1]);
-    expect(types).toEqual(['image/avif', 'image/webp']);
+    const types = (part: string) => [...part.matchAll(/ type="(image\/[a-z]+)"/g)].map((m) => m[1]);
+    expect(types(opening(pic))).toEqual(['image/avif', 'image/webp']);
+    // The swapped-in photo has no <img> of its own: its JPEG is a source.
+    expect(types(swapped(pic))).toEqual(['image/avif', 'image/webp', 'image/jpeg']);
     const img = pic.match(/<img[^>]*>/)?.[0] ?? '';
     expect(img).toMatch(/src="[^"]+\.jpg"/);
     expect(img).toContain('fetchpriority="high"');
@@ -1156,20 +1162,30 @@ describe('photographs', () => {
     // The homepage photo is drawn by the sign on it, a little over twice as
     // tall as the words under the sign: never more than about 700px tall,
     // 1244px wide for its 1672 by 941, until the screen is wider than that.
+    // An upright phone draws its upright photo the screen's width instead.
     // The Experience band is cut to 3:2 and is 32% tall: 48%.
-    const sizes = (route: string) => picture(route).match(/sizes="([^"]+)"/)?.[1] ?? '';
-    expect(sizes('/')).toBe('(max-width: 1244px) 1244px, 100vw');
-    expect(sizes('/experience')).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
+    const sizes = (part: string) => part.match(/sizes="([^"]+)"/)?.[1] ?? '';
+    expect(sizes(opening(picture('/')))).toBe('(max-width: 1244px) 1244px, 100vw');
+    expect(sizes(swapped(picture('/')))).toBe('100vw');
+    expect(sizes(picture('/experience'))).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
   });
 
-  // The homepage photo is 1672px wide: the ladder ends on its own width, and
-  // asks for nothing wider, which would only be the same pixels enlarged.
-  it('never asks for more of the homepage photo than it holds', () => {
-    const sets = [...picture('/').matchAll(/srcset="([^"]+)"/g)].map((m) =>
-      m[1].split(',').map((part) => Number(part.trim().split(' ')[1].replace('w', ''))),
-    );
-    expect(sets.length).toBe(3);
-    for (const widths of sets) expect(Math.max(...widths)).toBe(1672);
+  // The homepage photo is 1672px wide and its upright one 941: each ladder
+  // ends on its own photo's width, and asks for nothing wider, which would
+  // only be the same pixels enlarged.
+  it('never asks for more of the homepage photos than they hold', () => {
+    const widths = (part: string) =>
+      [...part.matchAll(/srcset="([^"]+)"/g)].map((m) =>
+        m[1].split(',').map((p) => Number(p.trim().split(' ')[1].replace('w', ''))),
+      );
+    for (const [part, own] of [
+      [opening(picture('/')), 1672],
+      [swapped(picture('/')), 941],
+    ] as const) {
+      const sets = widths(part);
+      expect(sets.length).toBe(3);
+      for (const set of sets) expect(Math.max(...set)).toBe(own);
+    }
   });
 
   // The About page opens on her portrait, in the first screen of a phone;
@@ -1187,13 +1203,14 @@ describe('photographs', () => {
   // Listing AVIF first only helps if it is the smaller file. With one shared
   // quality it was a quarter larger than the WebP at every width.
   it('makes the AVIF the smallest file at every width', () => {
-    const sets = [...picture('/').matchAll(/srcset="([^"]+)"/g)].map((m) => files(m[1]));
-    const [avif, webp, jpg] = sets;
-    expect(avif.length).toBeGreaterThan(3);
-    for (let i = 0; i < avif.length; i++) {
-      const [a, w, j] = [avif[i], webp[i], jpg[i]].map((f) => statSync(f).size);
-      expect(a, `${avif[i]} (${a}) vs WebP (${w})`).toBeLessThan(w);
-      expect(w, `${webp[i]} (${w}) vs JPEG (${j})`).toBeLessThan(j);
+    for (const part of [opening(picture('/')), swapped(picture('/'))]) {
+      const [avif, webp, jpg] = [...part.matchAll(/srcset="([^"]+)"/g)].map((m) => files(m[1]));
+      expect(avif.length).toBeGreaterThan(3);
+      for (let i = 0; i < avif.length; i++) {
+        const [a, w, j] = [avif[i], webp[i], jpg[i]].map((f) => statSync(f).size);
+        expect(a, `${avif[i]} (${a}) vs WebP (${w})`).toBeLessThan(w);
+        expect(w, `${webp[i]} (${w}) vs JPEG (${j})`).toBeLessThan(j);
+      }
     }
   });
 });
@@ -2506,24 +2523,32 @@ describe('the look of her pictures', () => {
     expect(rules).not.toMatch(/\.(?:photo-hero__img|hero__photo)[^{}]*\{[^}]*filter:/);
     for (const route of ['/', '/ja']) {
       const hero = html(route).match(/<section class="(photo-hero [^"]*)"/)?.[1] ?? '';
-      expect(hero.split(' ').sort(), route).toEqual(['photo-hero', 'photo-hero--landmark', 'photo-hero--tall', 'plate']);
+      expect(hero.split(' ').sort(), route).toEqual([
+        'photo-hero',
+        'photo-hero--landmark',
+        'photo-hero--tall',
+        'photo-hero--upright',
+        'plate',
+      ]);
     }
     for (const prefix of ['', '/ja']) {
       expect(html(`${prefix}/experience/dodgers-transfer`), prefix).toMatch(/<div class="hero" data-astro-cid-/);
     }
   });
 
-  // The homepage's first screen, until a portrait photo for phones arrives.
-  // The label has air under the sign's legs, as her hillside gives it (01),
-  // one token, set once, wherever the photo is sized or placed by it. Wider
-  // than a phone the sky over the sign is kept to its least, so the hero
-  // stays nearer half a laptop's screen, and the sign's row is sized for the
-  // photo as it is drawn there, so that sky is really there. A phone on its
-  // side drops the sign's row and the floor, frames the sunset and the
-  // skyline in place of the sign the words would cover, and trims the
-  // gradient's rise and the space under the button, so the button is in the
-  // first view. Safari before 15.4 has no svh: plain values, in a block the
-  // minifier cannot fold away.
+  // The homepage's first screen with its landscape photo: wider than a
+  // phone, on its side, or narrower than 560px but not upright (an upright
+  // phone has a photo of its own, next, with air of its own). The label has
+  // air under the sign's legs, as her hillside gives it (01), one token, set
+  // once, wherever the photo is sized or placed by it. Wider than a phone
+  // the sky over the sign is kept to its least, so the hero stays nearer
+  // half a laptop's screen, and the sign's row is sized for the photo as it
+  // is drawn there, so that sky is really there. A phone on its side drops
+  // the sign's row and the floor, frames the sunset and the skyline in place
+  // of the sign the words would cover, and trims the gradient's rise and
+  // the space under the button, so the button is in the first view. Safari
+  // before 15.4 has no svh: plain values, in a block the minifier cannot
+  // fold away.
   it('gives the label air under the sign, and keeps the button in the first view', () => {
     const rules = css();
     const own = (selector: string, from = rules) =>
@@ -2533,7 +2558,7 @@ describe('the look of her pictures', () => {
         .join(';');
     const clear = Number(own('.photo-hero--landmark').match(/(?:^|;)--clear:(\d+)px/)?.[1]);
     expect(clear, 'the air under the sign').toBeGreaterThanOrEqual(12);
-    expect(count(rules, /[{;]--clear:/g), 'one --clear for every screen').toBe(1);
+    expect(count(rules, /[{;]--clear:/g), 'one --clear for this frame, one for the upright frame').toBe(2);
     expect(own('.photo-hero__img--landmark').match(/var\(--clear\)/g)?.length, 'the photo').toBe(2);
     expect(own('.photo-hero--landmark:before'), 'the row above the words').toMatch(/height:calc\([^;]*var\(--clear\)/);
     expect(rules, 'a gap written in by hand').not.toMatch(/var\(--rise\) \+ \d+px/);
@@ -2609,6 +2634,113 @@ describe('the look of her pictures', () => {
     expect(own('.photo-hero--tall', old)).toMatch(/(?:^|;)min-height:340px(?:;|$)/);
     expect(own('.photo-hero--short', old)).toMatch(/(?:^|;)min-height:210px(?:;|$)/);
     expect(own('.photo-hero--landmark', old)).toMatch(/(?:^|;)--sky:\d+px(?:;|$)/);
+  });
+
+  // An upright phone (any upright screen under 560px) has a photo of its
+  // own, taken upright as her picture is (01): the sign small and high on
+  // the right, the palms on the left, where the landscape photo had to be
+  // drawn two and a half screens wide to keep the words off its sign. The
+  // photo is picked by a media query and framed by styles under the same
+  // query, written the same way word for word, so a browser that cannot
+  // read one cannot read the other (Safari before 16.4 reads no range
+  // syntax, #97). Its files come first, in all three formats, so a browser
+  // that takes the query never falls through to the landscape photo. It is
+  // drawn the screen's width (more where the words run tall) and set by its
+  // own landmark, mast and all: no centring, no fit, no fade, nothing
+  // holding the photo's foot at the hero's, and a cut from the left only as
+  // far as keeps the sign inside the gutter. Her picture's air under the
+  // sign and her closer label, rule and button come with it.
+  it("gives an upright phone its own photo, framed by that photo's sign", () => {
+    const bare = (query: string) => query.replace(/\s+/g, '');
+    let query = '';
+    for (const route of ['/', '/ja']) {
+      const hero = html(route).match(/<section class="photo-hero[^]*?<\/section>/)?.[0] ?? '';
+      const tags = hero.match(/<(?:source|img) [^>]*>/g) ?? [];
+      expect(tags.length, route).toBe(6);
+      const [upright, main] = [tags.slice(0, 3), tags.slice(3)];
+      expect(upright.map((tag) => tag.match(/ type="([^"]+)"/)?.[1]), route).toEqual([
+        'image/avif',
+        'image/webp',
+        'image/jpeg',
+      ]);
+      for (const tag of upright) {
+        const media = tag.match(/ media="([^"]+)"/)?.[1] ?? '';
+        expect(media, route).toMatch(/\(orientation: ?portrait\)/);
+        query ||= media;
+        expect(media, route).toBe(query);
+        expect(tag, route).toContain(' sizes="100vw"');
+        expect(tag, route).toContain(' width="941" height="1672"');
+        const urls = (tag.match(/ srcset="([^"]+)"/)?.[1] ?? '').split(',').map((part) => part.trim().split(' ')[0]);
+        expect(urls.length, route).toBeGreaterThan(3);
+        for (const url of urls) expect(url, route).toMatch(/^\/_astro\/hero-hollywood-upright\.[\w-]+\.(?:avif|webp|jpg)$/);
+      }
+      for (const tag of main) {
+        expect(tag, route).not.toContain(' media=');
+        expect(tag, route).not.toContain('hero-hollywood-upright');
+      }
+      expect(main[2], route).toMatch(/^<img /);
+      const style = hero.match(/<section [^>]*style="([^"]*)"/)?.[1] ?? '';
+      const value = (name: string) => style.match(new RegExp(`(?:^|; )--${name}: ([^;]+)`))?.[1] ?? '';
+      // From the tip of the mast over the sign to its legs; across, the
+      // letters' right edge, which the gutter keeps.
+      expect(Number(value('upright-top')), route).toBeCloseTo(790 / 1672, 4);
+      expect(Number(value('upright-foot')), route).toBeCloseTo(984 / 1672, 4);
+      expect(Number(value('upright-right')), route).toBeCloseTo(746 / 941, 4);
+      expect(Number(value('upright-shape')), route).toBeCloseTo(941 / 1672, 4);
+    }
+
+    // Every block written for an upright phone is under the photo's query,
+    // word for word: the frame, and her words.
+    const rules = css();
+    const heads = [...rules.matchAll(/@media ([^{]*orientation:\s?portrait[^{]*)\{/g)].map((m) => m[1].trim());
+    expect(heads.length, 'the frame and her words').toBe(2);
+    for (const head of heads) expect(bare(head), head).toBe(bare(query));
+    const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const upright = within(new RegExp(`^${literal(heads[0])}$`));
+    const own = (selector: string) =>
+      [...upright.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim().replace(/\[data-astro-cid-[^\]]+\]/g, '') === selector)
+        .flatMap(([, , body]) => body.split(';'));
+    // The frame comes after the phone's rules it overrides.
+    expect(rules.search(/@media [^{]*orientation:\s?portrait[^{]*\{\.photo-hero--upright\[/)).toBeGreaterThan(
+      rules.search(/@media \((?:max-width:\s?559px|width<=559px)\)\{\.photo-hero/),
+    );
+    // Her 40px or so of hillside between the legs and the label; the mast
+    // is in the landmark, so a little sky over it will do.
+    expect(own('.photo-hero--upright')).toEqual(expect.arrayContaining(['--clear:32px', '--sky:12px']));
+    expect(own('.photo-hero--upright:before')).toEqual(
+      expect.arrayContaining([
+        '--top:var(--upright-top)',
+        '--foot:var(--upright-foot)',
+        '--drawn:calc(100vw / var(--upright-shape))',
+      ]),
+    );
+    const photo = own('.photo-hero--upright .photo-hero__img--landmark');
+    expect(photo).toEqual(
+      expect.arrayContaining([
+        '--foot:var(--upright-foot)',
+        '--draw:max(var(--need), 100vw / var(--upright-shape))',
+        // The box is the photo, at its own shape, never short of the screen.
+        'width:auto',
+        'min-width:100%',
+        'max-width:none',
+        'mask-image:none',
+      ]),
+    );
+    const inset = photo.find((d) => d.startsWith('inset:')) ?? '';
+    expect(inset).toMatch(/^inset:auto auto calc\(.*var\(--clear\).*var\(--draw\)\) 0$/);
+    expect(inset, 'the foot held at the hero').not.toContain('max(');
+    // Cut from the right, and from the left only as far as keeps the sign's
+    // right edge inside the gutter: a translate, whose percentage is the
+    // photo's own width (--draw's is the box's height, so it cannot say it).
+    const turn = (photo.find((d) => d.startsWith('transform:')) ?? '').replace(/\s+/g, ' ');
+    expect(turn).toMatch(
+      /^transform:translate(?:X)?\(min\(0px, ?100vw - var\(--gutter\) - var\(--upright-right\) \* 100%\)\)$/,
+    );
+    expect(photo.join(';'), 'a place that leans on --draw').not.toMatch(/object-position:[^;]*--draw/);
+    // Her label, rule and headline closer together, and her button nearer.
+    expect(own('.hero__rule')).toContain('margin-block:7px');
+    expect(own('.hero__cta').join(';')).toMatch(/(?:^|;)margin-top:clamp\(16px, ?2\.8vh, ?26px\)(?:;|$)/);
   });
 
   // Her 10A: the price card holds the prices and her note, and her request
@@ -2711,8 +2843,9 @@ describe('the photographs made for each spot', () => {
     {
       page: '',
       file: 'hero-hollywood',
-      en: 'The Hollywood Sign lit by the setting sun, with downtown Los Angeles in the distance',
-      ja: '夕日に照らされたハリウッドサイン。遠くにダウンタウンの街並み',
+      // What both of its photos show: only the landscape one has downtown.
+      en: 'The Hollywood Sign lit by the setting sun',
+      ja: '夕日に照らされたハリウッドサイン',
     },
     {
       page: '/experience/dodgers-transfer',

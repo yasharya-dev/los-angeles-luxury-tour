@@ -10,13 +10,19 @@
   landscape photo in a tall phone hero is scaled up to the box's height. Left
   at 100vw there, the browser fetches a file for the screen's width and
   stretches it to more than twice that.
+
+  `art` is a second photo of the same scene for the screens a media query
+  picks out, such as an upright one for an upright phone. Its files are
+  listed first, in all three formats, so wherever the query holds the browser
+  takes them and never fetches the first photo. The styles that frame it
+  must use the same query.
 */
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
 interface Props {
   src: ImageMetadata;
-  /** Empty for a purely decorative photo. */
+  /** Empty for a purely decorative photo. Says what both photos show. */
   alt: string;
   /** How wide the image is drawn, for the browser to pick a file. */
   sizes?: string;
@@ -30,6 +36,8 @@ interface Props {
   aspect?: number;
   /** Which part a crop keeps: 'top', 'centre', 'bottom', 'left', 'right'. */
   keep?: string;
+  /** The photo shown where `media` holds, whole, and how wide it is drawn there. */
+  art?: { media: string; src: ImageMetadata; sizes: string };
   class?: string;
   style?: string;
   // Astro hands a child component the parent's style-scope attribute; it has
@@ -44,6 +52,7 @@ const {
   priority = false,
   aspect,
   keep = 'centre',
+  art,
   ...rest
 } = Astro.props;
 
@@ -53,47 +62,67 @@ const {
 const QUALITY = { avif: 48, webp: 68, jpg: 74 } as const;
 type Format = keyof typeof QUALITY;
 
-// The photo as it is served: its own shape, or the crop's. A crop taller
-// than the photo is cut from its sides, so it has less width to offer.
-const shape = aspect ?? src.width / src.height;
-const own = Math.min(src.width, Math.round(src.height * shape));
+// One photo's files, at `shape` (width over height): its own, or a crop's.
+const ladder = async (photo: ImageMetadata, shape: number, crop: boolean) => {
+  // A crop taller than the photo is cut from its sides, so it has less width
+  // to offer.
+  const own = Math.min(photo.width, Math.round(photo.height * shape));
+  // A ladder of widths, ending on the photo's own (capped at 1920): asking for
+  // more than the original holds only upscales it, and stopping at the rung
+  // below would throw resolution away.
+  const top = Math.min(own, 1920);
+  const widths = [...[240, 480, 768, 1080, 1440].filter((w) => w < top), top];
+  const make = (format: Format) =>
+    Promise.all(
+      widths.map((width) =>
+        getImage({
+          src: photo,
+          width,
+          format,
+          quality: QUALITY[format],
+          ...(crop ? { height: Math.round(width / shape), fit: 'cover', position: keep } : {}),
+        }),
+      ),
+    );
+  const [avif, webp, jpg] = await Promise.all([make('avif'), make('webp'), make('jpg')]);
+  const srcset = (set: typeof avif) =>
+    set.map((img, i) => `${img.src} ${widths[i]}w`).join(', ');
+  return {
+    width: top,
+    height: Math.round(top / shape),
+    avif: srcset(avif),
+    webp: srcset(webp),
+    jpg: srcset(jpg),
+    // What a browser with no srcset support gets: the middle of the ladder.
+    fallback: jpg[Math.min(3, jpg.length - 1)].src,
+  };
+};
 
-// A ladder of widths, ending on the photo's own (capped at 1920): asking for
-// more than the original holds only upscales it, and stopping at the rung
-// below would throw resolution away.
-const top = Math.min(own, 1920);
-const widths = [...[240, 480, 768, 1080, 1440].filter((w) => w < top), top];
-
-const make = (format: Format) =>
-  Promise.all(
-    widths.map((width) =>
-      getImage({
-        src,
-        width,
-        format,
-        quality: QUALITY[format],
-        ...(aspect ? { height: Math.round(width / aspect), fit: 'cover', position: keep } : {}),
-      }),
-    ),
-  );
-const [avif, webp, jpg] = await Promise.all([make('avif'), make('webp'), make('jpg')]);
-const srcset = (set: typeof avif) =>
-  set.map((img, i) => `${img.src} ${widths[i]}w`).join(', ');
-
-// What a browser with no srcset support gets: the middle of the ladder.
-const fallback = jpg[Math.min(3, jpg.length - 1)];
+const [main, other] = await Promise.all([
+  ladder(src, aspect ?? src.width / src.height, Boolean(aspect)),
+  art && ladder(art.src, art.src.width / art.src.height, false),
+]);
 ---
 
 <picture>
-  <source type="image/avif" srcset={srcset(avif)} sizes={sizes} />
-  <source type="image/webp" srcset={srcset(webp)} sizes={sizes} />
+  {
+    art && other && (
+      <>
+        <source media={art.media} type="image/avif" srcset={other.avif} sizes={art.sizes} width={other.width} height={other.height} />
+        <source media={art.media} type="image/webp" srcset={other.webp} sizes={art.sizes} width={other.width} height={other.height} />
+        <source media={art.media} type="image/jpeg" srcset={other.jpg} sizes={art.sizes} width={other.width} height={other.height} />
+      </>
+    )
+  }
+  <source type="image/avif" srcset={main.avif} sizes={sizes} />
+  <source type="image/webp" srcset={main.webp} sizes={sizes} />
   <img
-    src={fallback.src}
-    srcset={srcset(jpg)}
+    src={main.fallback}
+    srcset={main.jpg}
     sizes={sizes}
     alt={alt}
-    width={top}
-    height={Math.round(top / shape)}
+    width={main.width}
+    height={main.height}
     loading={priority ? 'eager' : 'lazy'}
     decoding={priority ? 'auto' : 'async'}
     fetchpriority={priority ? 'high' : undefined}
