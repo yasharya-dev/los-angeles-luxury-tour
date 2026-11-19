@@ -12,6 +12,8 @@
 import type { ImageMetadata } from 'astro';
 import Photo from './Photo.astro';
 
+type Landmark = { top: number; foot: number; left: number; right: number };
+
 interface Props {
   src: ImageMetadata;
   /** Describes the photograph. Empty when the text over it says enough. */
@@ -34,7 +36,16 @@ interface Props {
    * many lines the text runs to, with sky above it (see the styles). `focus`
    * then says only where across the photo a screen wider than a phone looks.
    */
-  landmark?: { top: number; foot: number; left: number; right: number };
+  landmark?: Landmark;
+  /**
+   * The same scene taken upright, for an upright phone, with its own
+   * landmark: drawn the screen's width, so the landmark stands where it was
+   * taken (see the styles). Where it has to be drawn wider than the screen,
+   * it is cut from the right, and from the left only as far as keeps the
+   * landmark inside the gutter. It needs a landmark, and `alt` must hold
+   * for both photos.
+   */
+  upright?: { src: ImageMetadata; landmark: Landmark };
 }
 
 const {
@@ -46,7 +57,19 @@ const {
   aspect,
   keep,
   landmark,
+  upright,
 } = Astro.props;
+
+if (upright && !landmark) {
+  throw new Error('PhotoHero: an upright photo is framed by its landmark, so the main photo needs one too.');
+}
+
+// An upright phone: the query the upright photo is picked by, and the one its
+// frame is styled under (below). It is written in range syntax, as the
+// minifier writes every query in the styles (#97), so that a browser reads
+// both or neither: Safari before 16.4 reads neither, and keeps the landscape
+// photo in its own frame. A test holds the two the same, word for word.
+const UPRIGHT = '(width <= 559px) and (orientation: portrait)';
 
 const shape = aspect ?? src.width / src.height;
 
@@ -72,6 +95,11 @@ const sizes = landmark
 // The photo is set by the landmark's foot. Its position goes to the styles as
 // a property, not as an inline object-position, so a layout that frames the
 // photo another way (a phone on its side) can still set its own.
+//
+// The upright photo's landmark goes alongside, under names of its own: the
+// styles for an upright phone read them in place of the others. Drawn the
+// screen's width it needs no middle or span; where it is drawn wider, its
+// right edge says how far the photo may be cut from the left.
 const round = (n: number) => +n.toFixed(4);
 const mark = landmark
   ? [
@@ -80,15 +108,31 @@ const mark = landmark
       `--middle: ${round((landmark.left + landmark.right) / 2)}`,
       `--span: ${round((landmark.right - landmark.left) * shape)}`,
       `--shape: ${round(shape)}`,
+      ...(upright
+        ? [
+            `--upright-top: ${round(upright.landmark.top)}`,
+            `--upright-foot: ${round(upright.landmark.foot)}`,
+            `--upright-right: ${round(upright.landmark.right)}`,
+            `--upright-shape: ${round(upright.src.width / upright.src.height)}`,
+          ]
+        : []),
     ].join('; ')
   : undefined;
 const place = landmark
   ? `--place: ${focus.split(' ')[0]} ${round(landmark.foot * 100)}%`
   : `--place: ${focus}`;
+// Drawn the screen's width, or a little wider where the words run tall (see
+// the styles): the next rung of the ladder up covers that.
+const art = upright && { media: UPRIGHT, src: upright.src, sizes: '100vw' };
 ---
 
 <section
-  class:list={['photo-hero', 'plate', `photo-hero--${size}`, { 'photo-hero--landmark': landmark }]}
+  class:list={[
+    'photo-hero',
+    'plate',
+    `photo-hero--${size}`,
+    { 'photo-hero--landmark': landmark, 'photo-hero--upright': upright },
+  ]}
   style={mark}
 >
   {
@@ -116,6 +160,7 @@ const place = landmark
           priority={priority}
           aspect={aspect}
           keep={keep}
+          art={art}
           style={place}
         />
       )
@@ -188,7 +233,9 @@ const place = landmark
      what is missing. --drawn is about the tallest the photo is drawn: on a
      phone 630px, or less where the landmark would not fit between the
      gutters; wider than a phone 720px, or the screen's width over the
-     photo's shape where that is more (both below). */
+     photo's shape where that is more; on an upright phone with an upright
+     photo, that photo at the screen's width, the least it is drawn there
+     (all below). */
   .photo-hero--landmark::before {
     content: '';
     --drawn: max(630px, 100vw / var(--shape));
@@ -227,12 +274,13 @@ const place = landmark
     }
   }
 
-  /* On a phone the photo is drawn whole at that height, about two and a
-     half screens wide, with the landmark's middle at the middle of the
+  /* On a phone the landscape photo is drawn whole at that height, about two
+     and a half screens wide, with the landmark's middle at the middle of the
      screen, and never so large that the landmark is wider than the space
      between the page's gutters. Where that holds it smaller (English on
      most phones, both languages at 320px), it ends higher than the hero's
-     foot, and fades into the hero's black under the button. */
+     foot, and fades into the hero's black under the button. An upright
+     phone with an upright photo frames that one instead (next). */
   @media (max-width: 559px) {
     .photo-hero--landmark {
       --fit: calc((100vw - 2 * var(--gutter)) / var(--span));
@@ -249,6 +297,50 @@ const place = landmark
       transform: translateX(calc(-100% * var(--middle)));
       -webkit-mask-image: linear-gradient(0deg, transparent, #000 32px);
       mask-image: linear-gradient(0deg, transparent, #000 32px);
+    }
+  }
+
+  /* An upright phone with an upright photo, taken as her picture is (01):
+     the sign small and high on the right, over the hillside, the palms on
+     the left. The photo is drawn the screen's width, so the landmark stands
+     where it was taken, and the row and the photo are set by that photo's
+     own landmark: no centring, no fit, no fade. Where the words run taller
+     than the photo leaves room for under its landmark (at 320px, by about a
+     sixth; in English at 360px, by a few per cent), it is drawn just tall
+     enough, and so wider than the screen: cut from the
+     right, and from the left only as far as keeps the landmark inside the
+     gutter, so the palm's trunk stays in. Where they run shorter, the photo
+     runs on under the hero's foot, so the landmark still ends --clear over
+     the first line. Her picture leaves about 40px of hillside between the
+     sign's legs and the label; the landmark takes in the mast above the
+     sign, so a little sky over it is enough. The query is the photo's
+     (UPRIGHT, above), word for word: a browser that cannot read one reads
+     neither. After the phone's rules, which it overrides. */
+  @media (width <= 559px) and (orientation: portrait) {
+    .photo-hero--upright {
+      --clear: 32px;
+      --sky: 12px;
+    }
+    .photo-hero--upright::before {
+      --top: var(--upright-top);
+      --foot: var(--upright-foot);
+      --drawn: calc(100vw / var(--upright-shape));
+    }
+    /* Drawn at its own shape, so the box is the photo (and never short of
+       the screen's width by a rounding), and moved left only as far as
+       keeps the landmark's right edge inside the gutter: in a translate, a
+       percentage is the photo's own width. (--draw cannot say that width
+       outside a height: its 100% is the box's height.) */
+    .photo-hero--upright .photo-hero__img--landmark {
+      --foot: var(--upright-foot);
+      --draw: max(var(--need), 100vw / var(--upright-shape));
+      inset: auto auto calc(100% - var(--rise) + var(--clear) - (1 - var(--foot)) * var(--draw)) 0;
+      width: auto;
+      min-width: 100%;
+      max-width: none;
+      transform: translateX(min(0px, 100vw - var(--gutter) - var(--upright-right) * 100%));
+      -webkit-mask-image: none;
+      mask-image: none;
     }
   }
 

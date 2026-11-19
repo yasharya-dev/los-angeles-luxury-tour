@@ -10,6 +10,7 @@ import Phrases from '../components/Phrases.astro';
 import PlanList from '../components/PlanList.astro';
 import Reservation from '../components/Reservation.astro';
 import heroImg from '../assets/hero-hollywood.webp';
+import heroUpright from '../assets/hero-hollywood-upright.webp';
 
 interface Props {
   locale: Locale;
@@ -33,7 +34,8 @@ const copy = {
     // Held together by no-break spaces, so no width leaves 'is yours alone.'
     // or a lone word.
     heroTitle: `A Los Angeles journey that${NBSP}is${NBSP}yours${NBSP}alone.`,
-    heroAlt: 'The Hollywood Sign lit by the setting sun, with downtown Los Angeles in the distance',
+    // Both photos show this; only the landscape one shows downtown.
+    heroAlt: 'The Hollywood Sign lit by the setting sun',
     cta: 'Ask about your trip',
 
     valueKicker: 'Peace of mind, enjoyment, satisfaction',
@@ -55,7 +57,7 @@ const copy = {
   ja: {
     heroEyebrow: ['完全予約制', '日本語対応プライベートツアー'],
     heroTitle: ['ロサンゼルスで叶える、', BR, 'あなただけの特別な旅。'],
-    heroAlt: '夕日に照らされたハリウッドサイン。遠くにダウンタウンの街並み',
+    heroAlt: '夕日に照らされたハリウッドサイン',
     cta: '旅のご相談はこちら',
 
     valueKicker: '安心も、楽しさも、満足も。',
@@ -91,13 +93,21 @@ const c = copy[locale];
     sign at sunset over the hillside, as in her picture (01): the sign stays
     clear of the words on every screen. Its letters start 360px down the
     941px photo and its legs end at 518px; they run from 845 to 1455px
-    across the 1672. */}
+    across the 1672. An upright phone has a photo of its own, taken upright
+    as her picture is, the sign small on the right: its letters run from
+    607 to 746px across the 941px photo and its legs end 984px down the
+    1672. The mast above the sign starts at 790px, and the landmark's top
+    takes it in, so the hero makes room for it. */}
 <PhotoHero
   src={heroImg}
   alt={c.heroAlt}
   size="tall"
   focus="81% 50%"
   landmark={{ top: 360 / 941, foot: 518 / 941, left: 845 / 1672, right: 1455 / 1672 }}
+  upright={{
+    src: heroUpright,
+    landmark: { top: 790 / 1672, foot: 984 / 1672, left: 607 / 941, right: 746 / 941 },
+  }}
   priority
 >
   {/* Her label, 「完全予約制｜日本語対応プライベートツアー」. Each half stays
@@ -260,6 +270,20 @@ const c = copy[locale];
   :global(html[lang='ja']) .hero__cta {
     font-size: 19px;
     letter-spacing: 0.05em;
+  }
+
+  /* On an upright phone, as her picture sets it (01): the label, the rule
+     and the headline closer together, and the button nearer the headline.
+     The words stand on the hero's foot, so the button keeps its place and
+     the lines above it move down, under her sign. The query is the one the
+     hero's upright photo is picked by, word for word (see PhotoHero). */
+  @media (width <= 559px) and (orientation: portrait) {
+    .hero__rule {
+      margin-block: 7px;
+    }
+    .hero__cta {
+      margin-top: clamp(16px, 2.8vh, 26px);
+    }
   }
 
   /* ------------------------------------------------------------- value */
