@@ -6,7 +6,9 @@ import { CONTACT } from '../data/contact';
 import { cancellation } from '../data/cancellation';
 import type { IconName } from '../data/icons';
 import Icon from '../components/Icon.astro';
+import Photo from '../components/Photo.astro';
 import Phrases from '../components/Phrases.astro';
+import haze from '../assets/downtown-palms-haze.webp';
 
 interface Props {
   locale: Locale;
@@ -222,6 +224,9 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
 ];
 ---
 
+{/* Her opening (07): the words over a pale, hazy downtown framed by palms,
+    which fades into the page where the two ways start. The photo only sets
+    the scene, so it has no alt. */}
 <section class="section head">
   <div class="measure measure--wide center">
     <p class="kicker">{c.kicker}</p>
@@ -229,6 +234,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     <h1 class="h2 h2--statement"><Phrases text={c.title} /></h1>
     <p class="body head__lead"><Phrases text={c.lead} /></p>
   </div>
+  <Photo class="head__photo" src={haze} alt="" sizes="100vw" priority />
 </section>
 
 {/* Two paths, visually separate, as she asked: her copy, unchanged. Then the
@@ -332,6 +338,56 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
 
   .head__lead {
     margin-top: 16px;
+    color: var(--ink);
+  }
+
+  /* The photo fills the section from behind, under a wash of the page's
+     cream, as her picture is pale (07), and fades into the cream of the
+     section below. The wash is what keeps every line legible where the
+     words cross the palm fronds at the photo's top left; elsewhere its sky
+     is light (no pixel under a luma of 205 right of the fronds and above
+     the towers). In the dark theme the wash is the page's black. */
+  .head {
+    --wash: rgba(250, 249, 246, 0.42);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .head::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, var(--wash) 0%, var(--wash) 72%, var(--bg-deep) 100%);
+  }
+  /* top and left, not inset, which Safari before 14.1 cannot read. */
+  .head__photo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 45%;
+  }
+  /* Wider, the photo is cut at its top and foot instead of its sides: held
+     low, so the towers stand behind the words on the right, as on a phone. */
+  @media (min-width: 768px) {
+    .head__photo {
+      object-position: 50% 80%;
+    }
+  }
+  :global(html[data-theme='dark']) .head {
+    --wash: rgba(16, 16, 16, 0.78);
+  }
+  /* Her label, a shade deeper than the page's gold text, which is under
+     4.5:1 on this pale sky. */
+  :global(html:not([data-theme='dark'])) .head {
+    --gold-text: #6e5613;
   }
 
   /* -------------------------------------------------------------- paths */

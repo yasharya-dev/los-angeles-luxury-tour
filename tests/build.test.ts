@@ -1708,6 +1708,34 @@ describe('the contact page chooses', () => {
       expect(values, route).toEqual(['@153cqwqp', 'losangelesluxurytour@gmail.com']);
     }
   });
+
+  // Her opening (07): the words over a pale, hazy downtown framed by palms,
+  // fading into the cream where the two ways start. The photo sets the scene
+  // and says nothing, so its alt is empty; it opens the page, so it is
+  // fetched first. A wash of the page's cream (the black in the dark theme)
+  // keeps every line legible over the palm fronds, and her label takes a
+  // deeper gold on that pale sky.
+  it('opens on her hazy downtown photo, washed and fading into the page', () => {
+    for (const route of ['/contact', '/ja/contact']) {
+      const head = html(route).match(/<section class="section head"[^]*?<\/section>/)?.[0] ?? '';
+      expect(head.indexOf('<picture'), 'the photo after the words').toBeGreaterThan(head.indexOf('<h1'));
+      const img = head.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/\/_astro\/downtown-palms-haze\./);
+      expect(img, route).toContain('class="head__photo"');
+      expect(img, route).toMatch(/ alt(?:="")? /);
+      expect(img, route).toContain('loading="eager"');
+    }
+    const rules = css();
+    expect(rules).toMatch(/\.head\[data-astro-cid-[^\]]+\]\{[^}]*--wash:#faf9f66b/);
+    expect(rules).toMatch(
+      /\.head\[data-astro-cid-[^\]]+\]:after\{[^}]*background:linear-gradient\((?:180deg,\s?)?var\(--wash\) 0%,\s?var\(--wash\) 72%,\s?var\(--bg-deep\) 100%\)/,
+    );
+    expect(rules).toMatch(
+      /\.head__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*object-fit:cover)[^}]*\}/,
+    );
+    expect(rules).toMatch(/html\[data-theme=dark\] \.head\[data-astro-cid-[^\]]+\]\{--wash:#101010c7\}/);
+    expect(rules).toMatch(/html:not\(\[data-theme=dark\]\) \.head\[data-astro-cid-[^\]]+\]\{--gold-text:#6e5613\}/);
+  });
 });
 
 // Amelia's plan page, from section 10A of her brief of 2026-11-05, drawn for
