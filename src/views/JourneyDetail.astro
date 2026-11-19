@@ -134,7 +134,10 @@ const labels = {
 <section class="section">
   <Reservation locale={locale} />
   <p class="actions">
-    <a class="btn btn--solid" href={p(bookPath(offering))}>{t('plan.request')}</a>
+    <a class="btn btn--solid" href={p(bookPath(offering))}>
+      {t('plan.request')}
+      <Icon name="arrow-right" size={18} />
+    </a>
     <a class="ask" href={p(consultPath(offering))}>{t('plan.ask')}</a>
   </p>
 </section>
@@ -316,17 +319,20 @@ const labels = {
     flex-wrap: wrap;
   }
 
+  /* A second action in her warm grey, underlined, as under the plan page's
+     price (10A). */
   .ask {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
     font-size: 15px;
     font-weight: 600;
+    color: var(--quiet-ink);
     text-decoration: underline;
-    text-decoration-color: var(--hairline);
+    text-decoration-color: currentColor;
     text-underline-offset: 0.3em;
   }
   .ask:hover {
-    color: var(--gold-text);
+    color: var(--ink);
   }
 </style>

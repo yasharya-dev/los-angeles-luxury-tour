@@ -9,7 +9,8 @@
  *
  * Expects, inside the form: `[data-form-error]`, `[data-send-error]` and
  * `[data-submit]`. A required field `f-x` pairs with an error line `e-x`; a
- * group of required radios named `x` does too.
+ * group of required radios named `x` does too. A submit with an icon keeps
+ * its words in `[data-submit-label]`, so changing them leaves the icon be.
  */
 import { threeYearsOn, todayInLA } from '../data/calendar';
 import { SEND_DEADLINE } from '../data/deadlines';
@@ -41,6 +42,9 @@ export function enhanceForm(form: HTMLFormElement): void {
   const sendErr = form.querySelector<HTMLElement>('[data-send-error]');
   const submit = form.querySelector<HTMLButtonElement>('[data-submit]');
   if (!formErr || !sendErr || !submit) return;
+  // Where the button's words are: their own element beside an icon, or the
+  // button itself.
+  const label = submit.querySelector<HTMLElement>('[data-submit-label]') ?? submit;
 
   // The script checks the fields itself from here, with its own messages.
   // In the markup the form is left to the browser, for a visitor without it.
@@ -92,7 +96,7 @@ export function enhanceForm(form: HTMLFormElement): void {
 
   const reset = () => {
     submit.disabled = false;
-    submit.textContent = submit.dataset.label ?? 'Send';
+    label.textContent = submit.dataset.label ?? 'Send';
   };
 
   /* Back from the next page can restore this one as it was left: sending. */
@@ -188,7 +192,7 @@ export function enhanceForm(form: HTMLFormElement): void {
     }
 
     submit.disabled = true;
-    submit.textContent = submit.dataset.sending ?? 'Sending';
+    label.textContent = submit.dataset.sending ?? 'Sending';
 
     // A send that never answers has failed too: a stalled phone network, or
     // the mail service. The Worker gives up on the mail service well before

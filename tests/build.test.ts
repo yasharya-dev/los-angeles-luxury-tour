@@ -564,10 +564,36 @@ const cream = () => block(':root');
 const dark = () => block('html[data-theme=dark]');
 const solid = (decls: string, name: string): RGB => parseHex(token(decls, name)).rgb;
 
+// Every class a button carries anywhere on the site (.btn, its modifiers and
+// each component's own class for it), and a test for whether a selector
+// names one of them. A scoped rule names the class with Astro's attribute
+// after it, so a class counts only where no name character follows.
+const buttonClasses = (() => {
+  let found: Set<string> | undefined;
+  return () => {
+    if (found) return found;
+    found = new Set<string>();
+    for (const file of allPages()) {
+      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
+        for (const name of list.split(/\s+/)) if (name) found.add(name);
+      }
+    }
+    return found;
+  };
+})();
+const namesAButtonClass = (selector: string) => {
+  const names = [...buttonClasses()].map((name) => name.replace(/[^\w-]/g, '\\$&'));
+  return new RegExp(String.raw`\.(?:${names.join('|')})(?![\w-])`).test(selector);
+};
+
+// The rules of the built CSS, as [selector, body] pairs, for the innermost
+// block of each (a rule inside @media keeps its own selector).
+const cssRules = () => [...css().matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
+
 describe('the palette and the gold rule', () => {
   // Cream is the default theme, on :root, with the four colours from Amelia's
   // brief. Her accent gold is about 3:1 on the cream: fine for a decorative
-  // line or a button fill, not for text. So text gold is its own, darker token.
+  // line, not for text. So text gold is its own, darker token.
   //
   // These compute real ratios rather than asserting hex values. An earlier
   // version checked only that the token equalled #8a6d1f, which passed happily
@@ -608,25 +634,250 @@ describe('the palette and the gold rule', () => {
     }
   });
 
-  // The solid CTA sets its label on the gold fill, resting and hovered. White
-  // on that gold would be 3.2:1; an earlier hover colour was 4.3:1.
-  it('clears AA for the label on the gold CTA, resting and hovered, in both themes', () => {
-    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
-      for (const fill of ['cta', 'cta-hover']) {
-        const r = ratio(solid(decls, 'on-cta'), solid(decls, fill));
-        expect(r, `${name}: label on --${fill} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+  // The solid button is her flat olive with a white label, resting, hovered
+  // and pressed. Her golds carry white at only 3.1 to 3.9:1; this one keeps
+  // their hue at a lightness where white clears AA. It is the same in both
+  // themes: the dark block leaves it alone.
+  it('clears AA for the label on the solid button, in every state', () => {
+    const label = solid(cream(), 'on-cta');
+    for (const fill of ['cta', 'cta-hover', 'cta-press']) {
+      const r = ratio(label, solid(cream(), fill));
+      expect(r, `label on --${fill} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(dark()).not.toMatch(/(?:^|;)--(?:on-)?cta(?:-hover|-press)?:/);
+    const rules = css();
+    expect(rules).toMatch(/\.btn--solid\{[^}]*background-color:var\(--cta\)/);
+    expect(rules).toMatch(/\.btn--solid:hover\{[^}]*background-color:var\(--cta-hover\)/);
+    expect(rules).toMatch(/\.btn--solid:active\{[^}]*background-color:var\(--cta-press\)/);
+    expect(rules).toMatch(/\.btn--solid:hover\{(?:[^}]*;)?color:var\(--on-cta\)/);
+  });
+
+  // A button is a link, and the links' own a:hover turns text ink: every
+  // button's variant names its label's colour on hover itself, and only that
+  // one, or the outline's gold and the solid buttons' white would be lost.
+  // Any other hover rule on a class a button carries may set a label colour
+  // only where every button carrying that class shares it.
+  it('keeps every button label its own colour on hover', () => {
+    const variants: Record<string, string> = {
+      '.btn:hover': 'var(--gold-text)',
+      '.btn--solid:hover': 'var(--on-cta)',
+      '.btn--champagne:hover': 'var(--on-champagne)',
+    };
+    const labelsSet = (body: string) =>
+      [...body.matchAll(/(?:^|;)(?:-webkit-text-fill-color|color):([^;]+)/g)].map(([, value]) => value.trim());
+    const rules = cssRules();
+    for (const [variant, label] of Object.entries(variants)) {
+      const set = rules.filter(([selector]) => selector === variant).flatMap(([, body]) => labelsSet(body));
+      expect(set, variant).toContain(label);
+      for (const value of set) expect(value, variant).toBe(label);
+    }
+    // The label each button's finish gives it: champagne, else solid, else
+    // the outline's gold; and the finishes each class is carried with.
+    const finishes = new Map<string, Set<string>>();
+    for (const file of allPages()) {
+      for (const [, list] of readFileSync(file, 'utf8').matchAll(/class="([^"]*\bbtn\b[^"]*)"/g)) {
+        const names = list.split(/\s+/).filter(Boolean);
+        const label = names.includes('btn--champagne')
+          ? 'var(--on-champagne)'
+          : names.includes('btn--solid')
+            ? 'var(--on-cta)'
+            : 'var(--gold-text)';
+        for (const name of names) finishes.set(name, (finishes.get(name) ?? new Set<string>()).add(label));
+      }
+    }
+    for (const [selector, body] of rules) {
+      if (selector in variants || !/:hover\b/.test(selector) || !namesAButtonClass(selector)) continue;
+      const named = [...finishes.keys()].filter((name) =>
+        new RegExp(String.raw`\.${name.replace(/[^\w-]/g, '\\$&')}(?![\w-])`).test(selector),
+      );
+      for (const value of labelsSet(body)) {
+        const allowed = named.every((name) => finishes.get(name)!.size === 1 && finishes.get(name)!.has(value));
+        expect(allowed, `${selector} sets a label colour of ${value}`).toBe(true);
       }
     }
   });
 
-  // What separates a control from the page has to clear 3:1: the CTA's edge
-  // against both creams, and a form field's edge against every surface a form
-  // sits on.
-  it('gives the CTA and form fields an edge that clears 3:1', () => {
-    for (const surface of ['bg', 'bg-deep'] as const) {
-      const r = ratio(solid(cream(), 'cta-edge'), solid(cream(), surface));
-      expect(r, `--cta-edge on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+  // The outline button's gold label on its cream fill, and on the gold tint
+  // it takes on hover; the quiet pill's grey on its fill; the grey of a
+  // second action on the cards and the page. In both themes.
+  it('clears AA for the outline, the quiet pill and the second actions', () => {
+    // The rules paint the tokens measured below.
+    const rules = cssRules();
+    const bodyOf = (pattern: RegExp) =>
+      rules
+        .filter(([selector]) => pattern.test(selector))
+        .map(([, body]) => body)
+        .join(';');
+    expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)background-color:var\(--btn-fill\)/);
+    expect(bodyOf(/^\.btn$/)).toMatch(/(?:^|;)color:var\(--gold-text\)/);
+    expect(bodyOf(/^\.btn:hover$/)).toMatch(/(?:^|;)background-color:var\(--btn-hover\)/);
+    // Off the solid finishes, a rule on a button class paints only those two.
+    for (const [selector, body] of rules) {
+      if (!namesAButtonClass(selector) || /\.btn--(?:solid|champagne)(?![\w-])/.test(selector)) continue;
+      for (const [, value] of body.matchAll(/(?:^|;)background(?:-color)?:([^;]+)/g)) {
+        expect(['var(--btn-fill)', 'var(--btn-hover)'], `${selector} paints ${value}`).toContain(value.trim());
+      }
     }
+    const pill = bodyOf(/^\.plan__more\[data-astro-cid-[\w-]+\]$/);
+    expect(pill).toMatch(/(?:^|;)background:var\(--chip-fill\)/);
+    expect(pill).toMatch(/(?:^|;)color:var\(--quiet-ink\)/);
+    for (const name of ['pricing__ask', 'reveal__ask', 'ask']) {
+      expect(bodyOf(new RegExp(String.raw`^\.${name}\[data-astro-cid-[\w-]+\]$`)), name).toMatch(
+        /(?:^|;)color:var\(--quiet-ink\)/,
+      );
+    }
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      // A token painted over what is under it, read as the theme sets it: a
+      // colour, another token (the dark theme's grey is its mid ink), or
+      // transparent, which leaves what is under it. Anything else is a value
+      // this test cannot judge, and fails it.
+      const paint = (tokenName: string, under: RGB): RGB => {
+        const value = decls.match(new RegExp(`(?:^|;)--${tokenName}:([^;]+)`))?.[1].trim() ?? '';
+        const named = value.match(/^var\(--([\w-]+)\)$/);
+        if (named) return paint(named[1], under);
+        if (value === 'transparent') return under;
+        if (!/^#[0-9a-f]{3,8}$/i.test(value)) throw new Error(`${name}: --${tokenName} is ${value || 'missing'}`);
+        return over(parseHex(value), under);
+      };
+      const card = solid(decls, 'card');
+      const label = solid(decls, 'gold-text');
+      const checks: [string, RGB, RGB][] = [
+        ['the outline label on its fill', label, paint('btn-fill', card)],
+        ['the outline label hovered', label, paint('btn-hover', card)],
+      ];
+      for (const surface of ['card', 'bg'] as const) {
+        const under = solid(decls, surface);
+        const chip = paint('chip-fill', under);
+        checks.push(
+          [`the quiet pill on --${surface}`, paint('quiet-ink', chip), chip],
+          [`a second action on --${surface}`, paint('quiet-ink', under), under],
+        );
+      }
+      for (const [what, fg, bg] of checks) {
+        const r = ratio(fg, bg);
+        expect(r, `${name}: ${what} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  // Her champagne, on her two homepage buttons, in both tints: her brown
+  // label against the deepest colour the finish paints at rest and hovered,
+  // and against every stop of the sheen under the strongest deep corner with
+  // the pressed layer on top, which is darker than anything resting.
+  it('clears AA for the label on every colour of the champagne, in both tints', () => {
+    const value = (decls: string, name: string) =>
+      decls.match(new RegExp(`(?:^|;)--${name}:([^;]+)`))?.[1] ?? '';
+    // Each theme maps the sheen to its own tint.
+    expect(value(cream(), 'champagne-sheen')).toBe('var(--champagne-sheen-cream)');
+    expect(value(dark(), 'champagne-sheen')).toBe('var(--champagne-sheen-dark)');
+    // Both tints are defined once, on :root; each theme picks its own.
+    for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
+      // A theme's own corners and pressed layer, where it sets them.
+      const layer = (token: string) => value(decls, token) || value(cream(), token);
+      const deep = (layer('champagne-deep').match(/#[0-9a-f]{8}\b/gi) ?? []).map(parseHex);
+      expect(deep.length, `${name}: the deep corners`).toBeGreaterThanOrEqual(2);
+      const deepest = deep.reduce((a, b) => (b.a > a.a ? b : a));
+      const pressed = parseHex(layer('champagne-deeper').trim());
+      expect(pressed.a, `${name}: the pressed layer`).toBeGreaterThan(0);
+      const label = solid(decls, 'on-champagne');
+      for (const fill of ['champagne', 'champagne-hover']) {
+        const r = ratio(label, solid(decls, fill));
+        expect(r, `${name}: label on --${fill} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+      const stops = value(cream(), `champagne-sheen-${name}`).match(/#[0-9a-f]{3,8}\b/gi) ?? [];
+      expect(stops.length, `${name}: the sheen's colours`).toBeGreaterThanOrEqual(5);
+      for (const stop of stops) {
+        const worst = over(pressed, over(deepest, parseHex(stop).rgb));
+        const r = ratio(label, worst);
+        expect(r, `${name}: label on ${stop}, cornered and pressed, is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // The tokens measured are the ones painted.
+    const rules = css();
+    const finish = String.raw`var\(--champagne-deep\),\s*linear-gradient\(var\(--champagne-angle\),\s*var\(--champagne-sheen\)\)`;
+    expect(rules).toMatch(new RegExp(String.raw`\.btn--champagne\{[^}]*background-image:${finish}`));
+    expect(rules).toMatch(new RegExp(String.raw`\.btn--champagne:hover\{[^}]*background-image:[^}]*${finish}`));
+    expect(rules).toMatch(
+      new RegExp(String.raw`\.btn--champagne:active\{[^}]*var\(--champagne-deeper\)[^}]*${finish}`),
+    );
+  });
+
+  // She draws her buttons without a ring, and WCAG 1.4.11 asks nothing of a
+  // text button's edge beyond its label's contrast. Every button keeps a 1px
+  // border, transparent on the solid ones, so a Windows contrast theme still
+  // draws the box. No rule on any class a button carries takes it away: no
+  // style of none, no width of zero, no shorthand without a line style.
+  it('keeps a border on every button for forced colours', () => {
+    const all = css();
+    expect(all).toMatch(/\.btn\{[^}]*border:1px solid/);
+    // The minifier writes transparent as #0000.
+    expect(all).toMatch(/\.btn--solid\{[^}]*border-color:(?:transparent|#0000(?:0000)?)[;}]/);
+    expect(buttonClasses().size).toBeGreaterThan(5);
+    // A rule can reach a button by one of its classes, or as the subject of a
+    // selector that ends in a bare a, button or * under a class, which ranks
+    // with .btn or above it.
+    const reaches = (selector: string) =>
+      namesAButtonClass(selector) ||
+      selector
+        .split(',')
+        .some(
+          (part) =>
+            /[.[#]/.test(part) &&
+            /(?:^|[\s>+~])(?:(?:a|button|\*)(?:\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?)*|(?:\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?)+)$/.test(
+              part.trim(),
+            ),
+        );
+    const side = String.raw`(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?`;
+    const removed = new RegExp(String.raw`(?:^|;)border${side}(?:-width)?:(?:none|hidden|0)(?=[\s;]|$)`);
+    const noStyle = new RegExp(
+      String.raw`(?:^|;)border${side}-style:[^;]*\b(?:none|hidden|initial|unset|revert(?:-layer)?)\b`,
+    );
+    const style = /\b(?:solid|dashed|dotted|double|groove|ridge|inset|outset)\b/;
+    for (const [selector, body] of cssRules()) {
+      if (!reaches(selector)) continue;
+      expect(body, selector).not.toMatch(removed);
+      expect(body, selector).not.toMatch(noStyle);
+      expect(body, selector).not.toMatch(/(?:^|;)all:/);
+      for (const [, value] of body.matchAll(new RegExp(String.raw`(?:^|;)border${side}:([^;]+)`, 'g'))) {
+        expect(value, `${selector} border:${value}`).toMatch(style);
+      }
+    }
+  });
+
+  // On paper a button on the page is its outline and its words in ink, as
+  // most printers drop backgrounds; one on a plate prints as the plate does.
+  it('prints a button on the page as an ink outline, and leaves the plates alone', () => {
+    const printed = cssRules().filter(([selector]) => selector === '.btn--solid:not(.plate *)');
+    expect(printed.length).toBe(1);
+    const [[, body]] = printed;
+    expect(body).toMatch(/(?:^|;)color:var\(--ink\)/);
+    expect(body).toMatch(/(?:^|;)border-color:currentColor/i);
+    expect(body).toMatch(/(?:^|;)background:(?:none|0 0)(?=;|$)/);
+    expect(body).toMatch(/(?:^|;)box-shadow:none(?=;|$)/);
+    expect(css()).toMatch(/@media print\{[^@]*\.btn--solid:not\(\.plate \*\)\{/);
+  });
+
+  // The end icon sits at the inline end, so the button reads right in either
+  // direction; the consultation submit is wide enough for both its words, so
+  // it keeps its size while it sends.
+  it('places the end icon logically, and holds the consultation submit width', () => {
+    const icon = cssRules()
+      .filter(([selector]) => selector === '.btn--end-icon>svg')
+      .map(([, body]) => body)
+      .join(';');
+    expect(icon).toMatch(/(?:^|;)inset-inline-end:/);
+    expect(icon).not.toMatch(/(?:^|;)(?:left|right|inset):/);
+    // Every rule on the consultation submit that sets a floor sets this one.
+    const floors = cssRules().filter(([selector]) => /\.form__foot \.btn$/.test(selector));
+    expect(floors.some(([, body]) => /(?:^|;)min-width:10\.5em(?=;|$)/.test(body))).toBe(true);
+    for (const [selector, body] of floors) {
+      for (const [, value] of body.matchAll(/(?:^|;)min-width:([^;]+)/g)) expect(value, selector).toBe('10.5em');
+    }
+  });
+
+  // What separates a form field from the page has to clear 3:1, on every
+  // surface a form sits on.
+  it('gives form fields an edge that clears 3:1', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
       for (const surface of ['bg', 'bg-deep', 'surface'] as const) {
         const under = solid(decls, surface);
@@ -1983,13 +2234,14 @@ describe('the pages, after the full site test', () => {
     const cream = values(block(':root {'));
     const print = values(block("@media print {\n  html[data-theme='dark'] {"));
     const dark = values(block("html[data-theme='dark'],\n.plate {"));
-    // The theme's CTA tokens are in a block of their own: printed too.
-    const cta = values(block("html[data-theme='dark'] {\n  --cta"));
     expect(Object.keys(cream).length).toBeGreaterThan(30);
     expect(Object.keys(dark).length).toBeGreaterThan(15);
-    expect(Object.keys(cta).length).toBe(4);
     expect(Object.keys(print).length).toBeGreaterThan(15);
-    for (const name of [...Object.keys(dark), ...Object.keys(cta)]) {
+    // The champagne's tint is part of the dark set: a printed page is cream.
+    expect(Object.keys(dark)).toEqual(
+      expect.arrayContaining(['--champagne', '--champagne-sheen', '--on-champagne']),
+    );
+    for (const name of Object.keys(dark)) {
       expect(print[name], name).toBe(cream[name]);
     }
     for (const [name, value] of Object.entries(print)) expect(value, name).toBe(cream[name]);

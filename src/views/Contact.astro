@@ -248,7 +248,7 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
               <h3 class="h3 path__title"><Phrases text={path.title} /></h3>
               <p class="body path__body"><Phrases text={path.body} /></p>
             </div>
-            <a class:list={['btn', 'path__cta', { 'btn--solid': path.primary }]} href={p(path.href)}>
+            <a class:list={['btn', 'btn--end-icon', 'path__cta', { 'btn--solid': path.primary }]} href={p(path.href)}>
               {path.cta}
               <Icon name="chevron-right" size={18} />
             </a>
@@ -356,8 +356,8 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     }
   }
 
-  /* Icon beside the words, the button under them, full width: the two
-     buttons line up however long the two bodies turn out. */
+  /* Icon beside the words and the button under them: the two buttons line
+     up however long the two bodies turn out. */
   .path {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -383,10 +383,14 @@ const channels: { icon: IconName; label: string; name: string; href: string }[] 
     text-wrap: balance;
   }
 
+  /* Her two path buttons sit in the text column, under the words, a little
+     over half the card wide, the label in the middle and the chevron near
+     the end (07). */
   .path__cta {
-    grid-column: 1 / -1;
+    grid-column: 2;
     grid-row: 3;
-    width: 100%;
+    justify-self: start;
+    min-width: min(200px, 100%);
   }
 
   /* ------------------------------------------------------------- direct */

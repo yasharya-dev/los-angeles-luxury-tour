@@ -356,7 +356,8 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
       data-label={c.send}
       data-sending={c.sending}
     >
-      {c.send}
+      <span data-submit-label>{c.send}</span>
+      <Icon name="arrow-right" size={18} />
     </button>
     <p class="caption booking__note">{c.sendNote}</p>
   </div>
@@ -669,8 +670,11 @@ const fromPrice = plan ? lowestPrice(plan, locale) : offering.price[locale];
     justify-items: center;
     text-align: center;
   }
+  /* Her full-width rectangle with its arrow (10B). The sides are trimmed so
+     the English label and the arrow fit on one line at 320px. */
   .booking__send .btn {
     width: 100%;
+    padding-inline: 12px;
   }
   .booking__note {
     margin: 0;

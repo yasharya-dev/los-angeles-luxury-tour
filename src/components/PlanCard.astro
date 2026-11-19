@@ -239,18 +239,23 @@ const Name = `h${level}` as const;
   }
 
   /* The control covers the card (below), far over 44px, so this label only
-     has to read as the way in. */
+     has to read as the way in: her quiet pill (04). The arrow or chevron
+     stays inside it, as her written brief asks for a details arrow. */
   .plan__more {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 28px;
+    min-height: 32px;
+    padding: 0 12px 0 14px;
+    border: 1px solid var(--chip-edge);
+    border-radius: 13px;
+    background: var(--chip-fill);
     font-family: var(--font-label);
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: var(--quiet-ink);
     white-space: nowrap;
   }
   :global(html[lang='ja']) .plan__more {

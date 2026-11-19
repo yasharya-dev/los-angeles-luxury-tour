@@ -19,9 +19,18 @@
     --gold-text   anything that carries meaning at text or icon size.
                   #806419 is 4.9:1 on --bg-deep, the tighter of the two.
 
-  The solid CTA uses the accent as its fill with ink on top (5.5:1; white on
-  it would be 3.2:1) and a darker edge, so the button's boundary clears 3:1
-  on both cream surfaces. Tests compute these ratios out of the built CSS.
+  Her buttons come in the two finishes she drew:
+
+    --cta         her flat olive gold with a white label, on every solid
+                  button but her two homepage ones (07 to 10B). Her golds
+                  carry white at only 3.1 to 3.9:1; this keeps their hue and
+                  colour at a lightness where white is 4.6:1.
+    --champagne   the champagne metal of her two homepage buttons (01, 06),
+                  with her warm brown label.
+
+  Neither has a ring, as she draws none: a text button's label names it,
+  which is all WCAG 1.4.11 asks. Tests compute each button label's ratio
+  against every colour its fill paints, out of the built CSS.
 */
 
 :root {
@@ -45,12 +54,51 @@
   --gold-text: #806419;
   --gold-deco: #b18a3a;
 
-  /* The solid CTA: her accent as the fill, ink on top. Hover goes lighter,
-     which raises the label's contrast rather than lowering it. */
-  --cta: #b18a3a;
-  --cta-hover: #c29b4d;
-  --cta-edge: #94712b;
-  --on-cta: #191919;
+  /* The solid button: her flat olive gold with a white label (07, 08, 09,
+     10A, 10B), the same on every surface and in both themes. Hover and
+     pressed go darker, which raises the label's contrast. */
+  --cta: #90702f;
+  --cta-hover: #836729;
+  --cta-press: #7a5f27;
+  --on-cta: #ffffff;
+
+  /* Her champagne, on her two homepage buttons: a bright band a little left
+     of centre, deeper ends, and --champagne-deep darkening the bottom
+     corners as hers do. Two tints, each fitted by least squares to her
+     picture as CSS paints it, too far apart for one to stand for both:
+       cream  her closing button on cream (06-contact-cta-after-a.jpg),
+              the sheen leaning at 72deg;
+       dark   her hero button on the photo (01-hero-after-b.jpg), at 137deg.
+     A button takes the tint of the surface it sits on (the dark block
+     below). --champagne is the deepest colour the finish paints at rest,
+     measured from renders, and the fill wherever gradients are not drawn.
+     Hover lifts the finish; pressed deepens it a little. Her soft warm
+     shadow is for her closing slab. */
+  --champagne-sheen-cream: #e4c68c 0%, #ead09c 10%, #f2d8a5 20%, #f8dfae 30%, #f9e2b3 40%, #f5dca9 50%, #f2d6a0 60%, #f0d49d 70%, #edd29c 80%, #e0c793 90%, #dac08e 100%;
+  --champagne-sheen-dark: #e1be79 0%, #e4c07a 10%, #ecc77e 20%, #f6d691 30%, #ffe6a2 40%, #fee7a4 50%, #f6d993 60%, #efcd88 70%, #ebc780 80%, #edc676 90%, #efc56f 100%;
+  --champagne-sheen: var(--champagne-sheen-cream);
+  --champagne-angle: 72deg;
+  --champagne-deep:
+    radial-gradient(50% 80% at 0% 100%, rgba(150, 105, 40, 0.3), rgba(150, 105, 40, 0)),
+    radial-gradient(50% 80% at 100% 100%, rgba(150, 105, 40, 0.45), rgba(150, 105, 40, 0));
+  --champagne: #bf9e65;
+  --champagne-hover: #c9ae7e;
+  --on-champagne: #352000;
+  --champagne-lighter: rgba(255, 255, 255, 0.16);
+  --champagne-deeper: rgba(110, 75, 20, 0.12);
+  --slab-lift: 0 7px 9px rgba(110, 75, 20, 0.28);
+
+  /* Her outline style (07, drawn there on 予約する; here the consultation
+     path): a cream fill and a thin gold edge around a gold label. */
+  --btn-fill: #fdf8ee;
+  --btn-edge: var(--gold-deco);
+
+  /* Her quiet pill on a plan card (04), and the warm grey of a second
+     action (10A). Her grey is 3.8:1 on its pill; this one is 5.0:1 there and
+     5.6:1 on white. */
+  --chip-fill: #f5f1e8;
+  --chip-edge: #d6d0c6;
+  --quiet-ink: #6e665b;
 
   /* Lines */
   --hairline: rgba(177, 138, 58, 0.6);
@@ -62,7 +110,10 @@
 
   /* State */
   --err: #a14a1d;
-  --btn-hover: rgba(177, 138, 58, 0.1);
+  /* The outline button's hover: her cream deepened by a tenth of her gold,
+     opaque, so it warms the button's own fill rather than greying the
+     card under it. */
+  --btn-hover: #f5eddc;
 
   /* The two blacks of a plate (see .plate below). Fixed across themes. */
   --bar: #101010;
@@ -137,17 +188,23 @@ html[data-theme='dark'],
   --err: #e8996b;
   --btn-hover: rgba(212, 175, 55, 0.1);
 
+  /* On a dark surface (a photo, a black panel, the whole dark theme) the
+     champagne takes the tint she drew on her dark hero. Her olive is the
+     same on every surface. */
+  --champagne-sheen: var(--champagne-sheen-dark);
+  --champagne-angle: 137deg;
+  --champagne: #c99e53;
+  --champagne-hover: #d2ae6e;
+  --on-champagne: #352000;
+
+  --btn-fill: transparent;
+  --btn-edge: var(--gold-text);
+  --chip-fill: rgba(245, 245, 250, 0.06);
+  --chip-edge: rgba(245, 245, 250, 0.22);
+  --quiet-ink: var(--ink-mid);
+
   --shadow-card: none;
   /* --bar and --bar-deep deliberately not overridden */
-}
-
-/* The CTA follows the theme, not the plate: on a black panel of the cream
-   site it is still her champagne gold. */
-html[data-theme='dark'] {
-  --cta: #d4af37;
-  --cta-hover: #e2c458;
-  --cta-edge: #d4af37;
-  --on-cta: #101010;
 }
 
 /* Paper is white. A page printed from the dark theme takes the cream ink
@@ -171,11 +228,17 @@ html[data-theme='dark'] {
     --card-edge: rgba(177, 138, 58, 0.4);
     --field-edge: rgba(25, 25, 25, 0.55);
     --err: #a14a1d;
-    --btn-hover: rgba(177, 138, 58, 0.1);
+    --btn-hover: #f5eddc;
     --shadow-card: 0 1px 2px rgba(25, 25, 25, 0.04), 0 8px 24px rgba(25, 25, 25, 0.05);
-    --cta: #b18a3a;
-    --cta-hover: #c29b4d;
-    --cta-edge: #94712b;
-    --on-cta: #191919;
+    --champagne-sheen: var(--champagne-sheen-cream);
+    --champagne-angle: 72deg;
+    --champagne: #bf9e65;
+    --champagne-hover: #c9ae7e;
+    --on-champagne: #352000;
+    --btn-fill: #fdf8ee;
+    --btn-edge: var(--gold-deco);
+    --chip-fill: #f5f1e8;
+    --chip-edge: #d6d0c6;
+    --quiet-ink: #6e665b;
   }
 }

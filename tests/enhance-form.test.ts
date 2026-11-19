@@ -24,7 +24,8 @@ class El {
   max = '';
   noValidate = false;
   action = '/api/booking';
-  textContent = '';
+  /** Text of its own; the DOM's textContent below adds the children's. */
+  text = '';
   dataset: Record<string, string> = {};
   attrs = new Map<string, string>();
   classes = new Set<string>();
@@ -45,6 +46,19 @@ class El {
       this.children.push(kid);
     }
     return this;
+  }
+  /** As in the DOM: setting it replaces every child with the text. */
+  get textContent(): string {
+    return this.text + this.children.map((kid) => kid.textContent).join('');
+  }
+  set textContent(value: string) {
+    this.children = [];
+    this.text = value;
+  }
+  /** Markup is not parsed here: setting it leaves only its text, as a
+      rewrite of the button's markup would leave no icon. */
+  set innerHTML(value: string) {
+    this.textContent = value.replace(/<[^>]*>/g, '');
   }
   /** Every element under this one, in page order. */
   all(): El[] {
@@ -264,6 +278,43 @@ describe('a send that never answers', () => {
     expect(button.disabled).toBe(false);
     expect(button.textContent).toBe('Send');
     expect(page.focused).toBe(button);
+  });
+});
+
+// Her booking submit carries an arrow (10B). The script changes the button's
+// words, not the whole button, or the arrow would go with them on the first
+// send and stay gone.
+describe('a submit with an icon', () => {
+  it('changes only its words while sending, and puts them back', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    build();
+    const words = new El('span', { data: { submitLabel: '' }, textContent: 'Send' });
+    const arrow = new El('svg', { cls: ['icon'] });
+    const button = new El('button', {
+      type: 'submit',
+      data: { submit: '', label: 'Send', sending: 'Sending' },
+    }).add(words, arrow);
+    const old = page.form.querySelector('[data-submit]') as El;
+    page.form.children.splice(page.form.children.indexOf(old), 1, button);
+    button.parent = page.form;
+    enhanceForm(page.form as never);
+    fill();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+      ),
+    );
+    const sending = send();
+    expect(button.textContent).toBe('Sending');
+    expect(button.children).toEqual([words, arrow]);
+    await vi.advanceTimersByTimeAsync(SEND_DEADLINE);
+    await sending;
+    expect(button.textContent).toBe('Send');
+    expect(button.children).toEqual([words, arrow]);
   });
 });
 

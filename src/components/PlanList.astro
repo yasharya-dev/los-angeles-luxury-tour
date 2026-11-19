@@ -18,6 +18,7 @@ import {
   consultPath,
   type Tier,
 } from '../data/offerings';
+import Icon from './Icon.astro';
 import Phrases from './Phrases.astro';
 import PlanCard from './PlanCard.astro';
 
@@ -71,6 +72,7 @@ const tierLabel: Record<Tier, string> = {
                     <p class="reveal__actions">
                       <a class="btn btn--solid" href={p(bookPath(o))}>
                         {t('plan.request')}
+                        <Icon name="arrow-right" size={18} />
                       </a>
                       <a class="reveal__ask" href={p(consultPath(o))}>
                         {t('plan.ask')}
@@ -146,14 +148,20 @@ const tierLabel: Record<Tier, string> = {
     margin: 16px 0 0;
   }
 
+  /* A second action in her warm grey, underlined, as under the plan page's
+     price (10A). */
   .reveal__ask {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
     font-size: 14px;
     font-weight: 600;
+    color: var(--quiet-ink);
     text-decoration: underline;
-    text-decoration-color: var(--hairline);
+    text-decoration-color: currentColor;
     text-underline-offset: 0.3em;
+  }
+  .reveal__ask:hover {
+    color: var(--ink);
   }
 </style>
