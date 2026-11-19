@@ -510,6 +510,40 @@ describe('the homepage, in her six sections', () => {
     expect(count(closing, /<a /g)).toBe(1);
     expect(closing).toContain('href="/ja/contact"');
   });
+
+  // Her contact call (06) stands on a warm wall in late sun, palm fronds'
+  // shadows at its top left: a band the page's full width, from under the
+  // reservation note to the footer, with no line between. The photo only
+  // sets the light (empty alt) and is below the fold (lazy). Held at its
+  // top left, as she asks a phone to crop it; in the dark theme it dims
+  // under the light words.
+  it('stands her closing call on a sunlit wall with palm shadows, into the footer', () => {
+    for (const route of ['/', '/ja']) {
+      const closing = html(route).match(/<section class="section closing[\s\S]*?<\/section>/)?.[0] ?? '';
+      const invite = closing.slice(closing.indexOf('<div class="invite"'));
+      expect(invite.indexOf('<h2'), route).toBeGreaterThan(-1);
+      expect(invite.indexOf('<picture'), 'the photo after the words').toBeGreaterThan(invite.indexOf('closing__cta'));
+      expect(closing.indexOf('class="reservation plate"'), 'the note before the wall').toBeLessThan(closing.indexOf('<div class="invite"'));
+      const img = invite.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/\/_astro\/palm-shadows-plaster\./);
+      expect(img, route).toContain('class="invite__photo"');
+      expect(img, route).toMatch(/ alt(?:="")? /);
+      expect(img, route).toContain('loading="lazy"');
+      expect(img, route).toContain('sizes="(max-width: 479px) 620px, 100vw"');
+      // The closing section is the page's last, so the wall meets the footer.
+      const main = html(route).match(/<main[^]*<\/main>/)?.[0] ?? '';
+      expect(main.lastIndexOf('<section'), route).toBe(main.indexOf('<section class="section closing'));
+    }
+    const rules = css();
+    expect(rules).toMatch(
+      /\.invite\[data-astro-cid-[^\]]+\]\{(?=[^}]*isolation:isolate)(?=[^}]*margin:clamp\(32px,\s?5vw,\s?48px\) calc\(-1 \* var\(--gutter\)\) calc\(-1 \* var\(--section-y\)\))[^}]*\}/,
+    );
+    expect(rules).toMatch(
+      /\.invite__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*z-index:-1)(?=[^}]*object-fit:cover)(?=[^}]*object-position:0 0)[^}]*\}/,
+    );
+    expect(rules).toMatch(/html\[data-theme=dark\] \.invite__photo\[data-astro-cid-[^\]]+\]\{filter:brightness\(\.3\)\}/);
+    expect(rules).toMatch(/body:has\(\.invite__photo\) \.site-footer\{border-top-color:(?:transparent|#0000)\}/);
+  });
 });
 
 // All the built CSS, minified, as one string.

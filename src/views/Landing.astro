@@ -5,12 +5,14 @@ import { localizePath } from '../i18n/utils';
 import type { IconName } from '../data/icons';
 import Divider from '../components/Divider.astro';
 import Icon from '../components/Icon.astro';
+import Photo from '../components/Photo.astro';
 import PhotoHero from '../components/PhotoHero.astro';
 import Phrases from '../components/Phrases.astro';
 import PlanList from '../components/PlanList.astro';
 import Reservation from '../components/Reservation.astro';
 import heroImg from '../assets/hero-hollywood.webp';
 import heroUpright from '../assets/hero-hollywood-upright.webp';
+import fronds from '../assets/palm-shadows-plaster.webp';
 
 interface Props {
   locale: Locale;
@@ -178,14 +180,22 @@ const c = copy[locale];
   <PlanList locale={locale} />
 </section>
 
-{/* 05 and 06: the reservation note, then the contact call, close together. */}
+{/* 05 and 06: the reservation note, then the contact call, close together.
+    The call stands on a warm wall in late sun, palm fronds' shadows at its
+    top left, running to the footer, as her picture has it (06). The photo
+    only sets the light, so it has no alt. */}
 <section class="section closing">
   <Reservation locale={locale} />
-  <div class="measure measure--wide center closing__text">
-    <h2 class="h2 h2--statement"><Phrases text={c.closingTitle} /></h2>
-    <Divider />
-    <p class="body"><Phrases text={c.closingBody} /></p>
-    <a class="btn btn--solid btn--champagne btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
+  <div class="invite">
+    <div class="measure measure--wide center closing__text">
+      <h2 class="h2 h2--statement"><Phrases text={c.closingTitle} /></h2>
+      <Divider />
+      <p class="body closing__body"><Phrases text={c.closingBody} /></p>
+      <a class="btn btn--solid btn--champagne btn--slab closing__cta" href={p('/contact')}>{c.cta}</a>
+    </div>
+    {/* On a phone the wall is drawn by the band's height, about 620px wide
+        at most, wider than the screen. */}
+    <Photo class="invite__photo" src={fronds} alt="" sizes="(max-width: 479px) 620px, 100vw" />
   </div>
 </section>
 
@@ -441,8 +451,49 @@ const c = copy[locale];
 
   /* ----------------------------------------------------------- closing */
 
-  .closing__text {
-    margin-top: clamp(32px, 5vw, 48px);
+  /* The call's wall: the photo fills a band the page's full width, from a
+     little under the reservation note to the footer, held at its top left
+     where the fronds are, as she asks a phone to crop it. The wall is light
+     everywhere (no pixel under a luma of 169, even in the fronds' shadows),
+     so the words read in dark ink over any of it. */
+  .invite {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin: clamp(32px, 5vw, 48px) calc(-1 * var(--gutter)) calc(-1 * var(--section-y));
+    padding: clamp(48px, 9vw, 96px) var(--gutter) var(--section-y);
+    background: #f8e4cd;
+  }
+  /* top and left, not inset, which Safari before 14.1 cannot read. */
+  .invite__photo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 0 0;
+  }
+  .closing__body {
+    color: var(--ink);
+  }
+  /* In the dark theme the words are light, so the wall is dimmed under
+     them; a printed page is cream and prints it as it is. */
+  :global(html[data-theme='dark']) .invite {
+    background: var(--bg);
+  }
+  :global(html[data-theme='dark']) .invite__photo {
+    filter: brightness(0.3);
+  }
+  @media print {
+    :global(html[data-theme='dark']) .invite__photo {
+      filter: none;
+    }
+  }
+  /* The wall meets the footer with no line between. */
+  :global(body:has(.invite__photo) .site-footer) {
+    border-top-color: transparent;
   }
 
   .closing__text :global(.divider) {
