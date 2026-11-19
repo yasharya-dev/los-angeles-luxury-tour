@@ -1188,16 +1188,21 @@ describe('photographs', () => {
     }
   });
 
-  // The About page opens on her portrait, in the first screen of a phone;
-  // the coast band below it is a page lower.
+  // The About page opens on her golden-hour photo, fetched first. Her
+  // portrait is now under it, below the first screen, so it and the coast
+  // band below it load lazily: one image at high priority per page.
   it('leaves every photo that is not a page opener to load lazily', () => {
     const imgs = html('/about').match(/<img[^>]*>/g) ?? [];
-    const portrait = imgs.find((i) => i.includes('portrait')) ?? '';
-    const band = imgs.find((i) => i.includes('malibu-cliff-house')) ?? '';
-    expect(portrait).toContain('loading="eager"');
-    expect(band).toContain('loading="lazy"');
-    expect(band).toContain('decoding="async"');
-    expect(band).not.toContain('fetchpriority');
+    const opener = imgs.find((i) => i.includes('griffith-observatory-golden')) ?? '';
+    expect(opener).toContain('loading="eager"');
+    expect(opener).toContain('fetchpriority="high"');
+    for (const file of ['portrait', 'malibu-cliff-house']) {
+      const img = imgs.find((i) => i.includes(file)) ?? '';
+      expect(img, file).toContain('loading="lazy"');
+      expect(img, file).toContain('decoding="async"');
+      expect(img, file).not.toContain('fetchpriority');
+    }
+    expect(count(html('/about'), /fetchpriority="high"/g)).toBe(1);
   });
 
   // Listing AVIF first only helps if it is the smaller file. With one shared
@@ -1406,6 +1411,108 @@ describe('the About page, in her five parts', () => {
     }
   });
 
+  // Her opening (09): the words set left in dark ink on a golden-hour sky,
+  // the observatory, palms and skyline under them. The photo is light sky
+  // left of the palms and above the skyline, so the words stay there: under
+  // 960px they sit on the photo's own sky colour and the photo follows,
+  // fading in at its top; from 960px it fills the section from behind and
+  // the words, 30em at most from the column's left edge, stand in its sky.
+  // Her label takes a deeper gold on that sky; in the dark theme the band is
+  // the page's black and the photo dims under the light words.
+  it('opens on her golden-hour photo, with the words set left in its sky', () => {
+    for (const route of ['/about', '/ja/about']) {
+      const head = html(route).match(/<section class="section head"[^]*?<\/section>/)?.[0] ?? '';
+      expect(head.indexOf('<h1'), route).toBeGreaterThan(-1);
+      expect(head.indexOf('<picture'), 'the photo after the words').toBeGreaterThan(head.indexOf('<h1'));
+      const img = head.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toContain('class="head__photo"');
+      expect(img, route).toMatch(/\/_astro\/griffith-observatory-golden\./);
+      expect(img, route).toContain('loading="eager"');
+      expect(head, route).toMatch(/<p class="kicker kicker--bar"[^>]*>About us</);
+      expect(head, `${route}: nothing centred`).not.toMatch(/class="[^"]*\bcenter\b/);
+    }
+    // Every rule below is the About page's own, by its scope.
+    const cid = html('/about').match(/<section class="section head"[^>]* data-astro-cid-(\w+)/)?.[1];
+    expect(cid, "the About page's scope").toBeTruthy();
+    const rule = (selector: string, from = css()) =>
+      [...from.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim() === selector.replace(/@/g, `[data-astro-cid-${cid}]`))
+        .flatMap(([, , body]) => body.split(';'));
+    const outside = (needle: RegExp) =>
+      css().replace(/@media print\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '').match(needle) !== null;
+    const narrow = within(/^\((?:max-width:\s?959px|width<=959px)\)$/);
+    const wide = within(/^\((?:min-width:\s?960px|width>=960px)\)$/);
+
+    // The band and the stacking it needs, outside the print rules, which
+    // repeat the band for a printed dark page. Top to bottom, which the
+    // minifier writes without its angle.
+    const head = rule('.head@');
+    expect(head).toEqual(expect.arrayContaining(['isolation:isolate', 'position:relative', 'overflow:hidden']));
+    expect(head.join(';')).toMatch(/background:linear-gradient\((?:180deg,\s?)?#dcdde9,\s?#ccd2e4\)/);
+    expect(outside(new RegExp(String.raw`\.head\[data-astro-cid-${cid}\]\{[^}]*isolation:isolate[^}]*background:linear-gradient`))).toBe(true);
+    // A short fade on the cream keeps the palm crown crisp; a longer one on
+    // the black under 960px, where a short one shows as a grey step.
+    expect(rule('.head__photo@').join(';')).toMatch(/mask-image:linear-gradient\((?:180deg,\s?)?(?:transparent|#0000),\s?#000 10%\)/);
+    expect(rule('html[data-theme=dark] .head__photo@', narrow).join(';')).toMatch(
+      /mask-image:linear-gradient\((?:180deg,\s?)?(?:transparent|#0000),\s?#000 25%\)/,
+    );
+    expect(rule('html[data-theme=dark] .head__photo@')).toContain('filter:brightness(.26)');
+    // From 960px: behind the words, held at its right, the words at most
+    // 30em wide, and her Japanese lead folding where she folds it.
+    expect(rule('.head__photo@', wide)).toEqual(
+      expect.arrayContaining(['position:absolute', 'z-index:-1', 'object-fit:cover', 'object-position:100% 70%', 'mask-image:none']),
+    );
+    expect(rule('.head__text@', wide)).toContain('max-width:30em');
+    expect(rule('html[lang=ja] .head__lead@', wide)).toContain('text-wrap:balance');
+    // Her rule where her swash is, between the headline and the lead.
+    for (const route of ['/about', '/ja/about']) {
+      const section = html(route).match(/<section class="section head"[^]*?<\/section>/)?.[0] ?? '';
+      expect(section, route).toMatch(/<\/h1>\s*<span class="rule"[^>]*><\/span>\s*<p class="body head__lead"/);
+    }
+    // Her gold label: 4.5:1 on both ends of the band, worked out, not
+    // pinned; the page's own gold falls under it. A printed dark page,
+    // which brings the band back, takes the same gold.
+    const gold = rule('html:not([data-theme=dark]) .head@').find((d) => d.startsWith('--gold-text:'))?.split(':')[1] ?? '';
+    for (const stop of ['#dcdde9', '#ccd2e4']) {
+      expect(ratio(parseHex(gold).rgb, parseHex(stop).rgb), `label on ${stop}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(ratio(solid(cream(), 'gold-text'), parseHex('#ccd2e4').rgb), "the page's gold").toBeLessThan(4.5);
+    const printed = within(/^print$/);
+    expect(rule('html[data-theme=dark] .head@', printed)).toContain(`--gold-text:${gold}`);
+  });
+
+  // Her part names (09): ABOUT US after a short gold bar; FOUNDER and THE
+  // EXPERIENCE between two gold hairlines, with no rule under them. The
+  // experience is set left, as is the founder's heading.
+  it('marks her part names with her gold bar and hairlines', () => {
+    for (const route of ['/about', '/ja/about']) {
+      const doc = html(route);
+      for (const label of ['Founder', 'The experience']) {
+        const tag = doc.match(new RegExp(`<p class="kicker kicker--lined"[^>]*>${label}</p>\\s*(<[^>]+>)`));
+        expect(tag, `${route}: ${label}`).not.toBeNull();
+        expect(tag?.[1], `${route}: ${label}, no rule after it`).not.toMatch(/class="rule/);
+      }
+      // Nothing between the page and the experience text centres it.
+      const main = doc.match(/<main[^]*<\/main>/)?.[0] ?? '';
+      const upTo = main.slice(0, main.indexOf('exp__title'));
+      const section = upTo.slice(upTo.lastIndexOf('<section'));
+      expect(section, route).not.toMatch(/class="[^"]*\bcenter\b/);
+      expect(main.slice(0, main.indexOf('founder__title')), route).not.toMatch(/<div class="founder[^"]*\bcenter\b/);
+    }
+    // Borders, which print where backgrounds do not, spaced by margins, which
+    // Safari before 14.1 keeps where it has no flex gap; the second hairline
+    // comes in by the label's trailing tracking.
+    expect(block('.kicker--bar:before')).toMatch(/(?:^|;)border-left:2px solid var\(--gold-deco\)/);
+    expect(block('.kicker--bar:before')).toMatch(/(?:^|;)margin-right:10px/);
+    for (const side of ['before', 'after']) {
+      expect(block(`.kicker--lined:${side}`)).toMatch(/(?:^|;)border-top:1px solid var\(--gold-deco\)/);
+    }
+    expect(block('.kicker--lined:before')).toMatch(/(?:^|;)margin-right:14px/);
+    expect(block('.kicker--lined:after')).toMatch(/(?:^|;)margin-left:calc\(14px - \.2em\)/);
+    expect(block('.kicker--bar') + block('.kicker--lined'), 'no flex gap').not.toMatch(/(?:^|;)gap:/);
+    expect(css()).not.toMatch(/\.founder__title\[data-astro-cid-[^\]]+\]\{[^}]*text-align:center/);
+  });
+
   it('follows the founder with one full-width photo, cut to a band', () => {
     for (const route of ['/about', '/ja/about']) {
       const band = html(route).match(/<div class="band"[^]*?<\/div>/)?.[0] ?? '';
@@ -1429,6 +1536,44 @@ describe('the About page, in her five parts', () => {
       expect(count(main, /class="btn[ "]/g), route).toBe(1);
       expect(main, route).toMatch(new RegExp(`<a class="btn btn--solid[^"]*" href="${contact}"`));
     }
+  });
+
+  // Her ending (09): the line and the button on a sunset sky, the downtown
+  // skyline under them running straight into the black footer. The photo
+  // says nothing the line does not, so its alt is empty, and it is below the
+  // fold, so it loads lazily. It is held at its foot, and the section runs a
+  // seventh of the width and a little sky past the button, which keeps the
+  // words above the first tower; in the dark theme the sky dims.
+  it('ends on her sunset skyline, straight into the footer', () => {
+    for (const route of ['/about', '/ja/about']) {
+      const main = html(route).match(/<main[^]*<\/main>/)?.[0] ?? '';
+      const closing = main.match(/<section class="section closing"[^]*?<\/section>/)?.[0] ?? '';
+      expect(closing, route).toContain('class="h2 h2--statement"');
+      expect(closing.indexOf('<picture'), 'the photo after the words').toBeGreaterThan(closing.indexOf('closing__cta'));
+      const img = closing.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/\/_astro\/downtown-skyline-apricot\./);
+      expect(img, route).toContain('class="closing__photo"');
+      expect(img, route).toMatch(/ alt(?:="")? /);
+      expect(img, route).toContain('loading="lazy"');
+      // The last part of the page, so the footer follows it.
+      expect(main.lastIndexOf('<section'), route).toBe(main.indexOf(closing));
+    }
+    const rules = css();
+    expect(rules).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{[^}]*padding-bottom:calc\(14\.3vw \+ 24px\)/);
+    // Tighter on a phone, as her strip is: 12px of sky still clears the
+    // towers at 320px.
+    const phone = within(/^\((?:max-width:\s?639px|width<=639px)\)$/);
+    expect(phone).toMatch(
+      /\.closing\[data-astro-cid-[^\]]+\]\{(?=[^}]*padding-top:28px)(?=[^}]*padding-bottom:calc\(14\.3vw \+ 12px\))[^}]*\}/,
+    );
+    expect(rules).toMatch(
+      /\.closing__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*object-fit:cover)(?=[^}]*object-position:50% 100%)[^}]*\}/,
+    );
+    expect(rules).toMatch(/html\[data-theme=dark\] \.closing__photo\[data-astro-cid-[^\]]+\]\{filter:brightness\(\.3\)\}/);
+    // The button's focus ring takes the deeper gold on the apricot sky, and
+    // the skyline meets the footer with no hairline between.
+    expect(rules).toMatch(/html:not\(\[data-theme=dark\]\) \.closing\[data-astro-cid-[^\]]+\]\{--gold-text:#6e5613\}/);
+    expect(rules).toMatch(/body:has\(\.closing__photo\) \.site-footer\{border-top-color:(?:transparent|#0000)\}/);
   });
 
   it('keeps the nav name she chose', () => {
@@ -2886,6 +3031,12 @@ describe('the photographs made for each spot', () => {
       file: 'beach-palms-dusk',
       en: 'Palm trees along a beach at dusk, under a lavender and peach sky',
       ja: '夕暮れの海辺に並ぶヤシの木',
+    },
+    {
+      page: '/about',
+      file: 'griffith-observatory-golden',
+      en: 'Griffith Observatory above Los Angeles at golden hour, downtown in the distance',
+      ja: '夕日のグリフィス天文台。遠くにダウンタウンの街並み',
     },
     {
       page: '/about',
