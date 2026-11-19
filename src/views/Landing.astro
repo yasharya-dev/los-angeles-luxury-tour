@@ -452,17 +452,20 @@ const c = copy[locale];
   /* ----------------------------------------------------------- closing */
 
   /* The call's wall: the photo fills a band the page's full width, from a
-     little under the reservation note to the footer, held at its top left
-     where the fronds are, as she asks a phone to crop it. The wall is light
-     everywhere (no pixel under a luma of 169, even in the fronds' shadows),
-     so the words read in dark ink over any of it. */
+     little under the reservation note to the footer, and the band waits in
+     the wall's colour until the photo arrives. The photo is graded to her
+     wall's pale cream (06), its frond shadows kept warm tan. On a phone the
+     band is drawn by its height and cut at its sides; held at its top and
+     centre, the fronds keep the top left, about half the width across, and
+     the words start about a quarter of the width down, under them, as hers
+     do. The wall is light everywhere (no pixel under a luma of 176, even in
+     the fronds' shadows), so the words read in dark ink over any of it. */
   .invite {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
     margin: clamp(32px, 5vw, 48px) calc(-1 * var(--gutter)) calc(-1 * var(--section-y));
-    padding: clamp(48px, 9vw, 96px) var(--gutter) var(--section-y);
-    background: #f8e4cd;
+    padding: clamp(88px, 9vw, 96px) var(--gutter) var(--section-y);
+    background: #f5ebe0;
   }
   /* top and left, not inset, which Safari before 14.1 cannot read. */
   .invite__photo {
@@ -473,22 +476,38 @@ const c = copy[locale];
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 0 0;
+    object-position: 50% 0;
   }
   .closing__body {
     color: var(--ink);
   }
+  /* The button's focus ring, a shade deeper on the wall, where the page's
+     gold clears 3:1 by a hair beside the button's shadow. */
+  :global(html:not([data-theme='dark'])) .invite {
+    --gold-text: #6e5613;
+  }
   /* In the dark theme the words are light, so the wall is dimmed under
-     them; a printed page is cream and prints it as it is. */
+     them, and the band waits in the dimmed wall's colour. A printed page is
+     cream from either theme: the wall as it is, and her divider's rules
+     drawn as borders, which paper keeps where it drops a background (they
+     would print white across the wall). */
   :global(html[data-theme='dark']) .invite {
-    background: var(--bg);
+    background: #4a4743;
   }
   :global(html[data-theme='dark']) .invite__photo {
     filter: brightness(0.3);
   }
   @media print {
+    :global(html[data-theme='dark']) .invite {
+      background: #f5ebe0;
+    }
     :global(html[data-theme='dark']) .invite__photo {
       filter: none;
+    }
+    .closing__text :global(.divider__rule) {
+      height: 0;
+      border-top: 1px solid var(--hairline);
+      background: none;
     }
   }
   /* The wall meets the footer with no line between. */
