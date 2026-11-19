@@ -348,6 +348,42 @@ html[lang='ja'] .kicker[lang='en'] {
   }
 }
 
+/* Her part names on the About page (09): ABOUT US set left after a short
+   gold bar, and FOUNDER and THE EXPERIENCE centred between two gold
+   hairlines. Each takes the place of a label and the rule under it.
+   Decoration, so her accent. Drawn as borders, which a printer keeps where
+   it drops backgrounds, and spaced by margins, which Safari before 14.1
+   keeps where it has no flex gap. The last letter's tracking falls after
+   it, so the second hairline comes in by that much and the two gaps match. */
+.kicker--bar {
+  display: flex;
+  align-items: center;
+}
+.kicker--bar::before {
+  content: '';
+  flex: 0 0 auto;
+  height: 15px;
+  margin-right: 10px;
+  border-left: 2px solid var(--gold-deco);
+}
+.kicker--lined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kicker--lined::before,
+.kicker--lined::after {
+  content: '';
+  flex: 0 0 36px;
+  border-top: 1px solid var(--gold-deco);
+}
+.kicker--lined::before {
+  margin-right: 14px;
+}
+.kicker--lined::after {
+  margin-left: calc(14px - 0.2em);
+}
+
 /* Her small gold line: the accent that replaced the corner triangles. Sits
    under a label or between a heading and its text. Decoration, so it may use
    her accent. */
