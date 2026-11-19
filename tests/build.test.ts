@@ -1456,7 +1456,7 @@ describe('the About page, in her five parts', () => {
     expect(rule('html[data-theme=dark] .head__photo@', narrow).join(';')).toMatch(
       /mask-image:linear-gradient\((?:180deg,\s?)?(?:transparent|#0000),\s?#000 25%\)/,
     );
-    expect(rule('html[data-theme=dark] .head__photo@')).toContain('filter:brightness(.3)');
+    expect(rule('html[data-theme=dark] .head__photo@')).toContain('filter:brightness(.26)');
     // From 960px: behind the words, held at its right, the words at most
     // 30em wide, and her Japanese lead folding where she folds it.
     expect(rule('.head__photo@', wide)).toEqual(
@@ -1570,6 +1570,10 @@ describe('the About page, in her five parts', () => {
       /\.closing__photo\[data-astro-cid-[^\]]+\]\{(?=[^}]*position:absolute)(?=[^}]*object-fit:cover)(?=[^}]*object-position:50% 100%)[^}]*\}/,
     );
     expect(rules).toMatch(/html\[data-theme=dark\] \.closing__photo\[data-astro-cid-[^\]]+\]\{filter:brightness\(\.3\)\}/);
+    // The button's focus ring takes the deeper gold on the apricot sky, and
+    // the skyline meets the footer with no hairline between.
+    expect(rules).toMatch(/html:not\(\[data-theme=dark\]\) \.closing\[data-astro-cid-[^\]]+\]\{--gold-text:#6e5613\}/);
+    expect(rules).toMatch(/body:has\(\.closing__photo\) \.site-footer\{border-top-color:(?:transparent|#0000)\}/);
   });
 
   it('keeps the nav name she chose', () => {

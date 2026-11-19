@@ -278,8 +278,10 @@ const c = copy[locale];
   :global(html[data-theme='dark']) .head {
     background: var(--bg);
   }
+  /* 0.26, not the closing's 0.3: her label is the opening's tightest line,
+     and this keeps it clear of 4.5:1 by a margin on the widest screens. */
   :global(html[data-theme='dark']) .head__photo {
-    filter: brightness(0.3);
+    filter: brightness(0.26);
   }
   /* A short fade keeps the palm crown crisp on the cream; on the black, a
      short one shows as a grey step, so it runs longer there. */
@@ -393,8 +395,7 @@ const c = copy[locale];
   @media (max-width: 359px) {
     .founder__figure {
       float: none;
-      margin: 0 auto 16px;
-      text-align: center;
+      margin: 0 0 16px;
     }
   }
 
@@ -581,6 +582,17 @@ const c = copy[locale];
       padding-top: 28px;
       padding-bottom: calc(14.3vw + 12px);
     }
+  }
+
+  /* The button's focus ring, a shade deeper on this sky: the page's gold
+     is about 3.2:1 on the apricot beside it. */
+  :global(html:not([data-theme='dark'])) .closing {
+    --gold-text: #6e5613;
+  }
+  /* The skyline meets the footer with no line between, as in her picture;
+     the footer's hairline shows on the dimmed photo in the dark theme. */
+  :global(body:has(.closing__photo) .site-footer) {
+    border-top-color: transparent;
   }
 
   /* In the dark theme the line is light: the sky goes dark under it. A

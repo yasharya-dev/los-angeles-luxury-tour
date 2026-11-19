@@ -383,6 +383,12 @@ html[lang='ja'] .kicker[lang='en'] {
 .kicker--lined::after {
   margin-left: calc(14px - 0.2em);
 }
+/* A Japanese page tracks its labels at 0.12em on a phone (above). */
+@media (max-width: 480px) {
+  html[lang='ja'] .kicker--lined::after {
+    margin-left: calc(14px - 0.12em);
+  }
+}
 
 /* Her small gold line: the accent that replaced the corner triangles. Sits
    under a label or between a heading and its text. Decoration, so it may use
