@@ -510,6 +510,99 @@ describe('the homepage, in her six sections', () => {
     expect(count(closing, /<a /g)).toBe(1);
     expect(closing).toContain('href="/ja/contact"');
   });
+
+  // Her contact call (06) stands on a pale cream wall in late sun, palm
+  // fronds' shadows at its top left: a band the page's full width, from
+  // under the reservation note to the footer, with no line between. The
+  // photo only sets the light (empty alt) and is below the fold (lazy). On
+  // a phone it is held at its top and centre, with the words about a quarter
+  // of the width down, under the fronds; in the dark theme it dims under the
+  // light words, and a printed page is cream from either theme.
+  it('stands her closing call on a sunlit wall with palm shadows, into the footer', () => {
+    for (const route of ['/', '/ja']) {
+      const closing = html(route).match(/<section class="section closing[\s\S]*?<\/section>/)?.[0] ?? '';
+      const invite = closing.slice(closing.indexOf('<div class="invite"'));
+      expect(invite.indexOf('<h2'), route).toBeGreaterThan(-1);
+      expect(closing.indexOf('class="reservation plate"'), 'the note before the wall').toBeLessThan(closing.indexOf('<div class="invite"'));
+      const img = invite.match(/<img [^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/\/_astro\/palm-shadows-plaster\./);
+      expect(img, route).toContain('class="invite__photo"');
+      expect(img, route).toMatch(/ alt(?:="")? /);
+      expect(img, route).toContain('loading="lazy"');
+      expect(img, route).toContain('sizes="(max-width: 479px) 620px, 100vw"');
+      // The closing section is the page's last, so the wall meets the footer.
+      const main = html(route).match(/<main[^]*<\/main>/)?.[0] ?? '';
+      expect(main.lastIndexOf('<section'), route).toBe(main.indexOf('<section class="section closing'));
+    }
+
+    // Every rule below is the homepage's own, by its scope.
+    const cid = html('/').match(/<div class="invite"[^>]* data-astro-cid-(\w+)/)?.[1];
+    expect(cid, "the homepage's scope").toBeTruthy();
+    const scoped = (selector: string) => selector.replace(/@/g, `[data-astro-cid-${cid}]`);
+    const rule = (selector: string, from = css()) =>
+      [...from.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim() === scoped(selector))
+        .flatMap(([, , body]) => body.split(';'));
+
+    // The band: the page's full width, from under the note into the footer,
+    // the words about a quarter of a phone's width down, waiting in the wall's
+    // colour. Its stacking keeps the photo behind the words and inside it.
+    expect(rule('.invite@')).toEqual(
+      expect.arrayContaining([
+        'position:relative',
+        'isolation:isolate',
+        'margin:clamp(32px, 5vw, 48px) calc(-1 * var(--gutter)) calc(-1 * var(--section-y))',
+        'padding:clamp(88px, 9vw, 96px) var(--gutter) var(--section-y)',
+        'background:#f5ebe0',
+      ]),
+    );
+    // The photo fills it, held at its top and centre, sized, not set by
+    // inset, which Safari before 14.1 cannot read.
+    const photo = rule('.invite__photo@');
+    expect(photo).toEqual(
+      expect.arrayContaining([
+        'position:absolute',
+        'top:0',
+        'left:0',
+        'z-index:-1',
+        'width:100%',
+        'height:100%',
+        'object-fit:cover',
+        'object-position:50% 0',
+      ]),
+    );
+    expect(photo.join(';'), 'set by inset').not.toMatch(/(?:^|;)inset:/);
+    expect(rule('html:not([data-theme=dark]) .invite@')).toContain('--gold-text:#6e5613');
+
+    // Dimmed in the dark theme, waiting in the dimmed wall's colour; on
+    // paper, cream again, by rules that come after the ones they undo.
+    const sheet = css();
+    const dimmed = rule('html[data-theme=dark] .invite__photo@', sheet).find((d) => d.startsWith('filter:'));
+    expect(dimmed).toBe('filter:brightness(.3)');
+    expect(rule('html[data-theme=dark] .invite@', sheet)).toContain('background:#4a4743');
+    const printed = within(/^print$/);
+    expect(rule('html[data-theme=dark] .invite@', printed)).toContain('background:#f5ebe0');
+    expect(rule('html[data-theme=dark] .invite__photo@', printed)).toContain('filter:none');
+    for (const [screen, paper] of [
+      ['html[data-theme=dark] .invite@{background:#4a4743}', 'html[data-theme=dark] .invite@{background:#f5ebe0}'],
+      ['html[data-theme=dark] .invite__photo@{filter:brightness(.3)}', 'html[data-theme=dark] .invite__photo@{filter:none}'],
+    ]) {
+      expect(sheet.indexOf(scoped(screen)), screen).toBeGreaterThan(-1);
+      expect(sheet.indexOf(scoped(paper)), `${paper} after ${screen}`).toBeGreaterThan(sheet.indexOf(scoped(screen)));
+    }
+    // Her divider's rules print as borders: paper drops a background, and
+    // Chromium prints a dropped one white, across the wall.
+    expect(rule('.closing__text@ .divider__rule', printed)).toEqual(
+      expect.arrayContaining(['border-top:1px solid var(--hairline)', 'height:0']),
+    );
+    expect(sheet).toMatch(/body:has\(\.invite__photo\) \.site-footer\{border-top-color:(?:transparent|#0000)\}/);
+
+    // In the dark theme the dimming is what keeps the light words legible:
+    // over the worst a photo can do, a pure-white pixel at 30%, the ink
+    // still clears 4.5:1.
+    const grey: RGB = [255 * 0.3, 255 * 0.3, 255 * 0.3];
+    expect(ratio(solid(dark(), 'ink'), grey), 'ink on the dimmed wall').toBeGreaterThanOrEqual(4.5);
+  });
 });
 
 // All the built CSS, minified, as one string.
