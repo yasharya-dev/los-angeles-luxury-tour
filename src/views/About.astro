@@ -6,7 +6,7 @@ import Icon from '../components/Icon.astro';
 import Photo from '../components/Photo.astro';
 import Phrases from '../components/Phrases.astro';
 import portrait from '../assets/portrait.jpg';
-import coast from '../assets/hero-malibu.jpg';
+import coast from '../assets/malibu-cliff-house.webp';
 
 interface Props {
   locale: Locale;
@@ -47,7 +47,7 @@ const copy = {
     ],
     portraitAlt: 'Portrait of the founder',
 
-    coastAlt: 'Waves breaking below a house on the Malibu coast',
+    coastAlt: 'A house on the cliffs above the Malibu coast at sunset',
     // Held together by no-break spaces, so a line never ends on a lone 'go.'
     expTitle: `Not only where${NBSP}you${NBSP}go. How you spend the time, in your own way.`,
     exp: [
@@ -78,7 +78,7 @@ const copy = {
     ],
     portraitAlt: '代表のポートレート',
 
-    coastAlt: 'マリブの海岸。波打ち際に建つ邸宅',
+    coastAlt: '夕日のマリブ海岸。崖の上に建つ邸宅',
     expTitle: ['行き先だけでなく、', BR, '過ごし方まで、', 'あなたらしく。'],
     exp: [
       '観光地を巡るだけでなく、あなたのペースやご希望に合わせて、ロサンゼルスの魅力を深く感じられる旅をご提案します。',
@@ -102,7 +102,7 @@ const c = copy[locale];
   <div class="measure measure--wide center">
     <p class="kicker" lang={en}>{labels.about}</p>
     <span class="rule"></span>
-    <h1 class="h2"><Phrases text={c.title} /></h1>
+    <h1 class="h2 h2--page"><Phrases text={c.title} /></h1>
     {c.lead.map((para) => <p class="body head__lead"><Phrases text={para} /></p>)}
   </div>
 </section>
@@ -151,7 +151,7 @@ const c = copy[locale];
   <div class="measure measure--wide center">
     <p class="kicker" lang={en}>{labels.experience}</p>
     <span class="rule"></span>
-    <h2 class="h2"><Phrases text={c.expTitle} /></h2>
+    <h2 class="h2 h2--statement"><Phrases text={c.expTitle} /></h2>
     {c.exp.map((para) => <p class="body exp__para"><Phrases text={para} /></p>)}
   </div>
 
@@ -179,7 +179,7 @@ const c = copy[locale];
 {/* 5. Her closing line and the one gold button. */}
 <section class="section section--deep">
   <div class="measure measure--wide center">
-    <h2 class="h2"><Phrases text={c.closingTitle} /></h2>
+    <h2 class="h2 h2--statement"><Phrases text={c.closingTitle} /></h2>
     <span class="rule"></span>
     <a class="btn btn--solid btn--pill btn--end-icon closing__cta" href={p('/contact')}>
       {c.cta}

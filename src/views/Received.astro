@@ -43,7 +43,7 @@ const en = locale === 'en' ? undefined : 'en';
   <div class="measure measure--narrow center">
     <span class="received__icon"><Icon name="check-circle" size={44} /></span>
     <p class="kicker" lang={en}>Request received</p>
-    <h1 class="h2 received__title"><Phrases text={c.title} /></h1>
+    <h1 class="h2 h2--page received__title"><Phrases text={c.title} /></h1>
     <p class="body"><Phrases text={c.body} /></p>
     <Fragment set:html={SUMMARY_MARK} />
     <p class="body received__final"><Phrases text={c.final} /></p>
@@ -66,6 +66,12 @@ const en = locale === 'en' ? undefined : 'en';
   .received__title {
     margin-block: 10px 14px;
   }
+  /* Her break (お申し込みを / 受け付けました。) at every width: on a wide
+     screen the page-title size would otherwise run it on one line. */
+  :global(html[lang='ja']) .received__title {
+    max-width: 13em;
+    margin-inline: auto;
+  }
 
   .received__final {
     margin-top: 18px;
@@ -86,6 +92,7 @@ const en = locale === 'en' ? undefined : 'en';
     border: 1px solid var(--card-edge);
     border-radius: var(--radius-card);
     background: var(--card);
+    box-shadow: var(--shadow-card);
     text-align: left;
   }
   :global(.received-summary__title) {

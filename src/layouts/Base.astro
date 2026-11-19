@@ -29,12 +29,13 @@ const site = Astro.site?.origin ?? 'https://losangelesluxurytour.com';
 const canonical = new URL(pathname, site).href;
 
 // One image for both locales: photography and the logo, no text, composed
-// by scripts/og.mjs from the same assets the hero uses.
+// by scripts/og.mjs from the same assets the hero uses. The Japanese is a
+// draft for Amelia's read.
 const ogImage = new URL('/og/default.jpg', site).href;
 const ogAlt =
   locale === 'ja'
-    ? 'ダウンタウン・ロサンゼルスを望むパームツリーの並木道と、Los Angeles Luxury Tourのロゴ'
-    : 'Palm-lined road above downtown Los Angeles with the Los Angeles Luxury Tour logo';
+    ? '夕日に照らされたハリウッドサインと、Los Angeles Luxury Tourのロゴ'
+    : 'The Hollywood Sign at sunset above Los Angeles, with the Los Angeles Luxury Tour logo';
 ---
 
 <!doctype html>

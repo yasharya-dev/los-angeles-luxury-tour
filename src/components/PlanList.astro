@@ -111,23 +111,42 @@ const tierLabel: Record<Tier, string> = {
     gap: clamp(26px, 4vw, 40px);
   }
 
+  /* The label, then a fine line to the edge. */
   .tier__label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     margin-bottom: 12px;
   }
+  .tier__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hairline-soft);
+  }
 
+  /* Her cards stand apart on the cream (04), each its own sheet of paper. */
   .tier__list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 12px;
+    gap: 28px;
   }
 
+  /* Two columns keep the narrow gap until the cards have room for it: a
+     wider one under 960px folds a Japanese plan title onto a second line. */
   @media (min-width: 720px) {
     .tier__list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
       align-items: start;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .tier__list {
+      gap: 24px;
     }
   }
 

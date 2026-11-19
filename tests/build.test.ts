@@ -2,8 +2,11 @@
 // `npm test` chains them.
 
 import { describe, expect, it, beforeAll } from 'vitest';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
+import sharp from 'sharp';
 import { offerings } from '../src/data/offerings';
 import { journeys } from '../src/data/journeys';
 import { plans } from '../src/data/plans';
@@ -590,6 +593,26 @@ const namesAButtonClass = (selector: string) => {
 // block of each (a rule inside @media keeps its own selector).
 const cssRules = () => [...css().matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
 
+// The rules inside every @media or @supports block whose condition matches,
+// run together. The minifier may write a width query either way round, so
+// the condition is a pattern: /^\((?:min-width:\s?681px|width>=681px)\)$/.
+const within = (condition: RegExp) => {
+  const text = css();
+  const found: string[] = [];
+  for (const m of text.matchAll(/@(?:media|supports)([^{]*)\{/g)) {
+    if (!condition.test(m[1].trim())) continue;
+    const start = (m.index ?? 0) + m[0].length;
+    let depth = 1;
+    let i = start;
+    for (; i < text.length && depth > 0; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') depth--;
+    }
+    found.push(text.slice(start, i - 1));
+  }
+  return found.join('');
+};
+
 describe('the palette and the gold rule', () => {
   // Cream is the default theme, on :root, with the four colours from Amelia's
   // brief. Her accent gold is about 3:1 on the cream: fine for a decorative
@@ -612,10 +635,11 @@ describe('the palette and the gold rule', () => {
   });
 
   // Every surface text gold can sit on, in both themes. The alternate cream
-  // is the binding one.
+  // is the binding one. The glow is where the section under the homepage
+  // photo starts, under her gold phrase.
   it('clears AA for text gold on every surface, in both themes', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
-      for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+      for (const surface of ['bg', 'bg-deep', 'card', 'glow'] as const) {
         const r = ratio(solid(decls, 'gold-text'), solid(decls, surface));
         expect(r, `${name}: --gold-text on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
       }
@@ -625,7 +649,7 @@ describe('the palette and the gold rule', () => {
   it('clears AA for the soft and mid ink on every surface, in both themes', () => {
     for (const [name, decls] of [['cream', cream()], ['dark', dark()]] as const) {
       for (const ink of ['ink-mid', 'ink-soft'] as const) {
-        for (const surface of ['bg', 'bg-deep', 'card'] as const) {
+        for (const surface of ['bg', 'bg-deep', 'card', 'glow'] as const) {
           const under = solid(decls, surface);
           const r = ratio(over(parseHex(token(decls, ink)), under), under);
           expect(r, `${name}: --${ink} on --${surface} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
@@ -911,8 +935,17 @@ describe('the palette and the gold rule', () => {
   it('defines every custom property the CSS reads without a fallback', () => {
     const sheet = css();
     const defined = new Set([...sheet.matchAll(/(--[a-z0-9-]+):/gi)].map((m) => m[1]));
-    // Set inline, on the element, by the component that reads it.
-    const inline = new Set(['--box']);
+    // Set inline, on the element, by the component that reads it: the
+    // monogram's size, where the sign is in the homepage photo. Read from the
+    // pages, so a name the component misspells is still missing.
+    const inline = new Set(
+      allPages().flatMap((file) =>
+        [...readFileSync(file, 'utf8').matchAll(/ style="([^"]*)"/g)].flatMap(([, style]) =>
+          [...style.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]),
+        ),
+      ),
+    );
+    expect([...inline]).toEqual(expect.arrayContaining(['--box', '--top', '--foot']));
     const missing = [...sheet.matchAll(/var\((--[a-z0-9-]+)\)/gi)]
       .map((m) => m[1])
       .filter((name) => !defined.has(name) && !inline.has(name));
@@ -1120,12 +1153,23 @@ describe('photographs', () => {
   // A landscape photo in a tall phone hero is drawn wider than the screen. At
   // 100vw the browser fetched a 768px file and stretched it to over twice that.
   it('tells the browser the hero is drawn wider than a phone screen', () => {
-    // The hero is 52% of the screen tall and the photo is 1920 by 1255, so
-    // on an upright phone it is drawn 80% of a screen-height wide. The
-    // Experience band is cut to 3:2 and is 32% tall: 48%.
+    // The homepage photo is drawn by the sign on it, a little over twice as
+    // tall as the words under the sign: never more than about 700px tall,
+    // 1244px wide for its 1672 by 941, until the screen is wider than that.
+    // The Experience band is cut to 3:2 and is 32% tall: 48%.
     const sizes = (route: string) => picture(route).match(/sizes="([^"]+)"/)?.[1] ?? '';
-    expect(sizes('/')).toBe('(max-aspect-ratio: 80/100) 80vh, 100vw');
+    expect(sizes('/')).toBe('(max-width: 1244px) 1244px, 100vw');
     expect(sizes('/experience')).toBe('(max-aspect-ratio: 48/100) 48vh, 100vw');
+  });
+
+  // The homepage photo is 1672px wide: the ladder ends on its own width, and
+  // asks for nothing wider, which would only be the same pixels enlarged.
+  it('never asks for more of the homepage photo than it holds', () => {
+    const sets = [...picture('/').matchAll(/srcset="([^"]+)"/g)].map((m) =>
+      m[1].split(',').map((part) => Number(part.trim().split(' ')[1].replace('w', ''))),
+    );
+    expect(sets.length).toBe(3);
+    for (const widths of sets) expect(Math.max(...widths)).toBe(1672);
   });
 
   // The About page opens on her portrait, in the first screen of a phone;
@@ -1133,7 +1177,7 @@ describe('photographs', () => {
   it('leaves every photo that is not a page opener to load lazily', () => {
     const imgs = html('/about').match(/<img[^>]*>/g) ?? [];
     const portrait = imgs.find((i) => i.includes('portrait')) ?? '';
-    const band = imgs.find((i) => i.includes('hero-malibu')) ?? '';
+    const band = imgs.find((i) => i.includes('malibu-cliff-house')) ?? '';
     expect(portrait).toContain('loading="eager"');
     expect(band).toContain('loading="lazy"');
     expect(band).toContain('decoding="async"');
@@ -1396,6 +1440,25 @@ describe('text over a photograph', () => {
     expect(rules).toMatch(
       /\.photo-hero__inner\[data-astro-cid-[^\]]+\]\{[^}]*padding-top:var\(--rise\)/,
     );
+  });
+
+  // And no deeper than that: her picture shows the hillside through it (01).
+  // Nothing under the first line is darker than the stop at it, and it is a
+  // warm brown, as her picture is, not a grey.
+  it('darkens the photo no more than the text needs, in a warm brown', () => {
+    const rules = css();
+    const ink = rules.match(/\.photo-hero\[data-astro-cid-[^\]]+\]\{[^}]*--ink:(#[0-9a-f]{3,8})/)?.[1] ?? '';
+    const gradient =
+      rules.match(/\.photo-hero__inner\[data-astro-cid-[^\]]+\]:before\{[^}]*background:linear-gradient\(([^;}]*)\)/)?.[1] ??
+      '';
+    const depth = parseHex(gradient.match(/(#[0-9a-f]{8}) var\(--rise\)/)?.[1] ?? '#0000');
+    const r = ratio(parseHex(ink).rgb, over(depth, [255, 255, 255]));
+    expect(r, `the ink over white at the first line is ${r.toFixed(2)}:1`).toBeLessThan(4.8);
+    const stops = [...gradient.matchAll(/#[0-9a-f]{8}/gi)].map((m) => parseHex(m[0]));
+    expect(stops.length).toBeGreaterThan(2);
+    for (const stop of stops) expect(stop.a).toBeLessThanOrEqual(depth.a);
+    const [red, green, blue] = depth.rgb;
+    expect(red > green && green > blue, `rgb ${depth.rgb.join(', ')}`).toBe(true);
   });
 
   // On paper a browser drops backgrounds, and a plate's ink is light: the
@@ -2245,6 +2308,11 @@ describe('the pages, after the full site test', () => {
       expect(print[name], name).toBe(cream[name]);
     }
     for (const [name, value] of Object.entries(print)) expect(value, name).toBe(cream[name]);
+    // The luxe pass's own: the glow under the homepage photo, her paper
+    // card's edge and shadow, and her two tiles.
+    expect(Object.keys(print)).toEqual(
+      expect.arrayContaining(['--glow', '--card-edge', '--shadow-card', '--tile', '--tile-mark', '--feature-tile']),
+    );
   });
 });
 
@@ -2308,5 +2376,481 @@ describe('the pages, after their own review', () => {
       expect(html(route), route).toMatch(/California Seller of Travel<\/span> <span class="site-footer__whole"/);
     }
     expect(css()).not.toMatch(/\.site-footer__registration\[data-astro-cid-[^\]]+\]\{[^}]*display:flex/);
+  });
+});
+
+// The luxe pass (#100): what brings the pages closer to her pictures, held
+// where a regression would show first.
+describe('the look of her pictures', () => {
+  // Her headings are set heavier than the body (01 to 10). English Cormorant
+  // stays at 500.
+  it('sets the Japanese headings at 600 and leaves the English ones at 500', () => {
+    const rules = css();
+    expect(rules).toMatch(/html\[lang=ja\] \.h2\{[^}]*font-weight:600/);
+    expect(rules).toMatch(/html\[lang=ja\] \.h3\{[^}]*font-weight:600/);
+    expect(rules).toMatch(/\}\.h2\{[^}]*font-weight:500/);
+    expect(rules).toMatch(/\}\.h3\{[^}]*font-weight:500/);
+    expect(rules).toMatch(/html\[lang=ja\] \.body\{[^}]*line-height:1\.85/);
+  });
+
+  // Her statement lines (02, 06, 09) and page titles (09, 10B) a step
+  // larger, on the pages her pictures show them, and on the pages beside
+  // them: the consultation form, its thank-you and the not-found page take
+  // the size her booking form and its received page have. Each size comes
+  // after the phone rule for every Japanese .h2 in the same sheet, so it
+  // wins there.
+  it('gives her statement lines and page titles their larger sizes, where she has them', () => {
+    const sheet =
+      readdirSync(join(DIST, '_astro'))
+        .filter((f) => f.endsWith('.css'))
+        .map((f) => readFileSync(join(DIST, '_astro', f), 'utf8'))
+        .find((text) => text.includes('.h2--statement{')) ?? '';
+    const phone = sheet.indexOf('{html[lang=ja] .h2{letter-spacing:.02em;font-size:21px}');
+    expect(phone).toBeGreaterThan(-1);
+    for (const [name, least, most] of [
+      ['statement', 21, 32],
+      ['page', 24, 40],
+    ] as const) {
+      const rule = sheet.match(new RegExp(`html\\[lang=ja\\] \\.h2--${name}\\{([^}]*)\\}`));
+      expect(rule?.[1], name).toMatch(new RegExp(`font-size:clamp\\(${least}px,[^;]*,\\s?${most}px\\)`));
+      expect(rule?.index ?? -1, name).toBeGreaterThan(phone);
+    }
+    const uses = (route: string, tag: 'h1' | 'h2', name: string) =>
+      count(html(route), new RegExp(`<${tag} class="h2 h2--${name}[ "]`, 'g'));
+    expect(uses('/ja', 'h2', 'statement'), 'value and closing').toBe(2);
+    expect(uses('/ja/about', 'h2', 'statement'), 'experience and closing').toBe(2);
+    // The contact page's title is the homepage's closing question, which she
+    // draws on two lines (06): it takes the statement size, not the page one.
+    expect(uses('/ja/contact', 'h1', 'statement'), 'contact title').toBe(1);
+    for (const route of [
+      '/ja/about',
+      '/ja/book',
+      '/ja/book/dodgers-transfer',
+      '/ja/book/received',
+      '/ja/consult',
+      '/ja/thank-you',
+      '/ja/404',
+    ]) {
+      expect(uses(route, 'h1', 'page'), route).toBe(1);
+    }
+    // Her break in the received title at every width: お申し込みを / 受け付けました。
+    expect(css()).toMatch(/html\[lang=ja\] \.received__title\[data-astro-cid-[^\]]+\]\{max-width:13em/);
+  });
+
+  // Her cards are white paper with a warm grey edge and a soft shadow (04,
+  // 07, 10A), with no gold around them: painted on the card, the edge is a
+  // near-neutral line, not a gold one. Hers paints #dedbd6 to #dbd8d3 on her
+  // #f4f1ec, about 1.23 to 1.26:1. The plan cards stand on the deeper cream
+  // of their section and the price card on the page's own, so the edge is
+  // held at both: at least 1.2:1 on the deeper one, where it is faintest,
+  // and under 1.4:1 on the lighter one, where it is clearest and must still
+  // read as her soft line, not a drawn one. Her reason cards keep a gold
+  // edge (03).
+  it('edges the cards in a warm line, not gold, except her reason cards', () => {
+    const rules = css();
+    expect(rules).toMatch(/\.panel\{[^}]*border:1px solid var\(--card-edge\)/);
+    expect(rules).toMatch(/\.panel\{[^}]*box-shadow:var\(--shadow-card\)/);
+    const painted = over(parseHex(token(cream(), 'card-edge')), solid(cream(), 'card'));
+    const chroma = Math.max(...painted) - Math.min(...painted);
+    expect(chroma, `the edge paints rgb ${painted.map(Math.round).join(', ')}`).toBeLessThan(12);
+    const onDeep = ratio(painted, solid(cream(), 'bg-deep'));
+    expect(onDeep, `the edge is ${onDeep.toFixed(2)}:1 on the deeper cream`).toBeGreaterThanOrEqual(1.2);
+    const onPage = ratio(painted, solid(cream(), 'bg'));
+    expect(onPage, `the edge is ${onPage.toFixed(2)}:1 on the page's cream`).toBeLessThan(1.4);
+    expect(rules).toMatch(/\.reason\[data-astro-cid-[^\]]+\]\{[^}]*border-color:var\(--hairline\)/);
+    expect(html('/ja')).toMatch(/<li class="reason panel"/);
+    // Her flat taupe placeholder tile (04), with the monogram in white on
+    // it; on paper and in a contrast theme, where the taupe is not drawn,
+    // the monogram keeps its own gold rather than going white on white.
+    expect(rules).toMatch(/\.plan__thumb\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--tile\)/);
+    expect(token(cream(), 'tile'), 'one flat colour, as hers').toMatch(/^#[0-9a-f]{6}$/);
+    expect(rules).toMatch(
+      /@media print,\s?\(forced-colors:\s?active\)\{\.plan__thumb\[data-astro-cid-[^\]]+\] \.monogram img\{filter:none\}/,
+    );
+  });
+
+  // Gold is kept for fine lines and marks, not ten prices down a list.
+  it('sets the prices on the plan cards in ink', () => {
+    expect(css()).toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--ink\)/);
+    expect(css()).not.toMatch(/\.plan__amount\[data-astro-cid-[^\]]+\]\{[^}]*color:var\(--gold/);
+  });
+
+  // Her cards stand well apart in one column (04). In two columns the gap
+  // stays as narrow as it was until 960px: 4px more from 720px folded two
+  // Japanese plan titles onto a second line at 768.
+  it('spaces the plan cards as hers, without folding a title in two columns', () => {
+    const gap = (rules: string) =>
+      Number(rules.match(/\.tier__list\[data-astro-cid-[^\]]+\]\{(?:[^}]*;)?gap:(\d+)px/)?.[1] ?? NaN);
+    const top = cssRules().find(([selector, body]) => /^\.tier__list\[/.test(selector) && /(?:^|;)display:grid/.test(body));
+    expect(Number(top?.[1].match(/(?:^|;)gap:(\d+)px/)?.[1]), 'one column').toBe(28);
+    expect(gap(within(/^\((?:min-width:\s?720px|width>=720px)\)$/)), 'two columns').toBe(16);
+    expect(gap(within(/^\((?:min-width:\s?960px|width>=960px)\)$/)), 'two wide columns').toBe(24);
+  });
+
+  // The warm light under her hero (01, 02): the section under the photo
+  // starts on it and fades to the page's cream. In the dark theme it is the
+  // page's own black.
+  it('lights the section under the homepage photo with her warm glow', () => {
+    expect(css()).toMatch(
+      /\.value\[data-astro-cid-[^\]]+\]\{background:linear-gradient\(180deg,\s?var\(--glow\) 0%,\s?var\(--bg\) 85%\)/,
+    );
+    expect(token(cream(), 'glow')).not.toBe(token(cream(), 'bg'));
+    expect(token(dark(), 'glow')).toBe(token(dark(), 'bg'));
+  });
+
+  // The Hollywood photo and the ballpark are already at sunset and twilight:
+  // nothing is laid over either, and no rule colours a photo.
+  it('lays no wash over the homepage photo or the ballpark', () => {
+    const rules = css();
+    expect(rules).not.toMatch(/mix-blend-mode|--dusk/);
+    expect(rules).not.toMatch(/\.(?:photo-hero__img|hero__photo)[^{}]*\{[^}]*filter:/);
+    for (const route of ['/', '/ja']) {
+      const hero = html(route).match(/<section class="(photo-hero [^"]*)"/)?.[1] ?? '';
+      expect(hero.split(' ').sort(), route).toEqual(['photo-hero', 'photo-hero--landmark', 'photo-hero--tall', 'plate']);
+    }
+    for (const prefix of ['', '/ja']) {
+      expect(html(`${prefix}/experience/dodgers-transfer`), prefix).toMatch(/<div class="hero" data-astro-cid-/);
+    }
+  });
+
+  // The homepage's first screen, until a portrait photo for phones arrives.
+  // The label has air under the sign's legs, as her hillside gives it (01),
+  // one token, set once, wherever the photo is sized or placed by it. Wider
+  // than a phone the sky over the sign is kept to its least, so the hero
+  // stays nearer half a laptop's screen, and the sign's row is sized for the
+  // photo as it is drawn there, so that sky is really there. A phone on its
+  // side drops the sign's row and the floor, frames the sunset and the
+  // skyline in place of the sign the words would cover, and trims the
+  // gradient's rise and the space under the button, so the button is in the
+  // first view. Safari before 15.4 has no svh: plain values, in a block the
+  // minifier cannot fold away.
+  it('gives the label air under the sign, and keeps the button in the first view', () => {
+    const rules = css();
+    const own = (selector: string, from = rules) =>
+      [...from.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter(([, s]) => s.trim().replace(/\[data-astro-cid-[^\]]+\]/g, '') === selector)
+        .map(([, , body]) => body)
+        .join(';');
+    const clear = Number(own('.photo-hero--landmark').match(/(?:^|;)--clear:(\d+)px/)?.[1]);
+    expect(clear, 'the air under the sign').toBeGreaterThanOrEqual(12);
+    expect(count(rules, /[{;]--clear:/g), 'one --clear for every screen').toBe(1);
+    expect(own('.photo-hero__img--landmark').match(/var\(--clear\)/g)?.length, 'the photo').toBe(2);
+    expect(own('.photo-hero--landmark:before'), 'the row above the words').toMatch(/height:calc\([^;]*var\(--clear\)/);
+    expect(rules, 'a gap written in by hand').not.toMatch(/var\(--rise\) \+ \d+px/);
+
+    const wider = within(/^\((?:min-width:\s?560px|width>=560px)\)$/);
+    expect(own('.photo-hero--landmark', wider)).toMatch(/(?:^|;)--sky:32px(?:;|$)/);
+    expect(own('.photo-hero--landmark:before', wider)).toMatch(
+      /(?:^|;)--drawn:max\(720px,\s?100vw \/ var\(--shape\)\)(?:;|$)/,
+    );
+
+    // The photo's place reaches the styles as a property: an object-position
+    // written on the element would win over the sideways frame below.
+    expect(own('.photo-hero__img').split(';')).toContain('object-position:var(--place)');
+    for (const route of ['/', '/ja']) {
+      const img = html(route).match(/<img [^>]*photo-hero__img--landmark[^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/ style="--place: \d+% [\d.]+%"/);
+      expect(img, route).not.toMatch(/object-position/);
+    }
+    // The Experience band hands its crop over the same way.
+    for (const route of ['/experience', '/ja/experience']) {
+      const img = html(route).match(/<img [^>]*class="photo-hero__img[ "][^>]*>/)?.[0] ?? '';
+      expect(img, route).toMatch(/ style="--place: 50% 40%"/);
+      expect(img, route).not.toMatch(/object-position/);
+    }
+
+    const sideways = within(/^\(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)$/);
+    expect(own('.photo-hero--landmark', sideways).split(';')).toEqual(
+      expect.arrayContaining(['--rise:32px', 'min-height:0']),
+    );
+    expect(own('.photo-hero--landmark:before', sideways)).toMatch(/(?:^|;)content:none(?:;|$)/);
+    expect(own('.photo-hero__img--landmark', sideways).split(';')).toEqual(
+      expect.arrayContaining([
+        'inset:0 auto 0 0',
+        'width:200%',
+        'max-width:none',
+        'height:100%',
+        'object-position:0 50%',
+        'transform:none',
+        'mask-image:none',
+      ]),
+    );
+    expect(own('.photo-hero--tall .photo-hero__text', sideways)).toMatch(/(?:^|;)padding-bottom:16px(?:;|$)/);
+    // Last, as it overrides rules of the same weight: the text's padding,
+    // the phone's frame, the landmark's own.
+    const at = (rule: RegExp) => {
+      const index = rules.search(rule);
+      expect(index, String(rule)).toBeGreaterThan(-1);
+      return index;
+    };
+    const turned = at(/@media \(orientation:\s?landscape\) and \((?:max-height:\s?500px|height<=500px)\)\{\.photo-hero/);
+    for (const rule of [
+      /\.photo-hero--landmark\[[^\]]+\]\{--rise:24px/,
+      /\.photo-hero__img--landmark\[[^\]]+\]\{--need:/,
+      /@media \((?:max-width:\s?559px|width<=559px)\)\{\.photo-hero/,
+      /\.photo-hero--tall\[[^\]]+\] \.photo-hero__text\[[^\]]+\]\{padding-bottom:clamp\(/,
+    ]) {
+      expect(at(rule), String(rule)).toBeLessThan(turned);
+    }
+    // The phone and wide blocks come after the base rules they override, or
+    // a laptop's sky row would fall back to the phone's.
+    const base = Math.max(
+      at(/\.photo-hero--landmark\[[^\]]+\]\{--rise:24px/),
+      at(/\.photo-hero--landmark\[[^\]]+\]:before\{content:""/),
+    );
+    for (const block of [
+      /@media \((?:min-width:\s?560px|width>=560px)\)\{\.photo-hero/,
+      /@media \((?:max-width:\s?559px|width<=559px)\)\{\.photo-hero/,
+    ]) {
+      expect(at(block), String(block)).toBeGreaterThan(base);
+    }
+
+    const old = within(/^not \(height:\s?1svh\)$/);
+    expect(own('.photo-hero--tall', old)).toMatch(/(?:^|;)min-height:340px(?:;|$)/);
+    expect(own('.photo-hero--short', old)).toMatch(/(?:^|;)min-height:210px(?:;|$)/);
+    expect(own('.photo-hero--landmark', old)).toMatch(/(?:^|;)--sky:\d+px(?:;|$)/);
+  });
+
+  // Her 10A: the price card holds the prices and her note, and her request
+  // button and 「まずは相談する」 sit under it, on the page. Her phone bar still
+  // finds the button by its attribute.
+  it('puts the request button and the second action under the price card', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(`${prefix}/experience/dodgers-transfer`);
+      const pricing = doc.match(/<section class="pricing"[^>]*>[^]*?<\/section>/)?.[0] ?? '';
+      const first = pricing.indexOf('<a ');
+      expect(first, prefix).toBeGreaterThan(-1);
+      const card = pricing.slice(0, first);
+      expect(card, prefix).toContain('<div class="pricing__card panel"');
+      expect(card, prefix).toContain('class="caption pricing__note"');
+      // Every box the card opens is closed before the first link.
+      expect(count(card, /<div[ >]/g), prefix).toBe(count(card, /<\/div>/g));
+      const links = pricing.slice(first).match(/<a [^>]*>/g) ?? [];
+      expect(links.length, prefix).toBe(2);
+      expect(links[0], prefix).toMatch(/^<a class="btn btn--solid pricing__cta" href="[^"]+" data-plan-request/);
+      expect(links[1], prefix).toMatch(/^<a class="pricing__ask" href="[^"]*\/consult\?service=dodgers-transfer"/);
+    }
+    // 「まずは相談する」 as wide as its words, so its focus ring hugs them,
+    // and far enough under the button that the ring stands clear of it: at
+    // 1px a gold ring against the olive read as touching.
+    const ask = css().match(/\.pricing__ask\[data-astro-cid-[^\]]+\]\{([^}]*)\}/)?.[1] ?? '';
+    expect(ask).toMatch(/(?:^|;)width:fit-content/);
+    expect(ask).toMatch(/(?:^|;)margin-inline:auto/);
+    const ring = css().match(/\}:focus-visible\{outline:(\d+)px solid [^;}]+;outline-offset:(\d+)px\}/);
+    expect(ring, 'the focus ring').not.toBeNull();
+    const clear = Number(ask.match(/(?:^|;)margin-top:(\d+)px/)?.[1]) - Number(ring?.[1]) - Number(ring?.[2]);
+    expect(clear, 'between the ring and the button').toBeGreaterThanOrEqual(4);
+  });
+
+  // Her plain rows, her soft tiles, and her black ending (10A): the closing
+  // panel, then the way back on the same black.
+  it('ends her plan page on the black panel, after plain rows', () => {
+    for (const prefix of ['', '/ja']) {
+      const doc = html(`${prefix}/experience/dodgers-transfer`);
+      expect(doc, prefix).toMatch(/<div class="details" data-astro-cid-/);
+      expect(doc, prefix).toMatch(/<\/section><p class="back plate"/);
+      expect(doc.indexOf('<p class="back plate"'), prefix).toBeGreaterThan(
+        doc.indexOf('<section class="closing plate"'),
+      );
+    }
+    const rules = css();
+    expect(rules).toMatch(/\.tile\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--feature-tile\)/);
+    expect(rules).toMatch(/\.back\[data-astro-cid-[^\]]+\]\{[^}]*background:var\(--bar\)/);
+    const cid = html('/experience/dodgers-transfer').match(/<section class="closing plate"[^>]* data-astro-cid-(\w+)/)?.[1];
+    expect(cid, "the plan page's scope").toBeTruthy();
+    const scoped = (name: string) => String.raw`\.${name}\[data-astro-cid-${cid}\]`;
+    // On a phone the black follows the last row straight on, with one line
+    // between them at most: the last row draws none, the panel's edge ends
+    // the list. That edge is transparent in the cream theme, unseen on the
+    // black, but a contrast theme draws it; in the dark theme, where the
+    // panel's black is the page's own, a gold line marks where it starts.
+    // The panel and the way back keep the page's gutters. From 681px the
+    // card stands apart, the last row keeps its line, and the page's padding
+    // keeps the card off the footer.
+    const ending = [
+      new RegExp(String.raw`${scoped('detail')}:last-child\{border-bottom:0\}`),
+      new RegExp(String.raw`${scoped('closing')}\{(?:[^}]*;)?padding:24px var\(--gutter\) 22px(?:;|\})`),
+      new RegExp(String.raw`${scoped('back')}\{(?:[^}]*;)?padding:4px var\(--gutter\) 12px(?:;|\})`),
+    ];
+    expect(rules).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{(?:[^}]*;)?border-top:1px solid (?:#0000|transparent)(?:;|\})/);
+    expect(rules).toMatch(
+      new RegExp(String.raw`html\[data-theme=dark\] ${scoped('closing')}\{border-top-color:var\(--hairline\)\}`),
+    );
+    const wide = within(/^\((?:min-width:\s?681px|width>=681px)\)$/);
+    expect(wide).toMatch(
+      /\.detail\[data-astro-cid-[^\]]+\]:last-child\{border-bottom:1px solid var\(--hairline-soft\)\}/,
+    );
+    expect(wide).toMatch(/\.closing\[data-astro-cid-[^\]]+\]\{[^}]*border-radius:/);
+    expect(wide).toMatch(
+      new RegExp(String.raw`${scoped('plan-page')}\{(?:[^}]*;)?padding-bottom:clamp\(36px,\s?6vw,\s?56px\)(?:;|\})`),
+    );
+    // The phone's ending is the default and the wide card overrides it, so
+    // no width falls between a max-width: 680px and a min-width: 681px,
+    // as one at 680.8px under browser zoom did. Defaults, in no block, and
+    // before the card that overrides them with the same weight.
+    const phone = within(/^\((?:max-width:\s?680px|width<=680px)\)$/);
+    expect(phone).not.toMatch(/\.(?:plan-page|detail|closing|back)\[/);
+    const card = rules.search(
+      new RegExp(String.raw`@media \((?:min-width:\s?681px|width>=681px)\)\{[^@]*${scoped('closing')}`),
+    );
+    expect(card, 'the wide card').toBeGreaterThan(-1);
+    const blocks = within(/./);
+    for (const rule of ending) {
+      expect(rules.search(rule), String(rule)).toBeGreaterThan(-1);
+      expect(rules.search(rule), String(rule)).toBeLessThan(card);
+      expect(blocks.search(rule), `${rule} inside a block`).toBe(-1);
+    }
+  });
+});
+
+// The photos made for each spot (#101), in place of the stand-ins found
+// online, each with words that say what it shows. The Japanese ones are
+// drafts for Amelia's read.
+describe('the photographs made for each spot', () => {
+  const SPOTS = [
+    {
+      page: '',
+      file: 'hero-hollywood',
+      en: 'The Hollywood Sign lit by the setting sun, with downtown Los Angeles in the distance',
+      ja: '夕日に照らされたハリウッドサイン。遠くにダウンタウンの街並み',
+    },
+    {
+      page: '/experience/dodgers-transfer',
+      file: 'stadium-twilight',
+      en: 'A full ballpark at twilight, its field lit, palm trees beyond the outfield',
+      ja: '夕暮れの野球場。満員のスタンドと、ライトに照らされたグラウンド',
+    },
+    {
+      page: '/experience',
+      file: 'beach-palms-dusk',
+      en: 'Palm trees along a beach at dusk, under a lavender and peach sky',
+      ja: '夕暮れの海辺に並ぶヤシの木',
+    },
+    {
+      page: '/about',
+      file: 'malibu-cliff-house',
+      en: 'A house on the cliffs above the Malibu coast at sunset',
+      ja: '夕日のマリブ海岸。崖の上に建つ邸宅',
+    },
+  ];
+  const img = (route: string, file: string) =>
+    (html(route).match(/<img [^>]*>/g) ?? []).find((tag) => tag.includes(`/_astro/${file}.`)) ?? '';
+
+  it('shows each photo in its spot, with its words, in both languages', () => {
+    for (const spot of SPOTS) {
+      for (const [prefix, alt] of [
+        ['', spot.en],
+        ['/ja', spot.ja],
+      ] as const) {
+        const route = prefix + spot.page || '/';
+        expect(img(route, spot.file), `${route}: ${spot.file}`).toContain(`alt="${alt}"`);
+      }
+    }
+    // The ballpark is the plan's photo wherever the plan is shown: beside its
+    // name on the booking form, where words would only repeat the name.
+    for (const route of ['/book/dodgers-transfer', '/ja/book/dodgers-transfer']) {
+      // Astro writes an empty alt as the bare attribute.
+      expect(img(route, 'stadium-twilight'), route).toMatch(/ alt(?:="")? /);
+    }
+  });
+
+  // The link preview is built from the homepage's photo by scripts/og.mjs,
+  // and the committed image is the one the script makes now: a new photo,
+  // logo or layout without a rerun fails here. Compared as decoded pixels,
+  // since another machine's encoder may write other bytes for the same
+  // picture: within a level per channel on average, and no more than one
+  // pixel in a thousand off by more than 16 in any channel. The logo draws
+  // under a hundredth of the frame, too little to move the average: a
+  // preview without it, or with it faded, fails on the pixel count.
+  it('builds the link preview from the homepage photo, as the script makes it now', async () => {
+    const root = process.cwd();
+    const script = readFileSync(join(root, 'scripts/og.mjs'), 'utf8');
+    const photo = readFileSync(join(root, 'src/views/Landing.astro'), 'utf8').match(
+      /import heroImg from '\.\.\/assets\/([^']+)'/,
+    )?.[1];
+    expect(photo, "the homepage's photo").toBeTruthy();
+    expect(script).toContain(`sharp('src/assets/${photo}')`);
+    const dir = mkdtempSync(join(tmpdir(), 'llt-og-'));
+    try {
+      const fresh = join(dir, 'default.jpg');
+      execFileSync(process.execPath, ['scripts/og.mjs', fresh], { cwd: root, stdio: 'pipe' });
+      const pixels = (file: string) => sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      const [kept, made] = await Promise.all([pixels(join(root, 'public/og/default.jpg')), pixels(fresh)]);
+      expect([kept.info.width, kept.info.height, kept.info.channels]).toEqual([1200, 630, 3]);
+      expect([made.info.width, made.info.height, made.info.channels]).toEqual([1200, 630, 3]);
+      let sum = 0;
+      let off = 0;
+      for (let i = 0; i < kept.data.length; i += 3) {
+        let most = 0;
+        for (let c = i; c < i + 3; c++) {
+          const d = Math.abs(kept.data[c] - made.data[c]);
+          sum += d;
+          most = Math.max(most, d);
+        }
+        if (most > 16) off++;
+      }
+      const mean = sum / kept.data.length;
+      const share = off / (kept.data.length / 3);
+      console.info(
+        `link preview against a fresh render: mean difference ${mean.toFixed(3)} per channel, ` +
+          `${off} pixels (${(share * 100).toFixed(3)}%) off by more than 16`,
+      );
+      expect(mean, `mean difference per channel ${mean.toFixed(2)} of 255`).toBeLessThanOrEqual(1);
+      expect(share, `${off} pixels off by more than 16`).toBeLessThanOrEqual(0.001);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  // Its words say what it shows: the sign, and no longer the palm road of
+  // the stand-in it replaced. One preview for every page, so every page in
+  // each language.
+  it('describes the link preview as the Hollywood photo, in both languages', () => {
+    const alt = (doc: string) => doc.match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1] ?? '';
+    expect(alt(html('/'))).toBe(
+      'The Hollywood Sign at sunset above Los Angeles, with the Los Angeles Luxury Tour logo',
+    );
+    expect(alt(html('/ja'))).toBe('夕日に照らされたハリウッドサインと、Los Angeles Luxury Tourのロゴ');
+    for (const file of allPages()) {
+      const doc = readFileSync(file, 'utf8');
+      const ja = /<html lang="ja"/.test(doc);
+      expect(alt(doc), file).toMatch(ja ? /ハリウッドサイン/ : /Hollywood Sign/);
+      expect(alt(doc), file).not.toMatch(/palm|downtown|パームツリー|並木道|ダウンタウン/i);
+    }
+  });
+
+  // The stand-ins found online, with no record of where they came from, and
+  // two files nothing used: gone, and nothing anywhere points at them. Every
+  // file in the project, the root's config and .github's included, read from
+  // the disk, so the check needs no git and runs as well in a source export;
+  // and every file the build wrote. Left out: this file, which has to name
+  // them, and what is not the project's own at the root: the dependencies,
+  // git, Astro's and Wrangler's local state and the working notes. A file
+  // with a NUL byte in it is an image or a font, with no words to check.
+  it('leaves no trace of the photos it took out', () => {
+    const gone =
+      /hero-dtla|hero-dusk|hero-malibu|divider-architecture|\bsteak\.(?:[\w-]+\.)?(?:jpe?g|webp|avif|png)\b|assets\/steak\b/;
+    const root = process.cwd();
+    const walk = (dir: string, skip: string[] = []): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        if (skip.includes(entry.name)) return [];
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) return walk(path);
+        return entry.isFile() ? [path] : [];
+      });
+    // dist is read on its own, below.
+    const own = walk(root, ['node_modules', '.git', '.astro', '.wrangler', '.arya', 'dist']).filter(
+      (path) => path !== join(root, 'tests', 'build.test.ts'),
+    );
+    expect(own.length).toBeGreaterThan(100);
+    expect(own).toContain(join(root, 'astro.config.mjs'));
+    expect(own).toContain(join(root, '.github', 'workflows', 'ci.yml'));
+    for (const file of [...own, ...walk(DIST)]) {
+      const name = file.slice(root.length);
+      expect(name, 'a file by that name').not.toMatch(gone);
+      const bytes = readFileSync(file);
+      // The match, not the file: some of these are large, or private.
+      if (!bytes.includes(0)) expect(new TextDecoder().decode(bytes).match(gone)?.[0], name).toBeUndefined();
+    }
   });
 });
